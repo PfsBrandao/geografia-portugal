@@ -11,7 +11,7 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 0; }
     header { padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    #map { height: calc(100vh - 74px); }
+    #map { height: calc(100vh - 74px); background: #ffffff; } /* fundo branco */
     input, select, button { padding: 8px; }
     input { min-width: 320px; }
     .status { color: #222; }
@@ -28,6 +28,13 @@
 
     <label id="label-area">Distrito:
       <select id="area"></select>
+    </label>
+
+    <label>Visual:
+      <select id="viewMode">
+        <option value="jogo">Jogo (sem nomes)</option>
+        <option value="treino">Treino (mostra nomes)</option>
+      </select>
     </label>
 
     <input id="guess" type="text" placeholder="Escreve um nome e carrega Enter" />
@@ -53,7 +60,7 @@
         .replace(/[\u0300-\u036f]/g, "");
     }
 
-    // Tenta “adivinhar” o campo de nome/distrito/municipio (inclui campos comuns em CAOP)
+    // campos comuns em CAOP + tolerância
     function pickProp(props, keys) {
       for (const k of keys) {
         if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
@@ -71,19 +78,17 @@
       return pickProp(props, ["NM_FREG", "FREGUESIA", "FREG", "NOME_FREG", "freguesia", "Freguesia", "NAME_3", "NAME3", "NAME"]);
     }
 
-    const map = L.map("map");
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+    const map = L.map("map", { zoomControl: true });
+
+    // IMPORTANTE: sem tileLayer (sem mapa do mundo)
+    // Fundo já está branco via CSS.
 
     let allConcelhos = null;
     let allDistritos = null;
     let allFreguesias = null;
 
-    let layer = null;         // camada atual (concelhos OU freguesias)
-    let outlineLayer = null;  // contorno do distrito (cenário B)
-
+    let layer = null;         // concelhos OU freguesias
+    let outlineLayer = null;  // contorno do distrito
     let byName = new Map();
     let solved = new Set();
     let total = 0;
@@ -91,6 +96,7 @@
     const modeSel = document.getElementById("mode");
     const areaSel = document.getElementById("area");
     const areaLabel = document.getElementById("label-area");
+    const viewModeSel = document.getElementById("viewMode");
     const guessInput = document.getElementById("guess");
     const statusEl = document.getElementById("status");
 
@@ -102,15 +108,14 @@
     function styleFeature(feature) {
       const props = feature.properties || {};
       const mode = modeSel.value;
-
       const rawName = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
       const key = normalize(rawName);
       const ok = solved.has(key);
 
       return {
-        color: "#ffffff",
-        weight: 1.5,
-        fillColor: ok ? "#444" : "#ffffff",
+        color: "#111111",   // fronteiras visíveis (preto)
+        weight: 1.2,
+        fillColor: ok ? "#111111" : "#ffffff",
         fillOpacity: 1
       };
     }
@@ -118,7 +123,6 @@
     function clearCurrentLayer() {
       if (layer) layer.remove();
       layer = null;
-
       byName.clear();
       solved.clear();
       total = 0;
@@ -138,7 +142,11 @@
           const key = normalize(rawName);
 
           if (key) byName.set(key, lyr);
-          if (rawName) lyr.bindTooltip(rawName, { sticky: true, opacity: 0.7 });
+
+          // Só mostra nomes em modo "Treino"
+          if (viewModeSel.value === "treino" && rawName) {
+            lyr.bindTooltip(rawName, { sticky: true, opacity: 0.8 });
+          }
         }
       }).addTo(map);
 
@@ -154,7 +162,6 @@
     }
 
     function fillAreaSelectorForDistricts() {
-      // lista de distritos a partir dos concelhos
       const set = new Set();
       for (const f of allConcelhos.features) {
         const d = getDistrictName(f.properties || {});
@@ -172,7 +179,6 @@
     }
 
     function fillAreaSelectorForMunicipalities() {
-      // lista de municípios a partir das freguesias
       const set = new Set();
       for (const f of allFreguesias.features) {
         const m = getMunicipalityName(f.properties || {});
@@ -189,11 +195,9 @@
       }
     }
 
-    // CENÁRIO B: desenha o contorno do distrito selecionado por cima
     function drawDistrictOutline(districtName) {
       if (outlineLayer) outlineLayer.remove();
       outlineLayer = null;
-
       if (!allDistritos) return;
 
       const wanted = normalize(districtName);
@@ -205,11 +209,14 @@
 
       outlineLayer = L.geoJSON(
         { type: "FeatureCollection", features: feats },
-        { style: { color: "#111", weight: 4, fillOpacity: 0, opacity: 1 } }
+        { style: { color: "#8B0000", weight: 4, fillOpacity: 0, opacity: 1 } } // contorno externo
       ).addTo(map);
     }
 
     function loadMunicipiosForDistrict(districtName) {
+      // garante sempre tudo branco ao mudar de distrito
+      solved.clear();
+
       const wanted = normalize(districtName);
       const feats = allConcelhos.features.filter(
         f => normalize(getDistrictName(f.properties || {})) === wanted
@@ -220,6 +227,9 @@
     }
 
     function loadFreguesiasForMunicipio(municipalityName) {
+      // garante sempre tudo branco ao mudar de município
+      solved.clear();
+
       // no modo freguesias não usamos contorno do distrito
       if (outlineLayer) outlineLayer.remove();
       outlineLayer = null;
@@ -233,12 +243,10 @@
     }
 
     async function init() {
-      // carrega dados (uma vez)
       allConcelhos = await fetch(DATA.concelhos).then(r => r.json());
       allDistritos = await fetch(DATA.distritos).then(r => r.json());
       allFreguesias = await fetch(DATA.freguesias).then(r => r.json());
 
-      // arranque em modo municípios
       modeSel.value = "municipios";
       areaLabel.childNodes[0].nodeValue = "Distrito: ";
       fillAreaSelectorForDistricts();
@@ -275,6 +283,13 @@
       guessInput.focus();
     });
 
+    // Trocar Jogo/Treino: recarrega a camada para (não) mostrar tooltips
+    viewModeSel.addEventListener("change", () => {
+      if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
+      else loadFreguesiasForMunicipio(areaSel.value);
+      guessInput.focus();
+    });
+
     guessInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const typed = normalize(guessInput.value);
@@ -300,4 +315,5 @@
   </script>
 </body>
 </html>
+
 
