@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Geografia PT — Distritos, Municípios, Freguesias</title>
 
+  <!-- evita 404 do favicon -->
+  <link rel="icon" href="data:,">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Só precisamos de Proj4 (vamos reprojetar nós, sem Proj4Leaflet) -->
+  <!-- Proj4 para reprojetar 3763 -> WGS84 -->
   <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js"></script>
 
   <style>
@@ -48,41 +51,29 @@
   <div id="map"></div>
 
   <script>
-    // Dados CAOP (remoto)
     const DATA = {
       concelhos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteConcelhos.geojson",
       distritos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson",
       freguesias: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteFreguesias.geojson"
     };
 
-    // Definir EPSG:3763 (PT-TM06/ETRS89)
+    // EPSG:3763 (PT-TM06/ETRS89) — necessário para os teus ficheiros
     const EPSG3763_DEF =
       "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333333 " +
       "+k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs";
     proj4.defs("EPSG:3763", EPSG3763_DEF);
 
-    function normalize(s) {
-      return (s || "")
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    }
-
-    function pickProp(props, keys) {
-      for (const k of keys) {
-        if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
-      }
-      return "";
-    }
-
-    // Nos ficheiros que tu tens, estes campos existem:
-    function getDistrictName(props)     { return pickProp(props, ["Distrito", "NM_DIST", "DTMN", "DTMN11", "NAME"]); }
-    function getMunicipalityName(props) { return pickProp(props, ["Concelho", "NM_CONCEL", "CONCELHO", "NAME"]); }
-    function getParishName(props)       { return pickProp(props, ["Freguesia", "NM_FREG", "FREGUESIA", "NAME"]); }
-
-    // Leaflet normal, sem tile layer, sem atribuição
+    // Leaflet sem tiles
     const map = L.map("map", { zoomControl: true, attributionControl: false });
+    // centro inicial (só para não ficares com “branco infinito” antes de carregar)
+    map.setView([39.5, -8.0], 7);
+
+    const modeSel = document.getElementById("mode");
+    const areaSel = document.getElementById("area");
+    const areaLabel = document.getElementById("label-area");
+    const viewModeSel = document.getElementById("viewMode");
+    const guessInput = document.getElementById("guess");
+    const statusEl = document.getElementById("status");
 
     let allConcelhos = null;
     let allDistritos = null;
@@ -95,16 +86,91 @@
     let solved = new Set();
     let total = 0;
 
-    const modeSel = document.getElementById("mode");
-    const areaSel = document.getElementById("area");
-    const areaLabel = document.getElementById("label-area");
-    const viewModeSel = document.getElementById("viewMode");
-    const guessInput = document.getElementById("guess");
-    const statusEl = document.getElementById("status");
+    function normalize(s) {
+      return (s || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    // Estes nomes batem certo com os teus GeoJSON (confirmado)
+    function getDistrictName(p) { return (p && p.Distrito) ? String(p.Distrito) : ""; }
+    function getMunicipalityName(p) { return (p && p.Concelho) ? String(p.Concelho) : ""; }
+    function getParishName(p) { return (p && p.Freguesia) ? String(p.Freguesia) : ""; }
 
     function updateStatus(msg) {
       if (msg) { statusEl.textContent = msg; return; }
       statusEl.textContent = `Acertados: ${solved.size} / ${total}`;
+    }
+
+    // Carregador robusto: remove BOM e faz JSON.parse
+    async function loadGeoJSON(url) {
+      const txt = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
+        return r.text();
+      });
+      const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt; // remove BOM
+      return JSON.parse(clean);
+    }
+
+    // Deteta se a geometria parece projetada (não lat/lon)
+    function looksProjected(feature) {
+      const g = feature && feature.geometry;
+      if (!g) return false;
+
+      function firstXY(coords) {
+        if (!Array.isArray(coords)) return null;
+        if (coords.length && typeof coords[0] === "number") return coords;
+        for (const c of coords) {
+          const v = firstXY(c);
+          if (v) return v;
+        }
+        return null;
+      }
+
+      const xy = firstXY(g.coordinates);
+      if (!xy) return false;
+
+      const x = xy[0], y = xy[1];
+      return Math.abs(x) > 180 || Math.abs(y) > 90;
+    }
+
+    function reprojectCoord(xy) {
+      // proj4 devolve [lon, lat]
+      return proj4("EPSG:3763", "WGS84", xy);
+    }
+
+    function reprojectGeometry(geom) {
+      const t = geom.type;
+      const c = geom.coordinates;
+
+      if (t === "Point") return { type: "Point", coordinates: reprojectCoord(c) };
+
+      if (t === "MultiPoint" || t === "LineString")
+        return { type: t, coordinates: c.map(reprojectCoord) };
+
+      if (t === "MultiLineString" || t === "Polygon")
+        return { type: t, coordinates: c.map(ring => ring.map(reprojectCoord)) };
+
+      if (t === "MultiPolygon")
+        return { type: "MultiPolygon", coordinates: c.map(poly => poly.map(ring => ring.map(reprojectCoord))) };
+
+      return geom;
+    }
+
+    function reprojectFeatureCollection(fc) {
+      const needs = looksProjected(fc.features[0]);
+      if (!needs) return fc; // já está em lat/lon
+
+      return {
+        type: "FeatureCollection",
+        features: fc.features.map(f => ({
+          type: "Feature",
+          properties: f.properties || {},
+          geometry: reprojectGeometry(f.geometry)
+        }))
+      };
     }
 
     function styleFill(feature) {
@@ -120,45 +186,6 @@
         fillOpacity: 1
       };
     }
-
-    // ---------- REPROJEÇÃO 3763 -> WGS84 (lat/lon) ----------
-    function reprojectCoordXY(xy) {
-      // proj4 devolve [lon, lat]
-      const out = proj4("EPSG:3763", "WGS84", xy);
-      return out;
-    }
-
-    function reprojectGeometry(geom) {
-      const t = geom.type;
-      const c = geom.coordinates;
-
-      if (t === "Point") {
-        return { type: "Point", coordinates: reprojectCoordXY(c) };
-      }
-      if (t === "MultiPoint" || t === "LineString") {
-        return { type: t, coordinates: c.map(reprojectCoordXY) };
-      }
-      if (t === "MultiLineString" || t === "Polygon") {
-        return { type: t, coordinates: c.map(ring => ring.map(reprojectCoordXY)) };
-      }
-      if (t === "MultiPolygon") {
-        return { type: "MultiPolygon", coordinates: c.map(poly => poly.map(ring => ring.map(reprojectCoordXY))) };
-      }
-      return geom;
-    }
-
-    function reprojectFeature(f) {
-      return {
-        type: "Feature",
-        properties: f.properties || {},
-        geometry: reprojectGeometry(f.geometry)
-      };
-    }
-
-    function reprojectFeatureCollection(features) {
-      return { type: "FeatureCollection", features: features.map(reprojectFeature) };
-    }
-    // --------------------------------------------------------
 
     function clearLayers() {
       if (fillLayer) fillLayer.remove();
@@ -182,6 +209,7 @@
           const props = feature.properties || {};
           const rawName = (modeSel.value === "municipios") ? getMunicipalityName(props) : getParishName(props);
           const key = normalize(rawName);
+
           if (key) byName.set(key, lyr);
 
           if (viewModeSel.value === "treino" && rawName) {
@@ -205,9 +233,9 @@
       );
       if (feats.length === 0) return;
 
-      const fcWgs84 = reprojectFeatureCollection(feats);
+      const fc = reprojectFeatureCollection({ type: "FeatureCollection", features: feats });
 
-      outlineLayer = L.geoJSON(fcWgs84, {
+      outlineLayer = L.geoJSON(fc, {
         style: { color: "#7A0000", weight: 4, fillOpacity: 0, opacity: 1 }
       }).addTo(map);
     }
@@ -242,8 +270,8 @@
         f => normalize(getDistrictName(f.properties || {})) === wanted
       );
 
-      const fcWgs84 = reprojectFeatureCollection(feats);
-      buildFillLayer(fcWgs84);
+      const fc = reprojectFeatureCollection({ type: "FeatureCollection", features: feats });
+      buildFillLayer(fc);
       drawDistrictOutline(districtName);
     }
 
@@ -258,8 +286,8 @@
         f => normalize(getMunicipalityName(f.properties || {})) === wanted
       );
 
-      const fcWgs84 = reprojectFeatureCollection(feats);
-      buildFillLayer(fcWgs84);
+      const fc = reprojectFeatureCollection({ type: "FeatureCollection", features: feats });
+      buildFillLayer(fc);
     }
 
     function refreshStyles() {
@@ -269,15 +297,21 @@
     }
 
     async function init() {
-      allConcelhos = await fetch(DATA.concelhos).then(r => r.json());
-      allDistritos = await fetch(DATA.distritos).then(r => r.json());
-      allFreguesias = await fetch(DATA.freguesias).then(r => r.json());
+      try {
+        updateStatus("A carregar dados...");
+        allConcelhos = await loadGeoJSON(DATA.concelhos);
+        allDistritos = await loadGeoJSON(DATA.distritos);
+        allFreguesias = await loadGeoJSON(DATA.freguesias);
 
-      modeSel.value = "municipios";
-      areaLabel.childNodes[0].nodeValue = "Distrito: ";
-      fillAreaSelectorForDistricts();
-      loadMunicipiosForDistrict(areaSel.value);
-      guessInput.focus();
+        modeSel.value = "municipios";
+        areaLabel.childNodes[0].nodeValue = "Distrito: ";
+        fillAreaSelectorForDistricts();
+        loadMunicipiosForDistrict(areaSel.value);
+        guessInput.focus();
+      } catch (e) {
+        updateStatus("Erro a carregar dados (ver Console).");
+        console.error(e);
+      }
     }
 
     modeSel.addEventListener("change", () => {
