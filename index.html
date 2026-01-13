@@ -8,10 +8,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- Projeções (para EPSG:3763 funcionar no Leaflet) -->
+  <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js"></script>
+  <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
+
   <style>
     body { font-family: Arial, sans-serif; margin: 0; }
     header { padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    #map { height: calc(100vh - 74px); background: #ffffff; } /* fundo branco */
+    #map { height: calc(100vh - 74px); background: #fff; }
     input, select, button { padding: 8px; }
     input { min-width: 320px; }
     .status { color: #222; }
@@ -45,12 +49,33 @@
   <div id="map"></div>
 
   <script>
-    // DADOS (links RAW – sem uploads)
+    // GeoJSON (remoto, sem upload)
     const DATA = {
       concelhos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteConcelhos.geojson",
       distritos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson",
       freguesias: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteFreguesias.geojson"
     };
+
+    // EPSG:3763 (PT-TM06/ETRS89) - oficial
+    // Fonte: epsg.io / DGT (PT-TM06/ETRS89)
+    const EPSG3763_DEF = "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333333 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs";
+
+    // Extensão aproximada do Continente em EPSG:3763 (em metros)
+    // (Serve para limites e para as resoluções)
+    const BOUNDS_3763 = L.bounds(
+      L.point(-119500, -300500),
+      L.point( 162500,  276500)
+    );
+
+    // Resoluções (escala por zoom). Como não usamos tiles, basta algo estável.
+    const resolutions = [];
+    let res0 = 4096; // metros/pixel no zoom 0 (valor “seguro”)
+    for (let i = 0; i < 20; i++) resolutions.push(res0 / Math.pow(2, i));
+
+    const crs3763 = new L.Proj.CRS("EPSG:3763", EPSG3763_DEF, {
+      origin: [BOUNDS_3763.min.x, BOUNDS_3763.max.y],
+      resolutions: resolutions
+    });
 
     function normalize(s) {
       return (s || "")
@@ -60,7 +85,6 @@
         .replace(/[\u0300-\u036f]/g, "");
     }
 
-    // campos comuns em CAOP + tolerância
     function pickProp(props, keys) {
       for (const k of keys) {
         if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
@@ -68,28 +92,29 @@
       return "";
     }
 
-    function getDistrictName(props) {
-      return pickProp(props, ["NM_DIST", "DTMN", "DTMN11", "distrito", "Distrito", "DISTRICT", "NAME_1", "NAME1", "NAME"]);
-    }
-    function getMunicipalityName(props) {
-      return pickProp(props, ["NM_CONCEL", "CONCELHO", "CONCEL", "NOME_CONCE", "municipio", "Município", "concelho", "Concelho", "NAME_2", "NAME2", "NAME"]);
-    }
-    function getParishName(props) {
-      return pickProp(props, ["NM_FREG", "FREGUESIA", "FREG", "NOME_FREG", "freguesia", "Freguesia", "NAME_3", "NAME3", "NAME"]);
-    }
+    // Nos teus ficheiros (os que enviaste) estes campos existem: "Distrito", "Concelho", "Freguesia"
+    function getDistrictName(props) { return pickProp(props, ["Distrito", "NM_DIST", "DTMN", "DTMN11", "NAME"]); }
+    function getMunicipalityName(props) { return pickProp(props, ["Concelho", "NM_CONCEL", "CONCELHO", "NAME"]); }
+    function getParishName(props) { return pickProp(props, ["Freguesia", "NM_FREG", "FREGUESIA", "NAME"]); }
 
-    // IMPORTANTE: sem tile layer e sem attribution do OSM
+    // MAPA: sem tiles, fundo branco, CRS projetado
     const map = L.map("map", {
+      crs: crs3763,
       zoomControl: true,
-      attributionControl: false
+      attributionControl: false,
+      maxBounds: L.latLngBounds(
+        crs3763.unproject(BOUNDS_3763.min),
+        crs3763.unproject(BOUNDS_3763.max)
+      )
     });
 
     let allConcelhos = null;
     let allDistritos = null;
     let allFreguesias = null;
 
-    let layer = null;         // concelhos OU freguesias
-    let outlineLayer = null;  // contorno do distrito
+    let fillLayer = null;       // concelhos OU freguesias
+    let outlineLayer = null;    // contorno do distrito
+
     let byName = new Map();
     let solved = new Set();
     let total = 0;
@@ -106,7 +131,7 @@
       statusEl.textContent = `Acertados: ${solved.size} / ${total}`;
     }
 
-    function styleFeature(feature) {
+    function styleFill(feature) {
       const props = feature.properties || {};
       const mode = modeSel.value;
       const rawName = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
@@ -114,28 +139,27 @@
       const ok = solved.has(key);
 
       return {
-        color: "#000000",   // fronteiras dos concelhos/freguesias
+        color: "#000",
         weight: 1.2,
-        fillColor: ok ? "#111111" : "#ffffff",
+        fillColor: ok ? "#111" : "#fff",
         fillOpacity: 1
       };
     }
 
-    function clearCurrentLayer() {
-      if (layer) layer.remove();
-      layer = null;
-
+    function clearFill() {
+      if (fillLayer) fillLayer.remove();
+      fillLayer = null;
       byName.clear();
       solved.clear();
       total = 0;
       updateStatus();
     }
 
-    function buildLayer(featuresFC) {
-      clearCurrentLayer();
+    function buildFillLayer(fc) {
+      clearFill();
 
-      layer = L.geoJSON(featuresFC, {
-        style: styleFeature,
+      fillLayer = L.Proj.geoJson(fc, {
+        style: styleFill,
         onEachFeature: (feature, lyr) => {
           const props = feature.properties || {};
           const mode = modeSel.value;
@@ -145,7 +169,6 @@
 
           if (key) byName.set(key, lyr);
 
-          // Treino: mostra nomes (Jogo: não mostra)
           if (viewModeSel.value === "treino" && rawName) {
             lyr.bindTooltip(rawName, { sticky: true, opacity: 0.85 });
           }
@@ -153,14 +176,31 @@
       }).addTo(map);
 
       total = byName.size;
-      if (total > 0) map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+      if (total > 0) map.fitBounds(fillLayer.getBounds(), { padding: [10, 10] });
       updateStatus();
     }
 
-    function refreshStyles() {
-      if (!layer) return;
-      layer.setStyle(styleFeature);
+    function refreshFillStyles() {
+      if (!fillLayer) return;
+      fillLayer.setStyle(styleFill);
       updateStatus();
+    }
+
+    function drawDistrictOutline(districtName) {
+      if (outlineLayer) outlineLayer.remove();
+      outlineLayer = null;
+
+      const wanted = normalize(districtName);
+      const feats = allDistritos.features.filter(
+        f => normalize(getDistrictName(f.properties || {})) === wanted
+      );
+
+      if (feats.length === 0) return;
+
+      outlineLayer = L.Proj.geoJson(
+        { type: "FeatureCollection", features: feats },
+        { style: { color: "#7A0000", weight: 4, fillOpacity: 0, opacity: 1 } }
+      ).addTo(map);
     }
 
     function fillAreaSelectorForDistricts() {
@@ -172,12 +212,7 @@
       const districts = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
 
       areaSel.innerHTML = "";
-      for (const d of districts) {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        areaSel.appendChild(opt);
-      }
+      for (const d of districts) areaSel.appendChild(new Option(d, d));
     }
 
     function fillAreaSelectorForMunicipalities() {
@@ -189,46 +224,23 @@
       const munis = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
 
       areaSel.innerHTML = "";
-      for (const m of munis) {
-        const opt = document.createElement("option");
-        opt.value = m;
-        opt.textContent = m;
-        areaSel.appendChild(opt);
-      }
-    }
-
-    function drawDistrictOutline(districtName) {
-      if (outlineLayer) outlineLayer.remove();
-      outlineLayer = null;
-      if (!allDistritos) return;
-
-      const wanted = normalize(districtName);
-      const feats = allDistritos.features.filter(
-        f => normalize(getDistrictName(f.properties || {})) === wanted
-      );
-
-      if (feats.length === 0) return;
-
-      outlineLayer = L.geoJSON(
-        { type: "FeatureCollection", features: feats },
-        { style: { color: "#8B0000", weight: 4, fillOpacity: 0, opacity: 1 } } // contorno do distrito
-      ).addTo(map);
+      for (const m of munis) areaSel.appendChild(new Option(m, m));
     }
 
     function loadMunicipiosForDistrict(districtName) {
-      solved.clear(); // começa tudo a branco
+      solved.clear();
 
       const wanted = normalize(districtName);
       const feats = allConcelhos.features.filter(
         f => normalize(getDistrictName(f.properties || {})) === wanted
       );
 
-      buildLayer({ type: "FeatureCollection", features: feats });
+      buildFillLayer({ type: "FeatureCollection", features: feats });
       drawDistrictOutline(districtName);
     }
 
     function loadFreguesiasForMunicipio(municipalityName) {
-      solved.clear(); // começa tudo a branco
+      solved.clear();
 
       if (outlineLayer) outlineLayer.remove();
       outlineLayer = null;
@@ -238,16 +250,14 @@
         f => normalize(getMunicipalityName(f.properties || {})) === wanted
       );
 
-      buildLayer({ type: "FeatureCollection", features: feats });
+      buildFillLayer({ type: "FeatureCollection", features: feats });
     }
 
     async function init() {
-      // carrega dados (uma vez)
       allConcelhos = await fetch(DATA.concelhos).then(r => r.json());
       allDistritos = await fetch(DATA.distritos).then(r => r.json());
       allFreguesias = await fetch(DATA.freguesias).then(r => r.json());
 
-      // modo inicial
       modeSel.value = "municipios";
       areaLabel.childNodes[0].nodeValue = "Distrito: ";
       fillAreaSelectorForDistricts();
@@ -257,7 +267,7 @@
 
     modeSel.addEventListener("change", () => {
       solved.clear();
-      refreshStyles();
+      refreshFillStyles();
 
       if (modeSel.value === "municipios") {
         areaLabel.childNodes[0].nodeValue = "Distrito: ";
@@ -275,7 +285,7 @@
 
     areaSel.addEventListener("change", () => {
       solved.clear();
-      refreshStyles();
+      refreshFillStyles();
 
       if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
       else loadFreguesiasForMunicipio(areaSel.value);
@@ -285,7 +295,6 @@
     });
 
     viewModeSel.addEventListener("change", () => {
-      // recarrega para (não) mostrar tooltips
       if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
       else loadFreguesiasForMunicipio(areaSel.value);
       guessInput.focus();
@@ -299,7 +308,7 @@
 
       if (byName.has(typed)) {
         solved.add(typed);
-        refreshStyles();
+        refreshFillStyles();
       } else {
         updateStatus(`Não encontrado: "${typed}"`);
         setTimeout(() => updateStatus(), 1200);
@@ -308,7 +317,7 @@
 
     document.getElementById("reset").addEventListener("click", () => {
       solved.clear();
-      refreshStyles();
+      refreshFillStyles();
       guessInput.focus();
     });
 
