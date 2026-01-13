@@ -38,12 +38,13 @@
   <div id="map"></div>
 
   <script>
-    // Vais colocar estes ficheiros na pasta /data do teu repositório (Passo 3)
+    // DADOS (links RAW – sem uploads)
     const DATA = {
       concelhos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteConcelhos.geojson",
       distritos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson",
       freguesias: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteFreguesias.geojson"
     };
+
     function normalize(s) {
       return (s || "")
         .trim()
@@ -52,19 +53,22 @@
         .replace(/[\u0300-\u036f]/g, "");
     }
 
-    // Tenta “adivinhar” o campo de nome/distrito/municipio, porque os GeoJSON podem variar
+    // Tenta “adivinhar” o campo de nome/distrito/municipio (inclui campos comuns em CAOP)
     function pickProp(props, keys) {
-      for (const k of keys) if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
+      for (const k of keys) {
+        if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
+      }
       return "";
     }
+
     function getDistrictName(props) {
-      return pickProp(props, ["NM_DIST", "distrito", "Distrito", "DISTRICT", "NAME_1", "NAME1"]);
+      return pickProp(props, ["NM_DIST", "DTMN", "DTMN11", "distrito", "Distrito", "DISTRICT", "NAME_1", "NAME1", "NAME"]);
     }
     function getMunicipalityName(props) {
-      return pickProp(props, ["NM_CONCEL", "concelho", "Concelho", "municipio", "Município", "NAME_2", "NAME2", "NAME"]);
+      return pickProp(props, ["NM_CONCEL", "CONCELHO", "CONCEL", "NOME_CONCE", "municipio", "Município", "concelho", "Concelho", "NAME_2", "NAME2", "NAME"]);
     }
     function getParishName(props) {
-      return pickProp(props, ["NM_FREG", "freguesia", "Freguesia", "parish", "NAME_3", "NAME3", "NAME"]);
+      return pickProp(props, ["NM_FREG", "FREGUESIA", "FREG", "NOME_FREG", "freguesia", "Freguesia", "NAME_3", "NAME3", "NAME"]);
     }
 
     const map = L.map("map");
@@ -74,9 +78,12 @@
     }).addTo(map);
 
     let allConcelhos = null;
+    let allDistritos = null;
     let allFreguesias = null;
 
-    let layer = null;
+    let layer = null;         // camada atual (concelhos OU freguesias)
+    let outlineLayer = null;  // contorno do distrito (cenário B)
+
     let byName = new Map();
     let solved = new Set();
     let total = 0;
@@ -111,16 +118,17 @@
     function clearCurrentLayer() {
       if (layer) layer.remove();
       layer = null;
+
       byName.clear();
       solved.clear();
       total = 0;
       updateStatus();
     }
 
-    function buildLayer(features) {
+    function buildLayer(featuresFC) {
       clearCurrentLayer();
 
-      layer = L.geoJSON(features, {
+      layer = L.geoJSON(featuresFC, {
         style: styleFeature,
         onEachFeature: (feature, lyr) => {
           const props = feature.properties || {};
@@ -146,7 +154,7 @@
     }
 
     function fillAreaSelectorForDistricts() {
-      // lista de distritos a partir dos concelhos (sem precisar de ficheiro de distritos)
+      // lista de distritos a partir dos concelhos
       const set = new Set();
       for (const f of allConcelhos.features) {
         const d = getDistrictName(f.properties || {});
@@ -164,7 +172,7 @@
     }
 
     function fillAreaSelectorForMunicipalities() {
-      // lista de municípios a partir das freguesias (para modo freguesias)
+      // lista de municípios a partir das freguesias
       const set = new Set();
       for (const f of allFreguesias.features) {
         const m = getMunicipalityName(f.properties || {});
@@ -181,22 +189,53 @@
       }
     }
 
+    // CENÁRIO B: desenha o contorno do distrito selecionado por cima
+    function drawDistrictOutline(districtName) {
+      if (outlineLayer) outlineLayer.remove();
+      outlineLayer = null;
+
+      if (!allDistritos) return;
+
+      const wanted = normalize(districtName);
+      const feats = allDistritos.features.filter(
+        f => normalize(getDistrictName(f.properties || {})) === wanted
+      );
+
+      if (feats.length === 0) return;
+
+      outlineLayer = L.geoJSON(
+        { type: "FeatureCollection", features: feats },
+        { style: { color: "#111", weight: 4, fillOpacity: 0, opacity: 1 } }
+      ).addTo(map);
+    }
+
     function loadMunicipiosForDistrict(districtName) {
       const wanted = normalize(districtName);
-      const feats = allConcelhos.features.filter(f => normalize(getDistrictName(f.properties || {})) === wanted);
+      const feats = allConcelhos.features.filter(
+        f => normalize(getDistrictName(f.properties || {})) === wanted
+      );
+
       buildLayer({ type: "FeatureCollection", features: feats });
-      areaLabel.firstChild.textContent = ""; // noop
+      drawDistrictOutline(districtName);
     }
 
     function loadFreguesiasForMunicipio(municipalityName) {
+      // no modo freguesias não usamos contorno do distrito
+      if (outlineLayer) outlineLayer.remove();
+      outlineLayer = null;
+
       const wanted = normalize(municipalityName);
-      const feats = allFreguesias.features.filter(f => normalize(getMunicipalityName(f.properties || {})) === wanted);
+      const feats = allFreguesias.features.filter(
+        f => normalize(getMunicipalityName(f.properties || {})) === wanted
+      );
+
       buildLayer({ type: "FeatureCollection", features: feats });
     }
 
     async function init() {
       // carrega dados (uma vez)
       allConcelhos = await fetch(DATA.concelhos).then(r => r.json());
+      allDistritos = await fetch(DATA.distritos).then(r => r.json());
       allFreguesias = await fetch(DATA.freguesias).then(r => r.json());
 
       // arranque em modo municípios
@@ -220,6 +259,7 @@
         fillAreaSelectorForMunicipalities();
         loadFreguesiasForMunicipio(areaSel.value);
       }
+
       guessInput.value = "";
       guessInput.focus();
     });
@@ -260,3 +300,4 @@
   </script>
 </body>
 </html>
+
