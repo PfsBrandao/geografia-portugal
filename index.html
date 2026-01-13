@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Geografia PT — Distritos, Municípios, Freguesias</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; }
+    header { padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    #map { height: calc(100vh - 74px); }
+    input, select, button { padding: 8px; }
+    input { min-width: 320px; }
+    .status { color: #222; }
+  </style>
+</head>
+<body>
+  <header>
+    <label>Modo:
+      <select id="mode">
+        <option value="municipios">Municípios (por Distrito)</option>
+        <option value="freguesias">Freguesias (por Município)</option>
+      </select>
+    </label>
+
+    <label id="label-area">Distrito:
+      <select id="area"></select>
+    </label>
+
+    <input id="guess" type="text" placeholder="Escreve um nome e carrega Enter" />
+    <button id="reset">Repor</button>
+    <div class="status" id="status"></div>
+  </header>
+
+  <div id="map"></div>
+
+  <script>
+    // Vais colocar estes ficheiros na pasta /data do teu repositório (Passo 3)
+    const DATA = {
+      concelhos: "data/ContinenteConcelhos.geojson",
+      freguesias: "data/ContinenteFreguesias.geojson"
+    };
+
+    function normalize(s) {
+      return (s || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    // Tenta “adivinhar” o campo de nome/distrito/municipio, porque os GeoJSON podem variar
+    function pickProp(props, keys) {
+      for (const k of keys) if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
+      return "";
+    }
+    function getDistrictName(props) {
+      return pickProp(props, ["NM_DIST", "distrito", "Distrito", "DISTRICT", "NAME_1", "NAME1"]);
+    }
+    function getMunicipalityName(props) {
+      return pickProp(props, ["NM_CONCEL", "concelho", "Concelho", "municipio", "Município", "NAME_2", "NAME2", "NAME"]);
+    }
+    function getParishName(props) {
+      return pickProp(props, ["NM_FREG", "freguesia", "Freguesia", "parish", "NAME_3", "NAME3", "NAME"]);
+    }
+
+    const map = L.map("map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    let allConcelhos = null;
+    let allFreguesias = null;
+
+    let layer = null;
+    let byName = new Map();
+    let solved = new Set();
+    let total = 0;
+
+    const modeSel = document.getElementById("mode");
+    const areaSel = document.getElementById("area");
+    const areaLabel = document.getElementById("label-area");
+    const guessInput = document.getElementById("guess");
+    const statusEl = document.getElementById("status");
+
+    function updateStatus(msg) {
+      if (msg) { statusEl.textContent = msg; return; }
+      statusEl.textContent = `Acertados: ${solved.size} / ${total}`;
+    }
+
+    function styleFeature(feature) {
+      const props = feature.properties || {};
+      const mode = modeSel.value;
+
+      const rawName = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
+      const key = normalize(rawName);
+      const ok = solved.has(key);
+
+      return {
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: ok ? "#444" : "#ffffff",
+        fillOpacity: 1
+      };
+    }
+
+    function clearCurrentLayer() {
+      if (layer) layer.remove();
+      layer = null;
+      byName.clear();
+      solved.clear();
+      total = 0;
+      updateStatus();
+    }
+
+    function buildLayer(features) {
+      clearCurrentLayer();
+
+      layer = L.geoJSON(features, {
+        style: styleFeature,
+        onEachFeature: (feature, lyr) => {
+          const props = feature.properties || {};
+          const mode = modeSel.value;
+
+          const rawName = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
+          const key = normalize(rawName);
+
+          if (key) byName.set(key, lyr);
+          if (rawName) lyr.bindTooltip(rawName, { sticky: true, opacity: 0.7 });
+        }
+      }).addTo(map);
+
+      total = byName.size;
+      if (total > 0) map.fitBounds(layer.getBounds(), { padding: [10, 10] });
+      updateStatus();
+    }
+
+    function refreshStyles() {
+      if (!layer) return;
+      layer.setStyle(styleFeature);
+      updateStatus();
+    }
+
+    function fillAreaSelectorForDistricts() {
+      // lista de distritos a partir dos concelhos (sem precisar de ficheiro de distritos)
+      const set = new Set();
+      for (const f of allConcelhos.features) {
+        const d = getDistrictName(f.properties || {});
+        if (d) set.add(d);
+      }
+      const districts = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
+
+      areaSel.innerHTML = "";
+      for (const d of districts) {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        areaSel.appendChild(opt);
+      }
+    }
+
+    function fillAreaSelectorForMunicipalities() {
+      // lista de municípios a partir das freguesias (para modo freguesias)
+      const set = new Set();
+      for (const f of allFreguesias.features) {
+        const m = getMunicipalityName(f.properties || {});
+        if (m) set.add(m);
+      }
+      const munis = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
+
+      areaSel.innerHTML = "";
+      for (const m of munis) {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        areaSel.appendChild(opt);
+      }
+    }
+
+    function loadMunicipiosForDistrict(districtName) {
+      const wanted = normalize(districtName);
+      const feats = allConcelhos.features.filter(f => normalize(getDistrictName(f.properties || {})) === wanted);
+      buildLayer({ type: "FeatureCollection", features: feats });
+      areaLabel.firstChild.textContent = ""; // noop
+    }
+
+    function loadFreguesiasForMunicipio(municipalityName) {
+      const wanted = normalize(municipalityName);
+      const feats = allFreguesias.features.filter(f => normalize(getMunicipalityName(f.properties || {})) === wanted);
+      buildLayer({ type: "FeatureCollection", features: feats });
+    }
+
+    async function init() {
+      // carrega dados (uma vez)
+      allConcelhos = await fetch(DATA.concelhos).then(r => r.json());
+      allFreguesias = await fetch(DATA.freguesias).then(r => r.json());
+
+      // arranque em modo municípios
+      modeSel.value = "municipios";
+      areaLabel.childNodes[0].nodeValue = "Distrito: ";
+      fillAreaSelectorForDistricts();
+      loadMunicipiosForDistrict(areaSel.value);
+      guessInput.focus();
+    }
+
+    modeSel.addEventListener("change", () => {
+      solved.clear();
+      refreshStyles();
+
+      if (modeSel.value === "municipios") {
+        areaLabel.childNodes[0].nodeValue = "Distrito: ";
+        fillAreaSelectorForDistricts();
+        loadMunicipiosForDistrict(areaSel.value);
+      } else {
+        areaLabel.childNodes[0].nodeValue = "Município: ";
+        fillAreaSelectorForMunicipalities();
+        loadFreguesiasForMunicipio(areaSel.value);
+      }
+      guessInput.value = "";
+      guessInput.focus();
+    });
+
+    areaSel.addEventListener("change", () => {
+      solved.clear();
+      refreshStyles();
+
+      if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
+      else loadFreguesiasForMunicipio(areaSel.value);
+
+      guessInput.value = "";
+      guessInput.focus();
+    });
+
+    guessInput.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const typed = normalize(guessInput.value);
+      guessInput.value = "";
+      if (!typed) return;
+
+      if (byName.has(typed)) {
+        solved.add(typed);
+        refreshStyles();
+      } else {
+        updateStatus(`Não encontrado: "${typed}"`);
+        setTimeout(() => updateStatus(), 1200);
+      }
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      solved.clear();
+      refreshStyles();
+      guessInput.focus();
+    });
+
+    init();
+  </script>
+</body>
+</html>
