@@ -40,10 +40,10 @@
   <script>
     // Vais colocar estes ficheiros na pasta /data do teu repositório (Passo 3)
     const DATA = {
-      concelhos: "data/ContinenteConcelhos.geojson",
-      freguesias: "data/ContinenteFreguesias.geojson"
+      concelhos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteConcelhos.geojson",
+      distritos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson",
+      freguesias: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteFreguesias.geojson"
     };
-
     function normalize(s) {
       return (s || "")
         .trim()
