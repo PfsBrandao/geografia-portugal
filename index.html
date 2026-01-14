@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Geografia PT — Municípios e Freguesias</title>
 
-  <!-- evita 404 do favicon -->
   <link rel="icon" href="data:,">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Proj4 para reprojetar 3763 -> WGS84 -->
   <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; }
+    body { font-family: Arial, sans-serif; margin: 0; background:#fff; }
     header {
       padding: 10px 14px;
       display: flex;
@@ -26,18 +23,41 @@
       background: #fff;
     }
 
-    /* Layout base (desktop será definido abaixo em media query) */
+    /* ---------- telas ---------- */
+    .screen { display: none; height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ---------- menu / loading ---------- */
+    .center {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+    .card {
+      width: min(520px, 92vw);
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 16px;
+      background: #fafafa;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    button { padding: 10px 12px; cursor: pointer; }
+    .small { font-size: 12px; color: #555; }
+
+    /* ---------- jogo ---------- */
     #wrap { height: calc(100vh - 56px); }
-
     #map { background: #ffffff; }
-
     #side {
-      border-left: 1px solid #eee;
       padding: 12px;
       overflow: auto;
       background: #fafafa;
+      border-left: 1px solid #eee;
     }
-
     input, select, button { padding: 7px; }
     input { min-width: 320px; }
 
@@ -50,125 +70,133 @@
     .msg.neutral { color: #555; }
 
     .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
-    button { cursor: pointer; }
 
-    .small { font-size: 12px; color: #555; }
     .listTitle { margin: 12px 0 6px; font-weight: bold; }
     ul { padding-left: 18px; margin: 6px 0 0; }
     li { margin: 4px 0; }
 
-    /* =========================
-       MOBILE-FIRST (importante)
-       ========================= */
+    /* MOBILE-FIRST */
     #wrap {
       display: flex;
       flex-direction: column;
       height: calc(100vh - 56px);
     }
+    #map { flex: 1; min-height: 52vh; }
+    #side { border-left: none; border-top: 1px solid #eee; max-height: 40vh; }
 
-    #map {
-      flex: 1;
-      min-height: 52vh;
-    }
+    header { flex-direction: column; align-items: stretch; }
+    header label, header input, header button, header select { width: 100%; }
 
-    #side {
-      border-left: none;
-      border-top: 1px solid #eee;
-      max-height: 40vh;
-    }
-
-    header {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    header label,
-    header input,
-    header button,
-    header select {
-      width: 100%;
-    }
-
-    /* Desktop: 2 colunas como antes */
     @media (min-width: 900px) {
       #wrap {
         display: grid;
         grid-template-columns: 1fr 320px;
         height: calc(100vh - 56px);
       }
+      #side { border-left: 1px solid #eee; border-top: none; max-height: none; }
+      header { flex-direction: row; align-items: center; }
+      header label, header input, header button, header select { width: auto; }
+    }
 
-      #side {
-        border-left: 1px solid #eee;
-        border-top: none;
-        max-height: none;
-      }
-
-      header {
-        flex-direction: row;
-        align-items: center;
-      }
-
-      header label,
-      header input,
-      header button,
-      header select {
-        width: auto;
-      }
+    /* loading bar */
+    .bar {
+      width: min(420px, 90vw);
+      height: 10px;
+      background: #eee;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #e6e6e6;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0%;
+      background: #111;
+      transition: width 220ms ease;
     }
   </style>
 </head>
 <body>
-  <header>
-    <label>Modo:
-      <select id="mode">
-        <option value="municipios">Municípios (por Distrito)</option>
-        <option value="freguesias">Freguesias (por Município)</option>
-      </select>
-    </label>
 
-    <label id="label-area">Distrito:
-      <select id="area"></select>
-    </label>
-
-    <label>Visual:
-      <select id="viewMode">
-        <option value="jogo">Jogo (sem nomes)</option>
-        <option value="treino">Treino (com nomes)</option>
-      </select>
-    </label>
-
-    <input
-      id="guess"
-      type="text"
-      placeholder="Escreve um nome…"
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="words"
-      enterkeyhint="done"
-    />
-    <button id="reset">Repor</button>
-  </header>
-
-  <div id="wrap">
-    <div id="map"></div>
-    <div id="side">
-      <div class="kpi">
-        <div><strong id="titleLine">—</strong></div>
-        <div>Acertados: <strong id="scoreLine">0</strong></div>
-        <div class="small" id="hintLine">—</div>
+  <!-- SCREEN: MENU -->
+  <div id="screenMenu" class="screen active">
+    <div class="center">
+      <div class="card">
+        <h2 style="margin:6px 0 10px;">Geografia PT</h2>
+        <div class="small" style="margin-bottom:12px;">
+          Escolhe o tipo de jogo. Vamos carregar apenas os ficheiros necessários.
+        </div>
+        <div class="row">
+          <button id="startMunicipios">Municípios (por Distrito)</button>
+          <button id="startFreguesias">Freguesias (por Município)</button>
+        </div>
+        <div class="small" style="margin-top:12px;">
+          Dica: no modo Municípios carrega mais rápido.
+        </div>
       </div>
+    </div>
+  </div>
 
-      <div class="btnRow">
-        <button id="btnShowMissing" style="display:none;">Mostrar faltas</button>
-        <button id="btnHideMissing" style="display:none;">Esconder faltas</button>
-        <button id="btnRevealAll" style="display:none;">Revelar tudo</button>
+  <!-- SCREEN: LOADING -->
+  <div id="screenLoading" class="screen">
+    <div class="center">
+      <div class="card">
+        <h3 style="margin:6px 0 10px;">A carregar…</h3>
+        <div id="loadingText" class="small" style="margin-bottom:10px;">—</div>
+        <div class="bar"><div id="loadingBar"></div></div>
+        <div id="loadingPct" class="small" style="margin-top:10px;">0%</div>
       </div>
+    </div>
+  </div>
 
-      <div class="msg neutral" id="msg"></div>
+  <!-- SCREEN: GAME -->
+  <div id="screenGame" class="screen">
+    <header>
+      <button id="backToMenu">Voltar ao menu</button>
 
-      <div id="missingBlock" style="display:none;">
-        <div class="listTitle">Faltam</div>
-        <ul id="missingList"></ul>
+      <label>Visual:
+        <select id="viewMode">
+          <option value="jogo">Jogo (sem nomes)</option>
+          <option value="treino">Treino (com nomes)</option>
+        </select>
+      </label>
+
+      <label id="label-area">—:
+        <select id="area"></select>
+      </label>
+
+      <input
+        id="guess"
+        type="text"
+        placeholder="Escreve um nome…"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="words"
+        enterkeyhint="done"
+      />
+      <button id="reset">Repor</button>
+    </header>
+
+    <div id="wrap">
+      <div id="map"></div>
+      <div id="side">
+        <div class="kpi">
+          <div><strong id="titleLine">—</strong></div>
+          <div>Acertados: <strong id="scoreLine">0</strong></div>
+          <div class="small" id="hintLine">—</div>
+        </div>
+
+        <div class="btnRow">
+          <button id="btnShowMissing" style="display:none;">Mostrar faltas</button>
+          <button id="btnHideMissing" style="display:none;">Esconder faltas</button>
+          <button id="btnRevealAll" style="display:none;">Revelar tudo</button>
+        </div>
+
+        <div class="msg neutral" id="msg"></div>
+
+        <div id="missingBlock" style="display:none;">
+          <div class="listTitle">Faltam</div>
+          <ul id="missingList"></ul>
+        </div>
       </div>
     </div>
   </div>
@@ -186,42 +214,62 @@
       "+k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs";
     proj4.defs("EPSG:3763", EPSG3763_DEF);
 
-    // Leaflet sem tiles (fundo branco)
-    const map = L.map("map", { zoomControl: true, attributionControl: false });
-    map.setView([39.5, -8.0], 7);
+    // Screens
+    const screenMenu = document.getElementById("screenMenu");
+    const screenLoading = document.getElementById("screenLoading");
+    const screenGame = document.getElementById("screenGame");
+    function showScreen(s) {
+      for (const el of [screenMenu, screenLoading, screenGame]) el.classList.remove("active");
+      s.classList.add("active");
+    }
 
-    const modeSel = document.getElementById("mode");
+    // Loading UI
+    const loadingText = document.getElementById("loadingText");
+    const loadingBar = document.getElementById("loadingBar");
+    const loadingPct = document.getElementById("loadingPct");
+    function setLoading(step, pct) {
+      loadingText.textContent = step;
+      loadingBar.style.width = `${pct}%`;
+      loadingPct.textContent = `${pct}%`;
+    }
+
+    // Game UI elements
+    const viewModeSel = document.getElementById("viewMode");
     const areaSel = document.getElementById("area");
     const areaLabel = document.getElementById("label-area");
-    const viewModeSel = document.getElementById("viewMode");
     const guessInput = document.getElementById("guess");
-
     const titleLine = document.getElementById("titleLine");
     const scoreLine = document.getElementById("scoreLine");
     const hintLine = document.getElementById("hintLine");
     const msgEl = document.getElementById("msg");
-
     const btnShowMissing = document.getElementById("btnShowMissing");
     const btnHideMissing = document.getElementById("btnHideMissing");
     const btnRevealAll = document.getElementById("btnRevealAll");
-
     const missingBlock = document.getElementById("missingBlock");
     const missingList = document.getElementById("missingList");
 
+    // Map (created once)
+    const map = L.map("map", { zoomControl: true, attributionControl: false });
+    map.setView([39.5, -8.0], 7);
+
+    // Data (lazy loaded)
     let allConcelhos = null;
     let allDistritos = null;
     let allFreguesias = null;
 
+    // Current mode: "municipios" or "freguesias"
+    let gameType = null;
+
+    // Layers
     let fillLayer = null;
     let outlineLayer = null;
 
-    // Nome normalizado -> layer
+    // Gameplay state
     let byKey = new Map();
-    // Nome normalizado -> nome oficial (para listagens)
     let keyToOfficial = new Map();
-    // nomes já acertados (normalizados)
     let solved = new Set();
     let total = 0;
+    let aliases = new Map();
 
     function normalize(s) {
       return (s || "")
@@ -236,7 +284,6 @@
       msgEl.textContent = text || "";
     }
 
-    // Campos confirmados nos teus GeoJSON
     function getDistrictName(p) { return (p && p.Distrito) ? String(p.Distrito) : ""; }
     function getMunicipalityName(p) { return (p && p.Concelho) ? String(p.Concelho) : ""; }
     function getParishName(p) { return (p && p.Freguesia) ? String(p.Freguesia) : ""; }
@@ -246,7 +293,7 @@
         if (!r.ok) throw new Error(`Falha a carregar (HTTP ${r.status})`);
         return r.text();
       });
-      const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt; // remove BOM
+      const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
       return JSON.parse(clean);
     }
 
@@ -300,20 +347,17 @@
       };
     }
 
-    // Aliases (atalhos) por conjunto atual
     function buildAliasesForCurrentSet() {
-      const aliases = new Map();
-
-      // base: cada nome aponta para si próprio
-      for (const [k] of keyToOfficial.entries()) aliases.set(k, k);
+      const a = new Map();
+      for (const [k] of keyToOfficial.entries()) a.set(k, k);
 
       const add = (alias, officialName) => {
-        const a = normalize(alias);
-        const o = normalize(officialName);
-        if (keyToOfficial.has(o)) aliases.set(a, o);
+        const aa = normalize(alias);
+        const oo = normalize(officialName);
+        if (keyToOfficial.has(oo)) a.set(aa, oo);
       };
 
-      // Municipios (exemplos úteis; podes acrescentar)
+      // atalhos úteis (municipios)
       add("gaia", "Vila Nova de Gaia");
       add("feira", "Santa Maria da Feira");
       add("figueira", "Figueira da Foz");
@@ -325,14 +369,12 @@
       add("loule", "Loulé");
       add("olhao", "Olhão");
 
-      return aliases;
+      return a;
     }
-
-    let aliases = new Map();
 
     function styleFill(feature) {
       const p = feature.properties || {};
-      const raw = (modeSel.value === "municipios") ? getMunicipalityName(p) : getParishName(p);
+      const raw = (gameType === "municipios") ? getMunicipalityName(p) : getParishName(p);
       const key = normalize(raw);
       const ok = solved.has(key);
 
@@ -367,7 +409,7 @@
         style: styleFill,
         onEachFeature: (feature, lyr) => {
           const p = feature.properties || {};
-          const raw = (modeSel.value === "municipios") ? getMunicipalityName(p) : getParishName(p);
+          const raw = (gameType === "municipios") ? getMunicipalityName(p) : getParishName(p);
           const key = normalize(raw);
 
           if (key) {
@@ -391,6 +433,7 @@
     function drawDistrictOutline(districtName) {
       if (outlineLayer) outlineLayer.remove();
       outlineLayer = null;
+      if (!allDistritos) return;
 
       const wanted = normalize(districtName);
       const feats = allDistritos.features.filter(
@@ -421,9 +464,9 @@
 
     function updateUI() {
       scoreLine.textContent = `${solved.size} / ${total}`;
-
-      const modeLabel = (modeSel.value === "municipios") ? "Distrito" : "Município";
-      titleLine.textContent = `${modeLabel}: ${areaSel.value || "—"}`;
+      titleLine.textContent = (gameType === "municipios")
+        ? `Distrito: ${areaSel.value || "—"}`
+        : `Município: ${areaSel.value || "—"}`;
 
       if (viewModeSel.value === "jogo") {
         hintLine.textContent = "Modo Jogo: sem nomes, apenas progresso.";
@@ -491,7 +534,6 @@
       const fc = reprojectFC({ type: "FeatureCollection", features: feats });
       buildFillLayer(fc);
       drawDistrictOutline(districtName);
-
       updateUI();
     }
 
@@ -510,7 +552,6 @@
 
       const fc = reprojectFC({ type: "FeatureCollection", features: feats });
       buildFillLayer(fc);
-
       updateUI();
     }
 
@@ -518,7 +559,6 @@
       if (aliases.has(typedNorm)) return aliases.get(typedNorm);
       if (byKey.has(typedNorm)) return typedNorm;
 
-      // simplificações pequenas (reduz frustração)
       const simplified = typedNorm
         .replace(/^vila nova de /, "")
         .replace(/^santa maria da /, "")
@@ -552,20 +592,17 @@
       solved.add(key);
       refreshStyles();
 
-      const lyr = byKey.get(key);
-      flashLayer(lyr);
+      flashLayer(byKey.get(key));
 
       setMsg(`Certo: ${keyToOfficial.get(key) || rawInput}`, "good");
       updateUI();
 
-      if (solved.size === total && total > 0) {
-        setMsg("Concluído. Acertaste tudo.", "good");
-      }
+      if (solved.size === total && total > 0) setMsg("Concluído. Acertaste tudo.", "good");
 
       guessInput.focus();
     }
 
-    // Botões
+    // Buttons
     document.getElementById("reset").addEventListener("click", () => {
       solved.clear();
       refreshStyles();
@@ -594,48 +631,7 @@
       guessInput.focus();
     });
 
-    // Selectors
-    modeSel.addEventListener("change", () => {
-      solved.clear();
-      setMsg("");
-      missingBlock.style.display = "none";
-
-      if (modeSel.value === "municipios") {
-        areaLabel.childNodes[0].nodeValue = "Distrito: ";
-        fillAreaSelectorForDistricts();
-        loadMunicipiosForDistrict(areaSel.value);
-      } else {
-        areaLabel.childNodes[0].nodeValue = "Município: ";
-        fillAreaSelectorForMunicipalities();
-        loadFreguesiasForMunicipio(areaSel.value);
-      }
-
-      guessInput.value = "";
-      guessInput.focus();
-    });
-
-    areaSel.addEventListener("change", () => {
-      solved.clear();
-      setMsg("");
-      missingBlock.style.display = "none";
-
-      if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
-      else loadFreguesiasForMunicipio(areaSel.value);
-
-      guessInput.value = "";
-      guessInput.focus();
-    });
-
-    viewModeSel.addEventListener("change", () => {
-      missingBlock.style.display = "none";
-      setMsg("");
-
-      if (modeSel.value === "municipios") loadMunicipiosForDistrict(areaSel.value);
-      else loadFreguesiasForMunicipio(areaSel.value);
-
-      guessInput.focus();
-    });
-
+    // Guess input
     guessInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const raw = guessInput.value;
@@ -643,28 +639,96 @@
       handleGuess(raw);
     });
 
-    async function init() {
+    // View mode change: reload layer to show/hide tooltips
+    viewModeSel.addEventListener("change", () => {
+      missingBlock.style.display = "none";
+      setMsg("");
+      if (gameType === "municipios") loadMunicipiosForDistrict(areaSel.value);
+      else loadFreguesiasForMunicipio(areaSel.value);
+      guessInput.focus();
+    });
+
+    // Area change
+    areaSel.addEventListener("change", () => {
+      missingBlock.style.display = "none";
+      setMsg("");
+      if (gameType === "municipios") loadMunicipiosForDistrict(areaSel.value);
+      else loadFreguesiasForMunicipio(areaSel.value);
+      guessInput.focus();
+    });
+
+    // Back to menu
+    document.getElementById("backToMenu").addEventListener("click", () => {
+      clearLayers();
+      showScreen(screenMenu);
+    });
+
+    // Start buttons
+    document.getElementById("startMunicipios").addEventListener("click", async () => {
+      gameType = "municipios";
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
       try {
-        setMsg("A carregar dados...", "neutral");
+        // carregar só o necessário
+        setLoading("A carregar concelhos…", 25);
+        allConcelhos = allConcelhos || await loadGeoJSON(DATA.concelhos);
 
-        allConcelhos = await loadGeoJSON(DATA.concelhos);
-        allDistritos = await loadGeoJSON(DATA.distritos);
-        allFreguesias = await loadGeoJSON(DATA.freguesias);
+        setLoading("A carregar distritos…", 55);
+        allDistritos = allDistritos || await loadGeoJSON(DATA.distritos);
 
-        modeSel.value = "municipios";
-        areaLabel.childNodes[0].nodeValue = "Distrito: ";
+        setLoading("A preparar lista de distritos…", 75);
         fillAreaSelectorForDistricts();
+
+        // preparar UI labels
+        areaLabel.childNodes[0].nodeValue = "Distrito: ";
+        viewModeSel.value = "jogo";
+        missingBlock.style.display = "none";
+        setMsg("");
+
+        setLoading("A desenhar mapa…", 90);
+        showScreen(screenGame);
+
         loadMunicipiosForDistrict(areaSel.value);
 
-        setMsg("", "neutral");
+        setLoading("Concluído", 100);
         guessInput.focus();
       } catch (e) {
         console.error(e);
-        setMsg("Erro a carregar dados (ver Console).", "bad");
+        setLoading("Erro a carregar dados. Ver Console.", 100);
       }
-    }
+    });
 
-    init();
+    document.getElementById("startFreguesias").addEventListener("click", async () => {
+      gameType = "freguesias";
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
+      try {
+        // freguesias precisa de freguesias; lista de municípios vem do próprio ficheiro
+        setLoading("A carregar freguesias…", 35);
+        allFreguesias = allFreguesias || await loadGeoJSON(DATA.freguesias);
+
+        setLoading("A preparar lista de municípios…", 70);
+        fillAreaSelectorForMunicipalities();
+
+        areaLabel.childNodes[0].nodeValue = "Município: ";
+        viewModeSel.value = "jogo";
+        missingBlock.style.display = "none";
+        setMsg("");
+
+        setLoading("A desenhar mapa…", 90);
+        showScreen(screenGame);
+
+        loadFreguesiasForMunicipio(areaSel.value);
+
+        setLoading("Concluído", 100);
+        guessInput.focus();
+      } catch (e) {
+        console.error(e);
+        setLoading("Erro a carregar dados. Ver Console.", 100);
+      }
+    });
   </script>
 </body>
 </html>
