@@ -4,12 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Geografia PT — Municípios e Freguesias</title>
-
   <link rel="icon" href="data:,">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/proj4@2.9.2/dist/proj4.js"></script>
 
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background:#fff; }
@@ -23,11 +21,9 @@
       background: #fff;
     }
 
-    /* ---------- telas ---------- */
     .screen { display: none; height: 100vh; }
     .screen.active { display: block; }
 
-    /* ---------- menu / loading ---------- */
     .center {
       height: 100vh;
       display: flex;
@@ -39,7 +35,7 @@
       text-align: center;
     }
     .card {
-      width: min(520px, 92vw);
+      width: min(560px, 94vw);
       border: 1px solid #eee;
       border-radius: 14px;
       padding: 16px;
@@ -48,10 +44,23 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     button { padding: 10px 12px; cursor: pointer; }
     .small { font-size: 12px; color: #555; }
+    .bar {
+      width: min(420px, 90vw);
+      height: 10px;
+      background: #eee;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #e6e6e6;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0%;
+      background: #111;
+      transition: width 220ms ease;
+    }
 
-    /* ---------- jogo ---------- */
     #wrap { height: calc(100vh - 56px); }
-    #map { background: #ffffff; }
+    #map { background: #fff; }
     #side {
       padding: 12px;
       overflow: auto;
@@ -76,11 +85,7 @@
     li { margin: 4px 0; }
 
     /* MOBILE-FIRST */
-    #wrap {
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 56px);
-    }
+    #wrap { display: flex; flex-direction: column; height: calc(100vh - 56px); }
     #map { flex: 1; min-height: 52vh; }
     #side { border-left: none; border-top: 1px solid #eee; max-height: 40vh; }
 
@@ -88,49 +93,30 @@
     header label, header input, header button, header select { width: 100%; }
 
     @media (min-width: 900px) {
-      #wrap {
-        display: grid;
-        grid-template-columns: 1fr 320px;
-        height: calc(100vh - 56px);
-      }
+      #wrap { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 56px); }
       #side { border-left: 1px solid #eee; border-top: none; max-height: none; }
       header { flex-direction: row; align-items: center; }
       header label, header input, header button, header select { width: auto; }
     }
-
-    /* loading bar */
-    .bar {
-      width: min(420px, 90vw);
-      height: 10px;
-      background: #eee;
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid #e6e6e6;
-    }
-    .bar > div {
-      height: 100%;
-      width: 0%;
-      background: #111;
-      transition: width 220ms ease;
-    }
   </style>
 </head>
-<body>
 
+<body>
   <!-- SCREEN: MENU -->
   <div id="screenMenu" class="screen active">
     <div class="center">
       <div class="card">
         <h2 style="margin:6px 0 10px;">Geografia PT</h2>
         <div class="small" style="margin-bottom:12px;">
-          Escolhe o tipo de jogo. Vamos carregar apenas os ficheiros necessários.
+          Escolhe a região. A app vai descarregar apenas o que for necessário.
         </div>
         <div class="row">
-          <button id="startMunicipios">Municípios (por Distrito)</button>
-          <button id="startFreguesias">Freguesias (por Município)</button>
+          <button id="startPT">Portugal Continental</button>
+          <button id="startAZ">Zonas Autónomas — Açores</button>
+          <button id="startMD">Zonas Autónomas — Madeira</button>
         </div>
         <div class="small" style="margin-top:12px;">
-          Dica: no modo Municípios carrega mais rápido.
+          Nota: no Continente escolhes Distrito; nas Zonas Autónomas não usamos “Ilha”.
         </div>
       </div>
     </div>
@@ -153,6 +139,13 @@
     <header>
       <button id="backToMenu">Voltar ao menu</button>
 
+      <label>Modo:
+        <select id="gameMode">
+          <option value="municipios">Municípios</option>
+          <option value="freguesias">Freguesias</option>
+        </select>
+      </label>
+
       <label>Visual:
         <select id="viewMode">
           <option value="jogo">Jogo (sem nomes)</option>
@@ -160,8 +153,12 @@
         </select>
       </label>
 
-      <label id="label-area">—:
-        <select id="area"></select>
+      <label id="labelDistrict" style="display:none;">Distrito:
+        <select id="district"></select>
+      </label>
+
+      <label id="labelMunicipality" style="display:none;">Município:
+        <select id="municipality"></select>
       </label>
 
       <input
@@ -197,80 +194,46 @@
           <div class="listTitle">Faltam</div>
           <ul id="missingList"></ul>
         </div>
+
+        <div class="small" style="margin-top:12px;">
+          Dados esperados em <code>/data</code>:<br>
+          <span id="dataHint"></span>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const DATA = {
-      concelhos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteConcelhos.geojson",
-      distritos: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteDistritos.geojson",
-      freguesias: "https://raw.githubusercontent.com/nmota/caop_GeoJSON/master/ContinenteFreguesias.geojson"
+    // -----------------------------
+    // Configurações de ficheiros
+    // -----------------------------
+    const FILES = {
+      // Continente: 1 ficheiro por distrito
+      // Ex.: data/concelhos_pt_aveiro.geojson
+      concelhosPT: (districtSlug) => `data/concelhos_pt_${districtSlug}.geojson`,
+
+      // Zonas Autónomas: 1 ficheiro por região
+      concelhosAZ: `data/concelhos_az.geojson`,
+      concelhosMD: `data/concelhos_md.geojson`,
+
+      // Freguesias: 1 ficheiro por município e por região
+      // Ex.: data/freguesias_pt_vila_nova_de_gaia.geojson
+      freguesias: (region, municipalitySlug) => `data/freguesias_${region}_${municipalitySlug}.geojson`,
     };
 
-    // EPSG:3763 (PT-TM06/ETRS89)
-    const EPSG3763_DEF =
-      "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333333 " +
-      "+k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-    proj4.defs("EPSG:3763", EPSG3763_DEF);
+    // Lista de distritos (para não depender de um ficheiro extra)
+    const DISTRICTS_PT = [
+      ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
+      ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
+      ["Faro","faro"], ["Guarda","guarda"], ["Leiria","leiria"], ["Lisboa","lisboa"],
+      ["Portalegre","portalegre"], ["Porto","porto"], ["Santarém","santarem"],
+      ["Setúbal","setubal"], ["Viana do Castelo","viana_do_castelo"],
+      ["Vila Real","vila_real"], ["Viseu","viseu"]
+    ];
 
-    // Screens
-    const screenMenu = document.getElementById("screenMenu");
-    const screenLoading = document.getElementById("screenLoading");
-    const screenGame = document.getElementById("screenGame");
-    function showScreen(s) {
-      for (const el of [screenMenu, screenLoading, screenGame]) el.classList.remove("active");
-      s.classList.add("active");
-    }
-
-    // Loading UI
-    const loadingText = document.getElementById("loadingText");
-    const loadingBar = document.getElementById("loadingBar");
-    const loadingPct = document.getElementById("loadingPct");
-    function setLoading(step, pct) {
-      loadingText.textContent = step;
-      loadingBar.style.width = `${pct}%`;
-      loadingPct.textContent = `${pct}%`;
-    }
-
-    // Game UI elements
-    const viewModeSel = document.getElementById("viewMode");
-    const areaSel = document.getElementById("area");
-    const areaLabel = document.getElementById("label-area");
-    const guessInput = document.getElementById("guess");
-    const titleLine = document.getElementById("titleLine");
-    const scoreLine = document.getElementById("scoreLine");
-    const hintLine = document.getElementById("hintLine");
-    const msgEl = document.getElementById("msg");
-    const btnShowMissing = document.getElementById("btnShowMissing");
-    const btnHideMissing = document.getElementById("btnHideMissing");
-    const btnRevealAll = document.getElementById("btnRevealAll");
-    const missingBlock = document.getElementById("missingBlock");
-    const missingList = document.getElementById("missingList");
-
-    // Map (created once)
-    const map = L.map("map", { zoomControl: true, attributionControl: false });
-    map.setView([39.5, -8.0], 7);
-
-    // Data (lazy loaded)
-    let allConcelhos = null;
-    let allDistritos = null;
-    let allFreguesias = null;
-
-    // Current mode: "municipios" or "freguesias"
-    let gameType = null;
-
-    // Layers
-    let fillLayer = null;
-    let outlineLayer = null;
-
-    // Gameplay state
-    let byKey = new Map();
-    let keyToOfficial = new Map();
-    let solved = new Set();
-    let total = 0;
-    let aliases = new Map();
-
+    // -----------------------------
+    // Utilitários
+    // -----------------------------
     function normalize(s) {
       return (s || "")
         .trim()
@@ -278,103 +241,110 @@
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
     }
+    function slugify(name) {
+      let s = normalize(name);
+      s = s.replace(/[ \t\-\/]+/g, "_");
+      s = s.replace(/[^a-z0-9_]/g, "");
+      s = s.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+      return s;
+    }
+    function pickProp(props, keys) {
+      for (const k of keys) {
+        if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
+      }
+      return "";
+    }
+
+    // tentativas comuns em GeoJSON diferentes
+    function getMunicipalityName(props) {
+      return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
+    }
+    function getParishName(props) {
+      return pickProp(props, ["Freguesia","FREGUESIA","NM_FREG","parish","NAME_3","NAME3","NAME"]);
+    }
+
+    // Cache de downloads
+    const cache = new Map();
+    async function loadJSON(url) {
+      if (cache.has(url)) return cache.get(url);
+
+      const p = fetch(url).then(async (r) => {
+        if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
+        const txt = await r.text();
+        const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
+        return JSON.parse(clean);
+      });
+
+      cache.set(url, p);
+      return p;
+    }
+
+    // -----------------------------
+    // Screens / Loading
+    // -----------------------------
+    const screenMenu = document.getElementById("screenMenu");
+    const screenLoading = document.getElementById("screenLoading");
+    const screenGame = document.getElementById("screenGame");
+
+    const loadingText = document.getElementById("loadingText");
+    const loadingBar = document.getElementById("loadingBar");
+    const loadingPct = document.getElementById("loadingPct");
+
+    function showScreen(el) {
+      for (const s of [screenMenu, screenLoading, screenGame]) s.classList.remove("active");
+      el.classList.add("active");
+    }
+    function setLoading(step, pct) {
+      loadingText.textContent = step;
+      loadingBar.style.width = `${pct}%`;
+      loadingPct.textContent = `${pct}%`;
+    }
+
+    // -----------------------------
+    // UI Elements
+    // -----------------------------
+    const gameModeSel = document.getElementById("gameMode");
+    const viewModeSel = document.getElementById("viewMode");
+    const labelDistrict = document.getElementById("labelDistrict");
+    const districtSel = document.getElementById("district");
+    const labelMunicipality = document.getElementById("labelMunicipality");
+    const municipalitySel = document.getElementById("municipality");
+
+    const guessInput = document.getElementById("guess");
+    const titleLine = document.getElementById("titleLine");
+    const scoreLine = document.getElementById("scoreLine");
+    const hintLine = document.getElementById("hintLine");
+    const msgEl = document.getElementById("msg");
+
+    const btnShowMissing = document.getElementById("btnShowMissing");
+    const btnHideMissing = document.getElementById("btnHideMissing");
+    const btnRevealAll = document.getElementById("btnRevealAll");
+    const missingBlock = document.getElementById("missingBlock");
+    const missingList = document.getElementById("missingList");
+    const dataHint = document.getElementById("dataHint");
 
     function setMsg(text, type="neutral") {
       msgEl.className = "msg " + type;
       msgEl.textContent = text || "";
     }
 
-    function getDistrictName(p) { return (p && p.Distrito) ? String(p.Distrito) : ""; }
-    function getMunicipalityName(p) { return (p && p.Concelho) ? String(p.Concelho) : ""; }
-    function getParishName(p) { return (p && p.Freguesia) ? String(p.Freguesia) : ""; }
+    // -----------------------------
+    // Map (sem tiles)
+    // -----------------------------
+    const map = L.map("map", { zoomControl: true, attributionControl: false });
+    map.setView([39.5, -8.0], 7);
 
-    async function loadGeoJSON(url) {
-      const txt = await fetch(url).then(r => {
-        if (!r.ok) throw new Error(`Falha a carregar (HTTP ${r.status})`);
-        return r.text();
-      });
-      const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
-      return JSON.parse(clean);
-    }
-
-    function looksProjected(feature) {
-      const g = feature && feature.geometry;
-      if (!g) return false;
-
-      function firstXY(coords) {
-        if (!Array.isArray(coords)) return null;
-        if (coords.length && typeof coords[0] === "number") return coords;
-        for (const c of coords) {
-          const v = firstXY(c);
-          if (v) return v;
-        }
-        return null;
-      }
-
-      const xy = firstXY(g.coordinates);
-      if (!xy) return false;
-      const x = xy[0], y = xy[1];
-      return Math.abs(x) > 180 || Math.abs(y) > 90;
-    }
-
-    function reprojectCoord(xy) {
-      return proj4("EPSG:3763", "WGS84", xy); // [lon, lat]
-    }
-
-    function reprojectGeometry(geom) {
-      const t = geom.type;
-      const c = geom.coordinates;
-
-      if (t === "Point") return { type: "Point", coordinates: reprojectCoord(c) };
-      if (t === "MultiPoint" || t === "LineString") return { type: t, coordinates: c.map(reprojectCoord) };
-      if (t === "MultiLineString" || t === "Polygon") return { type: t, coordinates: c.map(r => r.map(reprojectCoord)) };
-      if (t === "MultiPolygon") return { type: "MultiPolygon", coordinates: c.map(p => p.map(r => r.map(reprojectCoord))) };
-      return geom;
-    }
-
-    function reprojectFC(fc) {
-      if (!fc.features || fc.features.length === 0) return fc;
-      const needs = looksProjected(fc.features[0]);
-      if (!needs) return fc;
-
-      return {
-        type: "FeatureCollection",
-        features: fc.features.map(f => ({
-          type: "Feature",
-          properties: f.properties || {},
-          geometry: reprojectGeometry(f.geometry)
-        }))
-      };
-    }
-
-    function buildAliasesForCurrentSet() {
-      const a = new Map();
-      for (const [k] of keyToOfficial.entries()) a.set(k, k);
-
-      const add = (alias, officialName) => {
-        const aa = normalize(alias);
-        const oo = normalize(officialName);
-        if (keyToOfficial.has(oo)) a.set(aa, oo);
-      };
-
-      // atalhos úteis (municipios)
-      add("gaia", "Vila Nova de Gaia");
-      add("feira", "Santa Maria da Feira");
-      add("figueira", "Figueira da Foz");
-      add("povoa", "Póvoa de Varzim");
-      add("povoa de varzim", "Póvoa de Varzim");
-      add("s joao da madeira", "São João da Madeira");
-      add("sao joao da madeira", "São João da Madeira");
-      add("viana", "Viana do Castelo");
-      add("loule", "Loulé");
-      add("olhao", "Olhão");
-
-      return a;
-    }
+    let fillLayer = null;
+    let byKey = new Map();
+    let keyToOfficial = new Map();
+    let solved = new Set();
+    let total = 0;
 
     function styleFill(feature) {
-      const p = feature.properties || {};
-      const raw = (gameType === "municipios") ? getMunicipalityName(p) : getParishName(p);
+      const props = feature.properties || {};
+      const mode = gameModeSel.value;
+
+      const raw = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
       const key = normalize(raw);
       const ok = solved.has(key);
 
@@ -386,30 +356,28 @@
       };
     }
 
-    function clearLayers() {
+    function clearLayer() {
       if (fillLayer) fillLayer.remove();
-      if (outlineLayer) outlineLayer.remove();
       fillLayer = null;
-      outlineLayer = null;
       byKey.clear();
       keyToOfficial.clear();
       solved.clear();
       total = 0;
       scoreLine.textContent = "0";
       setMsg("");
+      missingBlock.style.display = "none";
     }
 
-    function buildFillLayer(fcWgs84) {
-      if (fillLayer) fillLayer.remove();
-      byKey.clear();
-      keyToOfficial.clear();
-      solved.clear();
+    function buildLayer(fc) {
+      clearLayer();
 
-      fillLayer = L.geoJSON(fcWgs84, {
+      fillLayer = L.geoJSON(fc, {
         style: styleFill,
         onEachFeature: (feature, lyr) => {
           const p = feature.properties || {};
-          const raw = (gameType === "municipios") ? getMunicipalityName(p) : getParishName(p);
+          const mode = gameModeSel.value;
+
+          const raw = (mode === "municipios") ? getMunicipalityName(p) : getParishName(p);
           const key = normalize(raw);
 
           if (key) {
@@ -424,64 +392,14 @@
       }).addTo(map);
 
       total = byKey.size;
-      aliases = buildAliasesForCurrentSet();
-
       if (total > 0) map.fitBounds(fillLayer.getBounds(), { padding: [12, 12] });
+
       updateUI();
-    }
-
-    function drawDistrictOutline(districtName) {
-      if (outlineLayer) outlineLayer.remove();
-      outlineLayer = null;
-      if (!allDistritos) return;
-
-      const wanted = normalize(districtName);
-      const feats = allDistritos.features.filter(
-        f => normalize(getDistrictName(f.properties || {})) === wanted
-      );
-      if (feats.length === 0) return;
-
-      const fc = reprojectFC({ type: "FeatureCollection", features: feats });
-
-      outlineLayer = L.geoJSON(fc, {
-        style: { color: "#7A0000", weight: 4, fillOpacity: 0, opacity: 1 }
-      }).addTo(map);
     }
 
     function refreshStyles() {
       if (!fillLayer) return;
       fillLayer.setStyle(styleFill);
-    }
-
-    function flashLayer(lyr) {
-      if (!lyr) return;
-      try {
-        const flash = { color: "#00AA55", weight: 3.5 };
-        lyr.setStyle(flash);
-        setTimeout(() => lyr.setStyle(styleFill(lyr.feature)), 220);
-      } catch (_) {}
-    }
-
-    function updateUI() {
-      scoreLine.textContent = `${solved.size} / ${total}`;
-      titleLine.textContent = (gameType === "municipios")
-        ? `Distrito: ${areaSel.value || "—"}`
-        : `Município: ${areaSel.value || "—"}`;
-
-      if (viewModeSel.value === "jogo") {
-        hintLine.textContent = "Modo Jogo: sem nomes, apenas progresso.";
-        btnShowMissing.style.display = "none";
-        btnHideMissing.style.display = "none";
-        btnRevealAll.style.display = "none";
-        missingBlock.style.display = "none";
-      } else {
-        hintLine.textContent = "Modo Treino: podes ver o que falta e revelar tudo.";
-        btnShowMissing.style.display = missingBlock.style.display === "none" ? "inline-block" : "none";
-        btnHideMissing.style.display = missingBlock.style.display === "none" ? "none" : "inline-block";
-        btnRevealAll.style.display = "inline-block";
-      }
-
-      if (missingBlock.style.display !== "none") renderMissingList();
     }
 
     function renderMissingList() {
@@ -499,66 +417,169 @@
       }
     }
 
-    function fillAreaSelectorForDistricts() {
-      const set = new Set();
-      for (const f of allConcelhos.features) {
-        const d = getDistrictName(f.properties || {});
-        if (d) set.add(d);
+    function updateUI() {
+      scoreLine.textContent = `${solved.size} / ${total}`;
+
+      const regionLabel =
+        (currentRegion === "pt") ? "Portugal Continental" :
+        (currentRegion === "az") ? "Zonas Autónomas — Açores" :
+        "Zonas Autónomas — Madeira";
+
+      if (gameModeSel.value === "municipios") {
+        if (currentRegion === "pt") {
+          const dName = districtSel.options[districtSel.selectedIndex]?.textContent || "—";
+          titleLine.textContent = `${regionLabel} — Distrito: ${dName}`;
+        } else {
+          titleLine.textContent = `${regionLabel} — Municípios`;
+        }
+      } else {
+        const mName = municipalitySel.options[municipalitySel.selectedIndex]?.textContent || "—";
+        titleLine.textContent = `${regionLabel} — Município: ${mName}`;
       }
-      const arr = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
-      areaSel.innerHTML = "";
-      for (const d of arr) areaSel.appendChild(new Option(d, d));
-    }
 
-    function fillAreaSelectorForMunicipalities() {
-      const set = new Set();
-      for (const f of allFreguesias.features) {
-        const m = getMunicipalityName(f.properties || {});
-        if (m) set.add(m);
+      if (viewModeSel.value === "jogo") {
+        hintLine.textContent = "Modo Jogo: escreve nomes; vai ficando a escuro.";
+        btnShowMissing.style.display = "none";
+        btnHideMissing.style.display = "none";
+        btnRevealAll.style.display = "none";
+        missingBlock.style.display = "none";
+      } else {
+        hintLine.textContent = "Modo Treino: podes ver faltas e revelar tudo.";
+        btnShowMissing.style.display = (missingBlock.style.display === "none") ? "inline-block" : "none";
+        btnHideMissing.style.display = (missingBlock.style.display === "none") ? "none" : "inline-block";
+        btnRevealAll.style.display = "inline-block";
+        if (missingBlock.style.display !== "none") renderMissingList();
       }
-      const arr = Array.from(set).sort((a,b)=>a.localeCompare(b, "pt"));
-      areaSel.innerHTML = "";
-      for (const m of arr) areaSel.appendChild(new Option(m, m));
+
+      // Texto de ajuda de dados
+      if (currentRegion === "pt") {
+        dataHint.innerHTML = `concelhos_pt_${districtSel.value}.geojson<br>freguesias_pt_&lt;municipio&gt;.geojson`;
+      } else {
+        dataHint.innerHTML = `concelhos_${currentRegion}.geojson<br>freguesias_${currentRegion}_&lt;municipio&gt;.geojson`;
+      }
     }
 
-    function loadMunicipiosForDistrict(districtName) {
+    // -----------------------------
+    // Estado: Região e datasets
+    // -----------------------------
+    let currentRegion = "pt";
+
+    async function loadConcelhosForCurrentSelection() {
+      setLoading("A carregar concelhos…", 35);
+
+      if (currentRegion === "pt") {
+        const url = FILES.concelhosPT(districtSel.value);
+        const fc = await loadJSON(url);
+        setLoading("A desenhar…", 85);
+        buildLayer(fc);
+        return;
+      }
+
+      // az / md
+      const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
+      const fc = await loadJSON(url);
+      setLoading("A desenhar…", 85);
+      buildLayer(fc);
+    }
+
+    function municipalitiesFromConcelhos(fc) {
+      const set = new Set();
+      for (const f of (fc.features || [])) {
+        const n = getMunicipalityName(f.properties || {});
+        if (n) set.add(n);
+      }
+      return Array.from(set).sort((a,b)=>a.localeCompare(b,"pt"));
+    }
+
+    async function populateMunicipalitySelector() {
+      // no modo freguesias, queremos lista de municípios
+      // - PT: baseada no distrito selecionado (concelhos desse distrito)
+      // - AZ/MD: baseada no concelhos_az/md (todos os concelhos da região)
+      let concelhosFC;
+
+      if (currentRegion === "pt") {
+        const url = FILES.concelhosPT(districtSel.value);
+        concelhosFC = await loadJSON(url);
+      } else {
+        const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
+        concelhosFC = await loadJSON(url);
+      }
+
+      const munis = municipalitiesFromConcelhos(concelhosFC);
+
+      municipalitySel.innerHTML = "";
+      for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
+    }
+
+    async function loadFreguesiasForSelectedMunicipality() {
+      setLoading("A carregar freguesias…", 45);
+
+      const muniSlug = municipalitySel.value;
+      const url = FILES.freguesias(currentRegion, muniSlug);
+
+      const fc = await loadJSON(url);
+      setLoading("A desenhar…", 85);
+      buildLayer(fc);
+    }
+
+    // -----------------------------
+    // Fluxo UI por região e modo
+    // -----------------------------
+    function applyRegionToUI() {
+      // distrito só existe no continente e apenas para modo municipios (e para filtrar municípios em freguesias)
+      if (currentRegion === "pt") {
+        labelDistrict.style.display = "";
+      } else {
+        labelDistrict.style.display = "none";
+      }
+    }
+
+    async function applyModeToUIAndLoad() {
+      const mode = gameModeSel.value;
+
+      // reset do estado visual
       solved.clear();
-      setMsg("");
+      refreshStyles();
       missingBlock.style.display = "none";
+      setMsg("");
 
-      const wanted = normalize(districtName);
-      const feats = allConcelhos.features.filter(
-        f => normalize(getDistrictName(f.properties || {})) === wanted
-      );
+      showScreen(screenLoading);
 
-      const fc = reprojectFC({ type: "FeatureCollection", features: feats });
-      buildFillLayer(fc);
-      drawDistrictOutline(districtName);
-      updateUI();
+      try {
+        if (mode === "municipios") {
+          labelMunicipality.style.display = "none";
+          guessInput.placeholder = "Escreve um município…";
+          setLoading("A preparar…", 10);
+          await loadConcelhosForCurrentSelection();
+        } else {
+          labelMunicipality.style.display = "";
+          guessInput.placeholder = "Escreve uma freguesia…";
+
+          setLoading("A preparar lista de municípios…", 15);
+          await populateMunicipalitySelector();
+
+          setLoading("A carregar mapa do município…", 30);
+          await loadFreguesiasForSelectedMunicipality();
+        }
+
+        showScreen(screenGame);
+        updateUI();
+        guessInput.focus();
+        setLoading("Concluído", 100);
+      } catch (e) {
+        console.error(e);
+        showScreen(screenGame);
+        setMsg(`Erro: ${e.message}`, "bad");
+      }
     }
 
-    function loadFreguesiasForMunicipio(municipalityName) {
-      solved.clear();
-      setMsg("");
-      missingBlock.style.display = "none";
-
-      if (outlineLayer) outlineLayer.remove();
-      outlineLayer = null;
-
-      const wanted = normalize(municipalityName);
-      const feats = allFreguesias.features.filter(
-        f => normalize(getMunicipalityName(f.properties || {})) === wanted
-      );
-
-      const fc = reprojectFC({ type: "FeatureCollection", features: feats });
-      buildFillLayer(fc);
-      updateUI();
-    }
-
+    // -----------------------------
+    // Adivinhação (input)
+    // -----------------------------
     function resolveTypedToKey(typedNorm) {
-      if (aliases.has(typedNorm)) return aliases.get(typedNorm);
       if (byKey.has(typedNorm)) return typedNorm;
 
+      // pequenas simplificações úteis
       const simplified = typedNorm
         .replace(/^vila nova de /, "")
         .replace(/^santa maria da /, "")
@@ -566,7 +587,6 @@
         .replace(/^são /, "")
         .trim();
 
-      if (aliases.has(simplified)) return aliases.get(simplified);
       if (byKey.has(simplified)) return simplified;
 
       return "";
@@ -579,30 +599,100 @@
       const key = resolveTypedToKey(typed);
       if (!key) {
         setMsg(`Não encontrado: "${rawInput}"`, "bad");
-        guessInput.focus();
         return;
       }
 
       if (solved.has(key)) {
         setMsg(`Já estava: ${keyToOfficial.get(key) || rawInput}`, "neutral");
-        guessInput.focus();
         return;
       }
 
       solved.add(key);
       refreshStyles();
-
-      flashLayer(byKey.get(key));
-
       setMsg(`Certo: ${keyToOfficial.get(key) || rawInput}`, "good");
       updateUI();
 
       if (solved.size === total && total > 0) setMsg("Concluído. Acertaste tudo.", "good");
-
-      guessInput.focus();
     }
 
-    // Buttons
+    // -----------------------------
+    // Eventos
+    // -----------------------------
+    document.getElementById("backToMenu").addEventListener("click", () => {
+      clearLayer();
+      showScreen(screenMenu);
+    });
+
+    document.getElementById("startPT").addEventListener("click", async () => {
+      currentRegion = "pt";
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
+      applyRegionToUI();
+
+      // preencher distritos
+      districtSel.innerHTML = "";
+      for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
+      districtSel.value = DISTRICTS_PT[0][1];
+
+      // default
+      gameModeSel.value = "municipios";
+      viewModeSel.value = "jogo";
+
+      await applyModeToUIAndLoad();
+    });
+
+    document.getElementById("startAZ").addEventListener("click", async () => {
+      currentRegion = "az";
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
+      applyRegionToUI();
+      gameModeSel.value = "municipios";
+      viewModeSel.value = "jogo";
+
+      await applyModeToUIAndLoad();
+    });
+
+    document.getElementById("startMD").addEventListener("click", async () => {
+      currentRegion = "md";
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
+      applyRegionToUI();
+      gameModeSel.value = "municipios";
+      viewModeSel.value = "jogo";
+
+      await applyModeToUIAndLoad();
+    });
+
+    gameModeSel.addEventListener("change", async () => {
+      await applyModeToUIAndLoad();
+    });
+
+    viewModeSel.addEventListener("change", async () => {
+      // Recarregar o mesmo dataset só para tooltips (treino/jogo)
+      await applyModeToUIAndLoad();
+    });
+
+    districtSel.addEventListener("change", async () => {
+      if (currentRegion !== "pt") return;
+      await applyModeToUIAndLoad();
+    });
+
+    municipalitySel.addEventListener("change", async () => {
+      if (gameModeSel.value !== "freguesias") return;
+      await applyModeToUIAndLoad();
+    });
+
+    guessInput.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      const raw = guessInput.value;
+      guessInput.value = "";
+      handleGuess(raw);
+      guessInput.focus();
+    });
+
     document.getElementById("reset").addEventListener("click", () => {
       solved.clear();
       refreshStyles();
@@ -614,6 +704,7 @@
 
     btnShowMissing.addEventListener("click", () => {
       missingBlock.style.display = "block";
+      renderMissingList();
       updateUI();
     });
 
@@ -630,108 +721,10 @@
       updateUI();
       guessInput.focus();
     });
-
-    // Guess input
-    guessInput.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      const raw = guessInput.value;
-      guessInput.value = "";
-      handleGuess(raw);
-    });
-
-    // View mode change: reload layer to show/hide tooltips
-    viewModeSel.addEventListener("change", () => {
-      missingBlock.style.display = "none";
-      setMsg("");
-      if (gameType === "municipios") loadMunicipiosForDistrict(areaSel.value);
-      else loadFreguesiasForMunicipio(areaSel.value);
-      guessInput.focus();
-    });
-
-    // Area change
-    areaSel.addEventListener("change", () => {
-      missingBlock.style.display = "none";
-      setMsg("");
-      if (gameType === "municipios") loadMunicipiosForDistrict(areaSel.value);
-      else loadFreguesiasForMunicipio(areaSel.value);
-      guessInput.focus();
-    });
-
-    // Back to menu
-    document.getElementById("backToMenu").addEventListener("click", () => {
-      clearLayers();
-      showScreen(screenMenu);
-    });
-
-    // Start buttons
-    document.getElementById("startMunicipios").addEventListener("click", async () => {
-      gameType = "municipios";
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
-
-      try {
-        // carregar só o necessário
-        setLoading("A carregar concelhos…", 25);
-        allConcelhos = allConcelhos || await loadGeoJSON(DATA.concelhos);
-
-        setLoading("A carregar distritos…", 55);
-        allDistritos = allDistritos || await loadGeoJSON(DATA.distritos);
-
-        setLoading("A preparar lista de distritos…", 75);
-        fillAreaSelectorForDistricts();
-
-        // preparar UI labels
-        areaLabel.childNodes[0].nodeValue = "Distrito: ";
-        viewModeSel.value = "jogo";
-        missingBlock.style.display = "none";
-        setMsg("");
-
-        setLoading("A desenhar mapa…", 90);
-        showScreen(screenGame);
-
-        loadMunicipiosForDistrict(areaSel.value);
-
-        setLoading("Concluído", 100);
-        guessInput.focus();
-      } catch (e) {
-        console.error(e);
-        setLoading("Erro a carregar dados. Ver Console.", 100);
-      }
-    });
-
-    document.getElementById("startFreguesias").addEventListener("click", async () => {
-      gameType = "freguesias";
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
-
-      try {
-        // freguesias precisa de freguesias; lista de municípios vem do próprio ficheiro
-        setLoading("A carregar freguesias…", 35);
-        allFreguesias = allFreguesias || await loadGeoJSON(DATA.freguesias);
-
-        setLoading("A preparar lista de municípios…", 70);
-        fillAreaSelectorForMunicipalities();
-
-        areaLabel.childNodes[0].nodeValue = "Município: ";
-        viewModeSel.value = "jogo";
-        missingBlock.style.display = "none";
-        setMsg("");
-
-        setLoading("A desenhar mapa…", 90);
-        showScreen(screenGame);
-
-        loadFreguesiasForMunicipio(areaSel.value);
-
-        setLoading("Concluído", 100);
-        guessInput.focus();
-      } catch (e) {
-        console.error(e);
-        setLoading("Erro a carregar dados. Ver Console.", 100);
-      }
-    });
   </script>
 </body>
 </html>
+
 
 
 
