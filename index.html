@@ -196,7 +196,7 @@
         </div>
 
         <div class="small" style="margin-top:12px;">
-          Dados esperados em <code>/data</code>:<br>
+          Dados em <code>/data</code> (de acordo com os nomes reais no repo):<br>
           <span id="dataHint"></span>
         </div>
       </div>
@@ -205,23 +205,25 @@
 
   <script>
     // -----------------------------
-    // Configurações de ficheiros
+    // Configurações de ficheiros (BATEM com o teu /data no GitHub)
     // -----------------------------
+    // No teu repo tens:
+    //  - concelhos_aveiro.geojson, concelhos_porto.geojson, ...
+    //  - concelhos_acores.geojson, concelhos_madeira.geojson
+    //  - freguesias_<municipioSlug>.geojson (sem prefixo de região)
     const FILES = {
       // Continente: 1 ficheiro por distrito
-      // Ex.: data/concelhos_pt_aveiro.geojson
-      concelhosPT: (districtSlug) => `data/concelhos_pt_${districtSlug}.geojson`,
+      concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
 
       // Zonas Autónomas: 1 ficheiro por região
-      concelhosAZ: `data/concelhos_az.geojson`,
-      concelhosMD: `data/concelhos_md.geojson`,
+      concelhosAZ: `data/concelhos_acores.geojson`,
+      concelhosMD: `data/concelhos_madeira.geojson`,
 
-      // Freguesias: 1 ficheiro por município e por região
-      // Ex.: data/freguesias_pt_vila_nova_de_gaia.geojson
-      freguesias: (region, municipalitySlug) => `data/freguesias_${region}_${municipalitySlug}.geojson`,
+      // Freguesias: 1 ficheiro por município (sem prefixo regional no teu dataset atual)
+      freguesias: (_region, municipalitySlug) => `data/freguesias_${municipalitySlug}.geojson`,
     };
 
-    // Lista de distritos (para não depender de um ficheiro extra)
+    // Lista de distritos
     const DISTRICTS_PT = [
       ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
       ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
@@ -453,9 +455,11 @@
 
       // Texto de ajuda de dados
       if (currentRegion === "pt") {
-        dataHint.innerHTML = `concelhos_pt_${districtSel.value}.geojson<br>freguesias_pt_&lt;municipio&gt;.geojson`;
+        dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
+      } else if (currentRegion === "az") {
+        dataHint.innerHTML = `concelhos_acores.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
       } else {
-        dataHint.innerHTML = `concelhos_${currentRegion}.geojson<br>freguesias_${currentRegion}_&lt;municipio&gt;.geojson`;
+        dataHint.innerHTML = `concelhos_madeira.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
       }
     }
 
@@ -492,9 +496,6 @@
     }
 
     async function populateMunicipalitySelector() {
-      // no modo freguesias, queremos lista de municípios
-      // - PT: baseada no distrito selecionado (concelhos desse distrito)
-      // - AZ/MD: baseada no concelhos_az/md (todos os concelhos da região)
       let concelhosFC;
 
       if (currentRegion === "pt") {
@@ -526,7 +527,7 @@
     // Fluxo UI por região e modo
     // -----------------------------
     function applyRegionToUI() {
-      // distrito só existe no continente e apenas para modo municipios (e para filtrar municípios em freguesias)
+      // distrito só existe no continente e para filtrar concelhos
       if (currentRegion === "pt") {
         labelDistrict.style.display = "";
       } else {
@@ -579,7 +580,6 @@
     function resolveTypedToKey(typedNorm) {
       if (byKey.has(typedNorm)) return typedNorm;
 
-      // pequenas simplificações úteis
       const simplified = typedNorm
         .replace(/^vila nova de /, "")
         .replace(/^santa maria da /, "")
@@ -630,12 +630,10 @@
 
       applyRegionToUI();
 
-      // preencher distritos
       districtSel.innerHTML = "";
       for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
       districtSel.value = DISTRICTS_PT[0][1];
 
-      // default
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
 
@@ -671,7 +669,6 @@
     });
 
     viewModeSel.addEventListener("change", async () => {
-      // Recarregar o mesmo dataset só para tooltips (treino/jogo)
       await applyModeToUIAndLoad();
     });
 
