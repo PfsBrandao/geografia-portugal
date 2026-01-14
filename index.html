@@ -196,7 +196,7 @@
         </div>
 
         <div class="small" style="margin-top:12px;">
-          Dados em <code>/data</code> (de acordo com os nomes reais no repo):<br>
+          Dados em <code>/data</code> (nomes reais no repo):<br>
           <span id="dataHint"></span>
         </div>
       </div>
@@ -207,19 +207,15 @@
     // -----------------------------
     // Configurações de ficheiros (BATEM com o teu /data no GitHub)
     // -----------------------------
-    // No teu repo tens:
-    //  - concelhos_aveiro.geojson, concelhos_porto.geojson, ...
-    //  - concelhos_acores.geojson, concelhos_madeira.geojson
-    //  - freguesias_<municipioSlug>.geojson (sem prefixo de região)
     const FILES = {
-      // Continente: 1 ficheiro por distrito
+      // Continente: 1 ficheiro por distrito (ex.: data/concelhos_aveiro.geojson)
       concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
 
       // Zonas Autónomas: 1 ficheiro por região
       concelhosAZ: `data/concelhos_acores.geojson`,
       concelhosMD: `data/concelhos_madeira.geojson`,
 
-      // Freguesias: 1 ficheiro por município (sem prefixo regional no teu dataset atual)
+      // Freguesias: 1 ficheiro por município (ex.: data/freguesias_abrantes.geojson)
       freguesias: (_region, municipalitySlug) => `data/freguesias_${municipalitySlug}.geojson`,
     };
 
@@ -257,12 +253,47 @@
       return "";
     }
 
-    // tentativas comuns em GeoJSON diferentes
     function getMunicipalityName(props) {
       return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
     }
     function getParishName(props) {
       return pickProp(props, ["Freguesia","FREGUESIA","NM_FREG","parish","NAME_3","NAME3","NAME"]);
+    }
+
+    // Validação rápida de CRS/coords (diagnóstico de NaN/LatLng inválido)
+    function assertGeoJSONLooksLikeLonLat(fc, sampleN = 3) {
+      const coords = [];
+
+      function walkGeom(g) {
+        if (!g) return;
+        const t = g.type;
+        const c = g.coordinates;
+        if (!t || !c) return;
+
+        if (t === "Point") coords.push(c);
+        else if (t === "MultiPoint" || t === "LineString") c.forEach(p => coords.push(p));
+        else if (t === "MultiLineString") c.flat().forEach(p => coords.push(p));
+        else if (t === "Polygon") c.flat().forEach(p => coords.push(p));
+        else if (t === "MultiPolygon") c.flat(2).forEach(p => coords.push(p));
+        else if (t === "GeometryCollection" && Array.isArray(g.geometries)) g.geometries.forEach(walkGeom);
+      }
+
+      for (const f of (fc.features || [])) {
+        walkGeom(f.geometry);
+        if (coords.length >= sampleN) break;
+      }
+
+      if (coords.length === 0) return { ok: false, reason: "GeoJSON sem coordenadas (vazio/sem geometria)." };
+
+      const [lon, lat] = coords[0] || [];
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return { ok: false, reason: "Coordenadas inválidas (NaN/null)." };
+
+      const inLonLatRange = (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
+      if (!inLonLatRange) {
+        return { ok: false, reason: `Parece CRS errado (ex.: TM06/3857). Exemplo coord: [${lon}, ${lat}]` };
+      }
+
+      return { ok: true, reason: "ok" };
     }
 
     // Cache de downloads
@@ -331,9 +362,15 @@
     }
 
     // -----------------------------
-    // Map (sem tiles)
+    // Map (sem tiles) + SEM ANIMAÇÕES (evita crash com bounds/coords)
     // -----------------------------
-    const map = L.map("map", { zoomControl: true, attributionControl: false });
+    const map = L.map("map", {
+      zoomControl: true,
+      attributionControl: false,
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false
+    });
     map.setView([39.5, -8.0], 7);
 
     let fillLayer = null;
@@ -394,7 +431,18 @@
       }).addTo(map);
 
       total = byKey.size;
-      if (total > 0) map.fitBounds(fillLayer.getBounds(), { padding: [12, 12] });
+
+      // Só faz fitBounds se os bounds forem válidos
+      try {
+        const b = fillLayer.getBounds();
+        if (b && b.isValid && b.isValid()) {
+          map.fitBounds(b, { padding: [12, 12], animate: false });
+        } else {
+          console.warn("Bounds inválidos (geojson vazio ou geometria inválida).");
+        }
+      } catch (e) {
+        console.warn("Falha ao calcular bounds:", e);
+      }
 
       updateUI();
     }
@@ -453,7 +501,6 @@
         if (missingBlock.style.display !== "none") renderMissingList();
       }
 
-      // Texto de ajuda de dados
       if (currentRegion === "pt") {
         dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
       } else if (currentRegion === "az") {
@@ -474,14 +521,21 @@
       if (currentRegion === "pt") {
         const url = FILES.concelhosPT(districtSel.value);
         const fc = await loadJSON(url);
+
+        const check = assertGeoJSONLooksLikeLonLat(fc);
+        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+
         setLoading("A desenhar…", 85);
         buildLayer(fc);
         return;
       }
 
-      // az / md
       const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
       const fc = await loadJSON(url);
+
+      const check = assertGeoJSONLooksLikeLonLat(fc);
+      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+
       setLoading("A desenhar…", 85);
       buildLayer(fc);
     }
@@ -519,6 +573,10 @@
       const url = FILES.freguesias(currentRegion, muniSlug);
 
       const fc = await loadJSON(url);
+
+      const check = assertGeoJSONLooksLikeLonLat(fc);
+      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+
       setLoading("A desenhar…", 85);
       buildLayer(fc);
     }
@@ -527,7 +585,6 @@
     // Fluxo UI por região e modo
     // -----------------------------
     function applyRegionToUI() {
-      // distrito só existe no continente e para filtrar concelhos
       if (currentRegion === "pt") {
         labelDistrict.style.display = "";
       } else {
@@ -538,7 +595,6 @@
     async function applyModeToUIAndLoad() {
       const mode = gameModeSel.value;
 
-      // reset do estado visual
       solved.clear();
       refreshStyles();
       missingBlock.style.display = "none";
@@ -583,12 +639,11 @@
       const simplified = typedNorm
         .replace(/^vila nova de /, "")
         .replace(/^santa maria da /, "")
-        .replace(/^sao /, "")
-        .replace(/^são /, "")
+        .replace(/^sao /,"")
+        .replace(/^são /,"")
         .trim();
 
       if (byKey.has(simplified)) return simplified;
-
       return "";
     }
 
@@ -721,6 +776,7 @@
   </script>
 </body>
 </html>
+
 
 
 
