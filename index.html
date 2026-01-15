@@ -6,6 +6,15 @@
   <title>Geografia PT — Jogo + Estudo</title>
   <link rel="icon" href="data:,">
 
+  <!-- PWA -->
+  <link rel="manifest" href="/geografia-portugal/manifest.webmanifest">
+  <meta name="theme-color" content="#ffffff">
+
+  <!-- iOS (Add to Home Screen) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/geografia-portugal/icons/icon-192.png">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -162,8 +171,33 @@
 </head>
 
 <body>
+  <!-- SCREEN: LOGIN (OBRIGATÓRIO) -->
+  <div id="screenLogin" class="screen">
+    <div class="center">
+      <div class="card">
+        <h2 style="margin:6px 0 10px;">Geografia PT</h2>
+        <div class="small" style="margin-bottom:12px;">
+          Para guardar o teu progresso, escolhe ou cria um perfil.
+        </div>
+
+        <div class="row" style="align-items:center;">
+          <input id="profileName" type="text" placeholder="O teu nome" autocomplete="name" />
+          <button id="btnCreateProfile">Criar perfil</button>
+        </div>
+
+        <div class="menuBlock">
+          <div class="small" style="margin-bottom:8px;">Perfis existentes</div>
+          <div id="profilesList" class="btnRow" style="justify-content:center;"></div>
+          <div id="noProfilesHint" class="small" style="margin-top:8px; display:none;">
+            Ainda não há perfis. Cria o primeiro acima.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SCREEN: MENU -->
-  <div id="screenMenu" class="screen active">
+  <div id="screenMenu" class="screen">
     <div class="center">
       <div class="card">
         <h2 style="margin:6px 0 10px;">Geografia PT</h2>
@@ -207,6 +241,12 @@
           </div>
           <div class="small" style="margin-top:10px;" id="menuAreaNote">
             No Continente escolhes Distrito. Em Jogar, só aparecem áreas desbloqueadas.
+          </div>
+        </div>
+
+        <div class="menuBlock">
+          <div class="btnRow" style="justify-content:center;">
+            <button id="btnSwitchProfile">Trocar perfil</button>
           </div>
         </div>
       </div>
@@ -340,10 +380,40 @@
 
   <script>
     // -----------------------------
+    // PWA: registar service worker
+    // -----------------------------
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/geografia-portugal/sw.js").catch(() => {});
+    }
+
+    // -----------------------------
+    // Perfis (login obrigatório)
+    // -----------------------------
+    const PROFILES_KEY = "geoPT_profiles_v1";
+    const ACTIVE_PROFILE_KEY = "geoPT_activeProfileId_v1";
+
+    function loadProfiles() {
+      try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || "[]") || []; }
+      catch { return []; }
+    }
+    function saveProfiles(p) {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(p || []));
+    }
+    function setActiveProfile(id) {
+      localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+    }
+    function getActiveProfileId() {
+      return localStorage.getItem(ACTIVE_PROFILE_KEY);
+    }
+    function makeProfileId() {
+      return "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+    }
+
+    // -----------------------------
     // Feature flags
     // -----------------------------
     const FEATURES = {
-      playFreguesiasEnabled: false, // quando decidires suportar freguesias no Jogar, muda para true
+      playFreguesiasEnabled: false,
     };
 
     // -----------------------------
@@ -370,7 +440,6 @@
       return found ? found[0] : slug;
     }
 
-    // Áreas desbloqueáveis no Jogar
     function getAllUnlockables() {
       const arr = DISTRICTS_PT.map(([,slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${slugToName(slug)}`, kind:"ptDistrict", region:"pt", slug }));
       arr.push({ id:"az", label:"Região — Açores", kind:"region", region:"az", slug:"acores" });
@@ -379,7 +448,7 @@
     }
 
     // -----------------------------
-    // Jogar: XP e níveis (global + pack)
+    // Jogar: XP e níveis
     // -----------------------------
     const PLAY = {
       QUESTIONS_PER_SESSION: 12,
@@ -397,14 +466,17 @@
       }
     };
 
-    const STORAGE_KEY = "geoPT_play_v3";
+    // PROGRESSO POR PERFIL
+    function STORAGE_KEY() {
+      return "geoPT_play_v3:" + getActiveProfileId();
+    }
 
     function loadState() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {}; }
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY()) || "{}") || {}; }
       catch { return {}; }
     }
     function saveState(st) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(st || {}));
+      localStorage.setItem(STORAGE_KEY(), JSON.stringify(st || {}));
     }
     function ensureStateDefaults() {
       const st = loadState();
@@ -569,6 +641,7 @@
     // -----------------------------
     // Screens
     // -----------------------------
+    const screenLogin = document.getElementById("screenLogin");
     const screenMenu = document.getElementById("screenMenu");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
@@ -578,7 +651,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      for (const s of [screenMenu, screenLoading, screenGame]) s.classList.remove("active");
+      for (const s of [screenLogin, screenMenu, screenLoading, screenGame]) s.classList.remove("active");
       el.classList.add("active");
     }
     function setLoading(step, pct) {
@@ -586,6 +659,71 @@
       loadingBar.style.width = `${pct}%`;
       loadingPct.textContent = `${pct}%`;
     }
+
+    // -----------------------------
+    // Login UI
+    // -----------------------------
+    const profileNameInput = document.getElementById("profileName");
+    const btnCreateProfile = document.getElementById("btnCreateProfile");
+    const profilesList = document.getElementById("profilesList");
+    const noProfilesHint = document.getElementById("noProfilesHint");
+    const btnSwitchProfile = document.getElementById("btnSwitchProfile");
+
+    function renderProfilesList() {
+      const profiles = loadProfiles();
+      profilesList.innerHTML = "";
+      noProfilesHint.style.display = (profiles.length === 0) ? "" : "none";
+
+      for (const p of profiles) {
+        const b = document.createElement("button");
+        b.textContent = p.name;
+        b.addEventListener("click", () => {
+          setActiveProfile(p.id);
+          // carregar estado do perfil e ir para menu
+          ensureStateDefaults();
+          syncLevelAndTokensAfterXP();
+          refreshMenuProgressUI();
+          setMenuType("estudar");
+          applyMenuLocking();
+          showScreen(screenMenu);
+        });
+        profilesList.appendChild(b);
+      }
+    }
+
+    function showLogin() {
+      renderProfilesList();
+      showScreen(screenLogin);
+      profileNameInput.focus();
+    }
+
+    btnCreateProfile.addEventListener("click", () => {
+      const name = (profileNameInput.value || "").trim();
+      if (!name) return;
+
+      const profiles = loadProfiles();
+      const id = makeProfileId();
+      profiles.push({ id, name });
+      saveProfiles(profiles);
+      setActiveProfile(id);
+
+      profileNameInput.value = "";
+
+      // inicializar progresso para este perfil
+      ensureStateDefaults();
+      syncLevelAndTokensAfterXP();
+      refreshMenuProgressUI();
+      setMenuType("estudar");
+      applyMenuLocking();
+
+      showScreen(screenMenu);
+    });
+
+    btnSwitchProfile.addEventListener("click", () => {
+      // “logout”
+      localStorage.removeItem(ACTIVE_PROFILE_KEY);
+      showLogin();
+    });
 
     // -----------------------------
     // Menu UI
@@ -746,14 +884,10 @@
       msgEl.textContent = text || "";
     }
 
-    // -----------------------------
-    // Play locks (CRITICAL FIX)
-    // -----------------------------
     function applyPlayLocks() {
       const isPlay = (playTypeSel.value === "jogar");
 
       if (isPlay) {
-        // No Jogar: por agora não permitimos freguesias (a menos que ligues a flag)
         if (!FEATURES.playFreguesiasEnabled) {
           gameModeSel.value = "municipios";
           gameModeSel.disabled = true;
@@ -761,11 +895,8 @@
           gameModeSel.disabled = false;
         }
 
-        // Em Jogar: não há treino/tooltips
         viewModeSel.value = "jogo";
         viewModeSel.disabled = true;
-
-        // Município só é usado para freguesias; portanto escondido
         labelMunicipality.style.display = "none";
       } else {
         gameModeSel.disabled = false;
@@ -1282,7 +1413,7 @@
 
     function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
       const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
-      const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC; // 1..0
+      const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC;
       const base = 10;
       const bonus = Math.round(40 * timeFactor);
       let xp = base + bonus;
@@ -1456,7 +1587,7 @@
       hintUsedThisRound = true;
 
       if (playPackLevel >= 4) {
-        prepareChoicesForRound(); // força 8 opções
+        prepareChoicesForRound();
         renderPlayUI();
         setMsg("Hint: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
         return;
@@ -1493,7 +1624,6 @@
       applyRegionToUI();
       applyPlayLocks();
 
-      // PT: preencher distritos (NO JOGAR: só desbloqueados)
       if (currentRegion === "pt") {
         districtSel.innerHTML = "";
 
@@ -1511,7 +1641,6 @@
         }
       }
 
-      // Sempre arrancar em municípios (jogar bloqueia freguesias via applyPlayLocks)
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
 
@@ -1549,8 +1678,8 @@
     });
 
     btnResetProgress.addEventListener("click", () => {
-      if (!confirm("Reset progresso?")) return;
-      localStorage.removeItem(STORAGE_KEY);
+      if (!confirm("Reset progresso deste perfil?")) return;
+      localStorage.removeItem(STORAGE_KEY());
       ensureStateDefaults();
       refreshMenuProgressUI();
       applyMenuLocking();
@@ -1584,7 +1713,6 @@
       await enterArea("md");
     });
 
-    // dentro do jogo, mudar tipo
     playTypeSel.addEventListener("change", async () => {
       clearPlaySession();
       refreshStyles();
@@ -1595,7 +1723,6 @@
     });
 
     gameModeSel.addEventListener("change", async () => {
-      // robustez: no Jogar, não deixa mudar para freguesias se flag off
       if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) {
         gameModeSel.value = "municipios";
         return;
@@ -1610,18 +1737,15 @@
 
     districtSel.addEventListener("change", async () => {
       if (currentRegion !== "pt") return;
-      // no Jogar, a lista já só tem desbloqueados; segue normal
       await applyModeToUIAndLoad();
     });
 
     municipalitySel.addEventListener("change", async () => {
       if (gameModeSel.value !== "freguesias") return;
-      // no Jogar, freguesias está bloqueado (a menos que ligues a flag)
       if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) return;
       await applyModeToUIAndLoad();
     });
 
-    // Estudar input
     guessInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       if (playTypeSel.value !== "estudar") return;
@@ -1631,7 +1755,6 @@
       guessInput.focus();
     });
 
-    // Repor
     document.getElementById("reset").addEventListener("click", () => {
       if (playTypeSel.value === "estudar") {
         solved.clear();
@@ -1645,7 +1768,6 @@
       }
     });
 
-    // Estudar: faltas/revelar
     btnShowMissing.addEventListener("click", () => {
       missingBlock.style.display = "block";
       renderMissingList();
@@ -1664,17 +1786,14 @@
       guessInput.focus();
     });
 
-    // Jogar: hint/skip
     btnHint.addEventListener("click", () => useHint());
     btnSkip.addEventListener("click", () => skipQuestion());
 
-    // Desbloquear dentro do jogo
     btnUnlockFromGame.addEventListener("click", () => {
       openUnlockPicker(false);
       updateUI();
     });
 
-    // Jogar: texto + sugestões
     textAnswer.addEventListener("input", () => {
       if (!playActive) return;
       const prefix = normalize(textAnswer.value);
@@ -1703,14 +1822,20 @@
     });
 
     // -----------------------------
-    // Init
+    // Init (LOGIN OBRIGATÓRIO)
     // -----------------------------
     (function init() {
+      const active = getActiveProfileId();
+      if (!active) {
+        showLogin();
+        return;
+      }
       ensureStateDefaults();
       syncLevelAndTokensAfterXP();
       refreshMenuProgressUI();
       setMenuType("estudar");
       applyMenuLocking();
+      showScreen(screenMenu);
     })();
   </script>
 </body>
