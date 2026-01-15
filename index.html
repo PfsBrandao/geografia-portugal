@@ -1,4 +1,4 @@
-<!doctype html><!doctype html>
+<!doctype html>
 <html lang="pt">
 <head>
   <meta charset="utf-8" />
@@ -290,7 +290,7 @@
     }
 
     // -----------------------------
-    // Sanitização (mantém, mas agora não é a “bala” principal)
+    // Sanitização GeoJSON
     // -----------------------------
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
@@ -414,7 +414,7 @@
     }
 
     // -----------------------------
-    // Leaflet map: LAZY INIT (só quando screenGame está visível)
+    // Leaflet map: LAZY INIT
     // -----------------------------
     let map = null;
 
@@ -429,14 +429,11 @@
         markerZoomAnimation: false
       });
 
-      // view inicial "segura"
       map.setView([39.5, -8.0], 7);
     }
 
     function invalidateMapSizeHard() {
       if (!map) return;
-
-      // 2 frames (muito mais eficaz do que setTimeout(0))
       requestAnimationFrame(() => {
         try { map.invalidateSize(true); } catch {}
         requestAnimationFrame(() => {
@@ -598,6 +595,9 @@
     // -----------------------------
     let currentRegion = "pt";
 
+    // Evita reconstruir a lista de municípios quando só mudas o município
+    let lastConcelhosKey = "";
+
     async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
 
@@ -627,13 +627,19 @@
 
     async function populateMunicipalitySelector(concelhosFC) {
       const munis = municipalitiesFromConcelhos(concelhosFC);
+
+      const prev = municipalitySel.value; // slug atual
       municipalitySel.innerHTML = "";
+
       for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
+
+      // preserva seleção se existir
+      if (prev && Array.from(municipalitySel.options).some(o => o.value === prev)) {
+        municipalitySel.value = prev;
+      }
     }
 
     async function loadFreguesiasFC() {
-      setLoading("A carregar freguesias…", 45);
-
       const muniSlug = municipalitySel.value;
       const url = FILES.freguesias(currentRegion, muniSlug);
       const fc = await loadJSON(url);
@@ -642,6 +648,26 @@
       if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
       return fc;
+    }
+
+    async function loadOnlyFreguesiasAndDraw() {
+      showScreen(screenLoading);
+      setLoading("A carregar freguesias…", 55);
+
+      const fc = await loadFreguesiasFC();
+
+      setLoading("Pronto a desenhar…", 75);
+
+      showScreen(screenGame);
+      ensureMapReady();
+      invalidateMapSizeHard();
+
+      setLoading("A desenhar…", 90);
+      buildLayer(fc);
+
+      updateUI();
+      guessInput.focus();
+      setLoading("Concluído", 100);
     }
 
     // -----------------------------
@@ -662,24 +688,20 @@
       showScreen(screenLoading);
 
       try {
-        let fcToDraw = null;
-
         if (mode === "municipios") {
           labelMunicipality.style.display = "none";
           guessInput.placeholder = "Escreve um município…";
 
           setLoading("A preparar…", 10);
-          fcToDraw = await loadConcelhosFC();
+          const fc = await loadConcelhosFC();
 
           setLoading("Pronto a desenhar…", 75);
-
-          // Só agora mostramos o ecrã do mapa
           showScreen(screenGame);
           ensureMapReady();
           invalidateMapSizeHard();
 
           setLoading("A desenhar…", 90);
-          buildLayer(fcToDraw);
+          buildLayer(fc);
         } else {
           labelMunicipality.style.display = "";
           guessInput.placeholder = "Escreve uma freguesia…";
@@ -687,20 +709,31 @@
           setLoading("A carregar concelhos (para lista)…", 15);
           const concelhosFC = await loadConcelhosFC();
 
-          setLoading("A preparar lista de municípios…", 35);
-          await populateMunicipalitySelector(concelhosFC);
+          const ctxKey =
+            (currentRegion === "pt")
+              ? `pt:${districtSel.value}`
+              : `${currentRegion}:all`;
+
+          const needRebuildList = (ctxKey !== lastConcelhosKey);
+          lastConcelhosKey = ctxKey;
+
+          if (needRebuildList) {
+            setLoading("A preparar lista de municípios…", 35);
+            await populateMunicipalitySelector(concelhosFC);
+          } else {
+            setLoading("Lista ok…", 35);
+          }
 
           setLoading("A carregar freguesias…", 55);
-          fcToDraw = await loadFreguesiasFC();
+          const fc = await loadFreguesiasFC();
 
           setLoading("Pronto a desenhar…", 75);
-
           showScreen(screenGame);
           ensureMapReady();
           invalidateMapSizeHard();
 
           setLoading("A desenhar…", 90);
-          buildLayer(fcToDraw);
+          buildLayer(fc);
         }
 
         updateUI();
@@ -819,9 +852,24 @@
       await applyModeToUIAndLoad();
     });
 
+    // IMPORTANTÍSSIMO: mudar município NÃO deve reconstruir a lista; só recarrega freguesias
     municipalitySel.addEventListener("change", async () => {
       if (gameModeSel.value !== "freguesias") return;
-      await applyModeToUIAndLoad();
+
+      solved.clear();
+      refreshStyles();
+      missingBlock.style.display = "none";
+      setMsg("");
+
+      try {
+        await loadOnlyFreguesiasAndDraw();
+      } catch (e) {
+        console.error(e);
+        showScreen(screenGame);
+        ensureMapReady();
+        invalidateMapSizeHard();
+        setMsg(`Erro: ${e.message}`, "bad");
+      }
     });
 
     guessInput.addEventListener("keydown", (e) => {
@@ -863,6 +911,7 @@
   </script>
 </body>
 </html>
+
 
 
 
