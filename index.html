@@ -84,7 +84,7 @@
     .msg.bad { color: #8b0000; }
     .msg.good { color: #0b5; }
     .msg.neutral { color: #555; }
-    .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; justify-content:center; }
 
     .listTitle { margin: 12px 0 6px; font-weight: bold; }
     ul { padding-left: 18px; margin: 6px 0 0; }
@@ -187,10 +187,33 @@
 
         <div class="menuBlock">
           <div class="small" style="margin-bottom:8px;">Perfis existentes</div>
-          <div id="profilesList" class="btnRow" style="justify-content:center;"></div>
+          <div id="profilesList" class="btnRow"></div>
           <div id="noProfilesHint" class="small" style="margin-top:8px; display:none;">
             Ainda não há perfis. Cria o primeiro acima.
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: PROFILE -->
+  <div id="screenProfile" class="screen">
+    <div class="center">
+      <div class="card">
+        <h2 style="margin:6px 0 10px;">Perfil</h2>
+
+        <div class="kpi">
+          <div><strong>Utilizador:</strong> <span id="profileNameLabel">—</span></div>
+          <div class="small">O progresso é guardado só neste dispositivo.</div>
+        </div>
+
+        <div class="btnRow">
+          <button id="btnSwitchProfileProfile">Trocar utilizador</button>
+          <button id="btnResetProfile">Reset progresso</button>
+        </div>
+
+        <div class="btnRow" style="margin-top:16px;">
+          <button id="btnBackFromProfile">Voltar</button>
         </div>
       </div>
     </div>
@@ -224,7 +247,7 @@
           <div class="small" style="margin-top:6px;">
             <span id="mUnlockedCount">0</span> áreas desbloqueadas (distritos + Açores/Madeira).
           </div>
-          <div class="btnRow" style="justify-content:center;">
+          <div class="btnRow">
             <button id="btnUnlock" style="display:none;">Desbloquear 1 área</button>
             <button id="btnResetProgress" style="display:none;">Reset progresso (debug)</button>
           </div>
@@ -245,7 +268,8 @@
         </div>
 
         <div class="menuBlock">
-          <div class="btnRow" style="justify-content:center;">
+          <div class="btnRow">
+            <button id="btnOpenProfile">Perfil</button>
             <button id="btnSwitchProfile">Trocar perfil</button>
           </div>
         </div>
@@ -407,6 +431,11 @@
     }
     function makeProfileId() {
       return "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+    }
+    function getActiveProfile() {
+      const id = getActiveProfileId();
+      if (!id) return null;
+      return loadProfiles().find(p => p.id === id) || null;
     }
 
     // -----------------------------
@@ -642,6 +671,7 @@
     // Screens
     // -----------------------------
     const screenLogin = document.getElementById("screenLogin");
+    const screenProfile = document.getElementById("screenProfile");
     const screenMenu = document.getElementById("screenMenu");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
@@ -651,7 +681,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      for (const s of [screenLogin, screenMenu, screenLoading, screenGame]) s.classList.remove("active");
+      for (const s of [screenLogin, screenProfile, screenMenu, screenLoading, screenGame]) s.classList.remove("active");
       el.classList.add("active");
     }
     function setLoading(step, pct) {
@@ -667,7 +697,9 @@
     const btnCreateProfile = document.getElementById("btnCreateProfile");
     const profilesList = document.getElementById("profilesList");
     const noProfilesHint = document.getElementById("noProfilesHint");
+
     const btnSwitchProfile = document.getElementById("btnSwitchProfile");
+    const btnOpenProfile = document.getElementById("btnOpenProfile");
 
     function renderProfilesList() {
       const profiles = loadProfiles();
@@ -679,7 +711,6 @@
         b.textContent = p.name;
         b.addEventListener("click", () => {
           setActiveProfile(p.id);
-          // carregar estado do perfil e ir para menu
           ensureStateDefaults();
           syncLevelAndTokensAfterXP();
           refreshMenuProgressUI();
@@ -709,7 +740,6 @@
 
       profileNameInput.value = "";
 
-      // inicializar progresso para este perfil
       ensureStateDefaults();
       syncLevelAndTokensAfterXP();
       refreshMenuProgressUI();
@@ -719,11 +749,18 @@
       showScreen(screenMenu);
     });
 
-    btnSwitchProfile.addEventListener("click", () => {
-      // “logout”
-      localStorage.removeItem(ACTIVE_PROFILE_KEY);
-      showLogin();
-    });
+    // -----------------------------
+    // Profile UI
+    // -----------------------------
+    const profileNameLabel = document.getElementById("profileNameLabel");
+    const btnSwitchProfileProfile = document.getElementById("btnSwitchProfileProfile");
+    const btnResetProfile = document.getElementById("btnResetProfile");
+    const btnBackFromProfile = document.getElementById("btnBackFromProfile");
+
+    function refreshProfileUI() {
+      const p = getActiveProfile();
+      profileNameLabel.textContent = p ? p.name : "—";
+    }
 
     // -----------------------------
     // Menu UI
@@ -1658,6 +1695,41 @@
       applyMenuLocking();
     });
 
+    // Menu: abrir perfil
+    btnOpenProfile.addEventListener("click", () => {
+      refreshProfileUI();
+      showScreen(screenProfile);
+    });
+
+    // Menu: trocar perfil (logout)
+    btnSwitchProfile.addEventListener("click", () => {
+      localStorage.removeItem(ACTIVE_PROFILE_KEY);
+      showLogin();
+    });
+
+    // Profile: voltar
+    btnBackFromProfile.addEventListener("click", () => {
+      showScreen(screenMenu);
+      refreshMenuProgressUI();
+      applyMenuLocking();
+    });
+
+    // Profile: trocar utilizador
+    btnSwitchProfileProfile.addEventListener("click", () => {
+      localStorage.removeItem(ACTIVE_PROFILE_KEY);
+      showLogin();
+    });
+
+    // Profile: reset progresso deste perfil
+    btnResetProfile.addEventListener("click", () => {
+      if (!confirm("Queres apagar todo o progresso deste perfil?")) return;
+      localStorage.removeItem(STORAGE_KEY());
+      ensureStateDefaults();
+      refreshMenuProgressUI();
+      alert("Progresso apagado.");
+      refreshProfileUI();
+    });
+
     menuTypeStudy.addEventListener("click", () => {
       setMenuType("estudar");
       playTypeSel.value = "estudar";
@@ -1840,6 +1912,7 @@
   </script>
 </body>
 </html>
+
 
 
 
