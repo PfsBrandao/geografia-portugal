@@ -1,0 +1,21 @@
+{
+  "name": "Geografia PT",
+  "short_name": "GeoPT",
+  "start_url": "/geografia-portugal/",
+  "scope": "/geografia-portugal/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/geografia-portugal/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/geografia-portugal/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
