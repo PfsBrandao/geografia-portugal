@@ -20,10 +20,8 @@
       border-bottom: 1px solid #eee;
       background: #fff;
     }
-
     .screen { display: none; height: 100vh; }
     .screen.active { display: block; }
-
     .center {
       height: 100vh;
       display: flex;
@@ -35,7 +33,7 @@
       text-align: center;
     }
     .card {
-      width: min(560px, 94vw);
+      width: min(640px, 94vw);
       border: 1px solid #eee;
       border-radius: 14px;
       padding: 16px;
@@ -44,6 +42,7 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     button { padding: 10px 12px; cursor: pointer; }
     .small { font-size: 12px; color: #555; }
+
     .bar {
       width: min(420px, 90vw);
       height: 10px;
@@ -72,12 +71,10 @@
 
     .kpi { margin: 8px 0 12px; }
     .kpi div { margin: 4px 0; }
-
     .msg { margin-top: 6px; color: #222; min-height: 18px; }
     .msg.bad { color: #8b0000; }
     .msg.good { color: #0b5; }
     .msg.neutral { color: #555; }
-
     .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
 
     .listTitle { margin: 12px 0 6px; font-weight: bold; }
@@ -93,7 +90,7 @@
     header label, header input, header button, header select { width: 100%; }
 
     @media (min-width: 900px) {
-      #wrap { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 56px); }
+      #wrap { display: grid; grid-template-columns: 1fr 380px; height: calc(100vh - 56px); }
       #side { border-left: 1px solid #eee; border-top: none; max-height: none; }
       header { flex-direction: row; align-items: center; }
       header label, header input, header button, header select { width: auto; }
@@ -113,10 +110,7 @@
       border-radius: 12px;
       font-size: 14px;
     }
-    .choiceBtn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    .choiceBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .timerWrap {
       margin-top: 10px;
@@ -150,6 +144,20 @@
       cursor: pointer;
     }
     .suggestions button:last-child { border-bottom: none; }
+
+    /* Menu blocks */
+    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .pill {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .pill.active { background:#111; color:#fff; border-color:#111; }
+    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
+    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
   </style>
 </head>
 
@@ -159,16 +167,47 @@
     <div class="center">
       <div class="card">
         <h2 style="margin:6px 0 10px;">Geografia PT</h2>
-        <div class="small" style="margin-bottom:12px;">
-          Escolhe a região. A app descarrega apenas o necessário.
+        <div class="small">
+          Primeiro escolhe o tipo: <strong>Estudar</strong> (livre) ou <strong>Jogar</strong> (tempo + XP + desbloqueios).
         </div>
-        <div class="row">
-          <button id="startPT">Portugal Continental</button>
-          <button id="startAZ">Zonas Autónomas — Açores</button>
-          <button id="startMD">Zonas Autónomas — Madeira</button>
+
+        <div class="menuBlock">
+          <div class="pillRow">
+            <button class="pill active" id="menuTypeStudy">Estudar</button>
+            <button class="pill" id="menuTypePlay">Jogar</button>
+          </div>
+          <div class="small" style="margin-top:8px;">
+            <span id="menuTypeHint">Estudar: podes escolher qualquer área livremente.</span>
+          </div>
         </div>
-        <div class="small" style="margin-top:12px;">
-          Nota: no Continente escolhes Distrito; nas Zonas Autónomas não usamos “Ilha”.
+
+        <div class="menuBlock" id="playStatsMenu" style="display:none;">
+          <div class="grid3">
+            <div class="small"><strong>Nível:</strong> <span id="mLevel">1</span></div>
+            <div class="small"><strong>XP:</strong> <span id="mXP">0</span></div>
+            <div class="small"><strong>Desbloqueios:</strong> <span id="mTokens">0</span></div>
+          </div>
+          <div class="small" style="margin-top:6px;">
+            <span id="mUnlockedCount">0</span> áreas desbloqueadas (distritos + Açores/Madeira).
+          </div>
+          <div class="btnRow" style="justify-content:center;">
+            <button id="btnUnlock" style="display:none;">Desbloquear 1 área</button>
+            <button id="btnResetProgress" style="display:none;">Reset progresso (debug)</button>
+          </div>
+        </div>
+
+        <div class="menuBlock">
+          <div class="small" style="margin-bottom:10px;">
+            Escolhe a área a jogar/estudar:
+          </div>
+          <div class="row" id="menuAreaButtons">
+            <button id="startPT">Portugal Continental</button>
+            <button id="startAZ">Açores</button>
+            <button id="startMD">Madeira</button>
+          </div>
+          <div class="small" style="margin-top:10px;" id="menuAreaNote">
+            No Continente escolhes Distrito. Em Jogar, só aparecem áreas desbloqueadas.
+          </div>
         </div>
       </div>
     </div>
@@ -191,10 +230,10 @@
     <header>
       <button id="backToMenu">Voltar ao menu</button>
 
-      <label>Tipo:
+      <label id="headerModeLabel">Tipo:
         <select id="playType">
-          <option value="estudar">Estudar (escrever e pintar)</option>
-          <option value="jogar">Jogar (tempo + XP + níveis)</option>
+          <option value="estudar">Estudar</option>
+          <option value="jogar">Jogar</option>
         </select>
       </label>
 
@@ -244,8 +283,13 @@
             <div>Tempo: <strong id="timeLine">60</strong>s</div>
             <div>Sessão: <strong id="sessionLine">0 / 12</strong></div>
             <div>Certos: <strong id="correctLine">0</strong> | Errados: <strong id="wrongLine">0</strong></div>
-            <div>XP (sessão): <strong id="xpSessionLine">0</strong> | XP total: <strong id="xpTotalLine">0</strong></div>
-            <div>Nível do pack: <strong id="packLevelLine">1</strong> (4/6/8/escrever)</div>
+            <div>XP (sessão): <strong id="xpSessionLine">0</strong></div>
+
+            <div style="margin-top:6px;">
+              <div>Nível global: <strong id="playerLevelLine">1</strong> | XP total: <strong id="xpTotalLine">0</strong></div>
+              <div>Desbloqueios: <strong id="tokensLine">0</strong></div>
+              <div>Nível do pack: <strong id="packLevelLine">1</strong> (4/6/8/escrever)</div>
+            </div>
 
             <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
 
@@ -262,6 +306,10 @@
               <div class="small">Escreve a resposta (com sugestões):</div>
               <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
               <div id="suggestions" class="suggestions" style="display:none;"></div>
+            </div>
+
+            <div class="btnRow" style="margin-top:10px;">
+              <button id="btnUnlockFromGame" style="display:none;">Desbloquear 1 área</button>
             </div>
           </div>
 
@@ -292,7 +340,7 @@
 
   <script>
     // -----------------------------
-    // Configurações de ficheiros
+    // Ficheiros
     // -----------------------------
     const FILES = {
       concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
@@ -310,28 +358,31 @@
       ["Vila Real","vila_real"], ["Viseu","viseu"]
     ];
 
+    // Áreas desbloqueáveis no Jogar: distritos + az + md (tratados como “distritos especiais”)
+    function getAllUnlockables() {
+      const arr = DISTRICTS_PT.map(([,slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${slugToName(slug)}`, kind:"ptDistrict", region:"pt", slug }));
+      arr.push({ id:"az", label:"Região — Açores", kind:"region", region:"az", slug:"acores" });
+      arr.push({ id:"md", label:"Região — Madeira", kind:"region", region:"md", slug:"madeira" });
+      return arr;
+    }
+    function slugToName(slug) {
+      const found = DISTRICTS_PT.find(([,s]) => s === slug);
+      return found ? found[0] : slug;
+    }
+
     // -----------------------------
-    // Progressão / XP (Jogar)
+    // Jogar: XP e níveis (global + pack)
     // -----------------------------
     const PLAY = {
       QUESTIONS_PER_SESSION: 12,
       TIME_LIMIT_SEC: 60,
 
-      // Número de opções por nível (1..4)
       optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : lvl === 3 ? 8 : 0),
-
-      // Multiplicador de XP por dificuldade (cumpre: 8 > 6 > 4, escrever > tudo)
-      // (podes ajustar depois sem mexer na lógica)
       difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : lvl === 3 ? 1.38 : 1.70),
-
-      // Penalização de hint (XP reduzido)
       hintMult: 0.60,
-
-      // Regra de subir nível do pack (>= 80% certos numa sessão)
       promoteThreshold: 0.80,
 
-      // XP necessário para subir níveis do jogador (global) - por agora só mostramos XP total
-      // (quando ligares desbloqueios, isto vira level-ups)
+      // XP incremental necessário para passar do nível global L para L+1
       xpNeededForNext: (playerLevel) => {
         const L = Math.max(1, playerLevel);
         const x = (L - 1);
@@ -339,72 +390,100 @@
       }
     };
 
-    // Storage (simples por agora)
-    const STORAGE_KEY = "geoPT_play_v1";
-    function loadPlayState() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
-      } catch {
-        return {};
-      }
+    const STORAGE_KEY = "geoPT_play_v2";
+
+    function loadState() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {}; }
+      catch { return {}; }
     }
-    function savePlayState(st) {
+    function saveState(st) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(st || {}));
     }
 
-    function getPackKey() {
-      // pack = região + modo + scope
-      // municípios: pt + distrito; az/md são "região"
-      // freguesias: sempre por município selecionado
-      const region = currentRegion; // pt/az/md
-      const mode = gameModeSel.value; // municipios/freguesias
+    function ensureStateDefaults() {
+      const st = loadState();
+      st.xpTotal = st.xpTotal || 0;
+      st.playerLevel = st.playerLevel || 1;
+      st.tokens = st.tokens || 0;
+      st.unlocked = st.unlocked || []; // array de ids: "pt:aveiro", "az", "md"
+      st.packs = st.packs || {};        // progress por packKey
+      saveState(st);
+      return st;
+    }
 
-      if (mode === "municipios") {
-        if (region === "pt") return `${region}|${mode}|${districtSel.value}`;
-        if (region === "az") return `${region}|${mode}|acores`;
-        return `${region}|${mode}|madeira`;
-      } else {
-        // freguesias: por município selecionado (slug)
-        return `${region}|${mode}|${municipalitySel.value || "?"}`;
+    function computePlayerLevelFromXP(xpTotal) {
+      // Usa o modelo incremental: vai consumindo thresholds sucessivos.
+      let level = 1;
+      let remaining = Math.max(0, xpTotal);
+      while (true) {
+        const need = PLAY.xpNeededForNext(level);
+        if (remaining >= need) {
+          remaining -= need;
+          level++;
+        } else break;
       }
+      return { level, carry: remaining };
     }
 
-    function getPackLevel(packKey) {
-      const st = loadPlayState();
-      const packs = st.packs || {};
-      const lvl = packs[packKey]?.level || 1;
-      return Math.max(1, Math.min(4, lvl));
-    }
+    function syncLevelAndTokensAfterXP() {
+      const st = ensureStateDefaults();
+      const beforeLevel = st.playerLevel;
 
-    function setPackLevel(packKey, lvl) {
-      const st = loadPlayState();
-      st.packs = st.packs || {};
-      st.packs[packKey] = st.packs[packKey] || {};
-      st.packs[packKey].level = Math.max(1, Math.min(4, lvl));
-      savePlayState(st);
+      const calc = computePlayerLevelFromXP(st.xpTotal);
+      const afterLevel = calc.level;
+
+      if (afterLevel > beforeLevel) {
+        const gained = afterLevel - beforeLevel;
+        st.playerLevel = afterLevel;
+        st.tokens += gained; // 1 token por nível ganho
+        saveState(st);
+      }
+      return ensureStateDefaults();
     }
 
     function addXP(xp) {
-      const st = loadPlayState();
-      st.xpTotal = (st.xpTotal || 0) + Math.max(0, Math.round(xp || 0));
-      savePlayState(st);
-      return st.xpTotal;
+      const st = ensureStateDefaults();
+      st.xpTotal += Math.max(0, Math.round(xp || 0));
+      saveState(st);
+      return syncLevelAndTokensAfterXP();
     }
 
-    function getXP() {
-      const st = loadPlayState();
-      return st.xpTotal || 0;
+    function getUnlockedSet() {
+      const st = ensureStateDefaults();
+      return new Set(st.unlocked || []);
+    }
+
+    function unlockOne(id) {
+      const st = ensureStateDefaults();
+      if (st.tokens <= 0) return { ok:false, reason:"Sem desbloqueios disponíveis." };
+      const set = new Set(st.unlocked || []);
+      if (set.has(id)) return { ok:false, reason:"Já desbloqueado." };
+
+      set.add(id);
+      st.unlocked = Array.from(set);
+      st.tokens -= 1;
+      saveState(st);
+      return { ok:true };
+    }
+
+    function getPackLevel(packKey) {
+      const st = ensureStateDefaults();
+      const lvl = st.packs?.[packKey]?.level || 1;
+      return Math.max(1, Math.min(4, lvl));
+    }
+    function setPackLevel(packKey, lvl) {
+      const st = ensureStateDefaults();
+      st.packs = st.packs || {};
+      st.packs[packKey] = st.packs[packKey] || {};
+      st.packs[packKey].level = Math.max(1, Math.min(4, lvl));
+      saveState(st);
     }
 
     // -----------------------------
     // Utilitários
     // -----------------------------
     function normalize(s) {
-      return (s || "")
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+      return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
     function slugify(name) {
       let s = normalize(name);
@@ -419,7 +498,6 @@
       }
       return "";
     }
-
     function getMunicipalityName(props) {
       return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
     }
@@ -429,13 +507,11 @@
 
     function assertGeoJSONLooksLikeLonLat(fc, sampleN = 3) {
       const coords = [];
-
       function walkGeom(g) {
         if (!g) return;
         const t = g.type;
         const c = g.coordinates;
         if (!t || !c) return;
-
         if (t === "Point") coords.push(c);
         else if (t === "MultiPoint" || t === "LineString") c.forEach(p => coords.push(p));
         else if (t === "MultiLineString") c.flat().forEach(p => coords.push(p));
@@ -443,100 +519,61 @@
         else if (t === "MultiPolygon") c.flat(2).forEach(p => coords.push(p));
         else if (t === "GeometryCollection" && Array.isArray(g.geometries)) g.geometries.forEach(walkGeom);
       }
-
       for (const f of (fc.features || [])) {
         walkGeom(f.geometry);
         if (coords.length >= sampleN) break;
       }
-
-      if (coords.length === 0) return { ok: false, reason: "GeoJSON sem coordenadas (vazio/sem geometria)." };
-
+      if (coords.length === 0) return { ok: false, reason: "GeoJSON sem coordenadas." };
       const [lon, lat] = coords[0] || [];
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) return { ok: false, reason: "Coordenadas inválidas (NaN/null)." };
-
       const inLonLatRange = (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
-      if (!inLonLatRange) {
-        return { ok: false, reason: `Parece CRS errado (ex.: TM06/3857). Exemplo coord: [${lon}, ${lat}]` };
-      }
-
+      if (!inLonLatRange) return { ok: false, reason: `CRS errado? Ex: [${lon}, ${lat}]` };
       return { ok: true, reason: "ok" };
     }
 
-    // -----------------------------
-    // Sanitização GeoJSON
-    // -----------------------------
+    // Sanitização (defensivo)
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
-
       const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
       const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
-
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
       if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
       return true;
     }
-
     function geometryHasOnlyValidCoords(geom) {
       if (!geom) return false;
       const t = geom.type;
       const c = geom.coordinates;
-
       if (t === "Point") return coordPairOk(c);
-
-      if (t === "MultiPoint" || t === "LineString") {
-        return Array.isArray(c) && c.every(coordPairOk);
-      }
-
-      if (t === "MultiLineString" || t === "Polygon") {
-        return Array.isArray(c) && c.every(line => Array.isArray(line) && line.every(coordPairOk));
-      }
-
-      if (t === "MultiPolygon") {
-        return Array.isArray(c) && c.every(poly =>
-          Array.isArray(poly) && poly.every(ring =>
-            Array.isArray(ring) && ring.every(coordPairOk)
-          )
-        );
-      }
-
-      if (t === "GeometryCollection") {
-        return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
-      }
-
+      if (t === "MultiPoint" || t === "LineString") return Array.isArray(c) && c.every(coordPairOk);
+      if (t === "MultiLineString" || t === "Polygon") return Array.isArray(c) && c.every(line => Array.isArray(line) && line.every(coordPairOk));
+      if (t === "MultiPolygon") return Array.isArray(c) && c.every(poly => Array.isArray(poly) && poly.every(ring => Array.isArray(ring) && ring.every(coordPairOk)));
+      if (t === "GeometryCollection") return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
       return false;
     }
-
     function sanitizeFeatureCollection(fc) {
       const features = Array.isArray(fc?.features) ? fc.features : [];
       const kept = [];
-      let dropped = 0;
-
-      for (const f of features) {
-        if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
-        else dropped++;
-      }
-
-      return { cleaned: { ...fc, features: kept }, dropped, total: features.length };
+      for (const f of features) if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
+      return { cleaned: { ...fc, features: kept } };
     }
 
     // Cache downloads
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
-
       const p = fetch(url).then(async (r) => {
         if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
         const txt = await r.text();
         const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
         return JSON.parse(clean);
       });
-
       cache.set(url, p);
       return p;
     }
 
     // -----------------------------
-    // Screens / Loading
+    // Screens
     // -----------------------------
     const screenMenu = document.getElementById("screenMenu");
     const screenLoading = document.getElementById("screenLoading");
@@ -557,13 +594,126 @@
     }
 
     // -----------------------------
-    // UI Elements
+    // Menu UI (Estudar/Jogar antes)
+    // -----------------------------
+    const menuTypeStudy = document.getElementById("menuTypeStudy");
+    const menuTypePlay = document.getElementById("menuTypePlay");
+    const menuTypeHint = document.getElementById("menuTypeHint");
+
+    const playStatsMenu = document.getElementById("playStatsMenu");
+    const mLevel = document.getElementById("mLevel");
+    const mXP = document.getElementById("mXP");
+    const mTokens = document.getElementById("mTokens");
+    const mUnlockedCount = document.getElementById("mUnlockedCount");
+    const btnUnlock = document.getElementById("btnUnlock");
+    const btnResetProgress = document.getElementById("btnResetProgress");
+
+    const startPT = document.getElementById("startPT");
+    const startAZ = document.getElementById("startAZ");
+    const startMD = document.getElementById("startMD");
+
+    let menuPlayType = "estudar"; // escolhido no menu
+
+    function setMenuType(type) {
+      menuPlayType = type;
+
+      menuTypeStudy.classList.toggle("active", type === "estudar");
+      menuTypePlay.classList.toggle("active", type === "jogar");
+
+      if (type === "estudar") {
+        menuTypeHint.textContent = "Estudar: podes escolher qualquer área livremente.";
+        playStatsMenu.style.display = "none";
+        startPT.disabled = false;
+        startAZ.disabled = false;
+        startMD.disabled = false;
+      } else {
+        menuTypeHint.textContent = "Jogar: só podes entrar em áreas desbloqueadas (1 desbloqueio por nível).";
+        playStatsMenu.style.display = "";
+        refreshMenuProgressUI();
+        applyMenuLocking();
+      }
+    }
+
+    function refreshMenuProgressUI() {
+      const st = syncLevelAndTokensAfterXP();
+      const unlocked = new Set(st.unlocked || []);
+      mLevel.textContent = String(st.playerLevel || 1);
+      mXP.textContent = String(st.xpTotal || 0);
+      mTokens.textContent = String(st.tokens || 0);
+      mUnlockedCount.textContent = String(unlocked.size);
+
+      btnUnlock.style.display = (st.tokens > 0 || unlocked.size === 0) ? "" : "none";
+      btnResetProgress.style.display = ""; // debug
+    }
+
+    function applyMenuLocking() {
+      // Em Jogar: PT precisa de ter pelo menos 1 distrito desbloqueado para entrar no Continente.
+      // AZ/MD só entram se desbloqueados (az/md).
+      const st = ensureStateDefaults();
+      const unlocked = new Set(st.unlocked || []);
+      const hasAnyPT = Array.from(unlocked).some(x => x.startsWith("pt:"));
+
+      startPT.disabled = !hasAnyPT;
+      startAZ.disabled = !unlocked.has("az");
+      startMD.disabled = !unlocked.has("md");
+    }
+
+    function ensureStarterUnlockIfNeeded() {
+      // Se está em Jogar e não tem nada desbloqueado, força escolha.
+      const st = ensureStateDefaults();
+      const unlocked = new Set(st.unlocked || []);
+      if (menuPlayType !== "jogar") return true;
+      if (unlocked.size > 0) return true;
+
+      // dá 1 token inicial “starter” automaticamente (para começar com 1)
+      st.tokens = Math.max(st.tokens || 0, 1);
+      saveState(st);
+
+      refreshMenuProgressUI();
+      openUnlockPicker(true);
+      return false;
+    }
+
+    function openUnlockPicker(isStarter = false) {
+      const st = ensureStateDefaults();
+      if (st.tokens <= 0) return;
+
+      const unlocked = new Set(st.unlocked || []);
+      const all = getAllUnlockables().filter(x => !unlocked.has(x.id));
+
+      const lines = all.map((x, i) => `${i+1}. ${x.label}`).join("\n");
+      const promptText = (isStarter
+        ? "Escolhe a tua primeira área para desbloquear (escreve o número):\n\n"
+        : "Tens 1 desbloqueio. Escolhe a próxima área (escreve o número):\n\n"
+      ) + lines;
+
+      const ans = window.prompt(promptText, "1");
+      if (!ans) return;
+
+      const idx = Number(ans) - 1;
+      if (!Number.isFinite(idx) || idx < 0 || idx >= all.length) {
+        alert("Número inválido.");
+        return;
+      }
+
+      const picked = all[idx];
+      const res = unlockOne(picked.id);
+      if (!res.ok) {
+        alert(res.reason || "Não foi possível desbloquear.");
+        return;
+      }
+
+      refreshMenuProgressUI();
+      applyMenuLocking();
+    }
+
+    // -----------------------------
+    // Game UI
     // -----------------------------
     const playTypeSel = document.getElementById("playType");
     const gameModeSel = document.getElementById("gameMode");
     const viewModeSel = document.getElementById("viewMode");
     const labelViewMode = document.getElementById("labelViewMode");
-
     const labelDistrict = document.getElementById("labelDistrict");
     const districtSel = document.getElementById("district");
     const labelMunicipality = document.getElementById("labelMunicipality");
@@ -576,7 +726,6 @@
     const hintLine = document.getElementById("hintLine");
     const msgEl = document.getElementById("msg");
 
-    // Estudar UI
     const studyButtons = document.getElementById("studyButtons");
     const btnShowMissing = document.getElementById("btnShowMissing");
     const btnHideMissing = document.getElementById("btnHideMissing");
@@ -585,7 +734,6 @@
     const missingList = document.getElementById("missingList");
     const dataHint = document.getElementById("dataHint");
 
-    // Jogar UI
     const playStats = document.getElementById("playStats");
     const timeLine = document.getElementById("timeLine");
     const sessionLine = document.getElementById("sessionLine");
@@ -593,6 +741,8 @@
     const wrongLine = document.getElementById("wrongLine");
     const xpSessionLine = document.getElementById("xpSessionLine");
     const xpTotalLine = document.getElementById("xpTotalLine");
+    const playerLevelLine = document.getElementById("playerLevelLine");
+    const tokensLine = document.getElementById("tokensLine");
     const packLevelLine = document.getElementById("packLevelLine");
     const timerBar = document.getElementById("timerBar");
     const btnHint = document.getElementById("btnHint");
@@ -602,6 +752,7 @@
     const textBlock = document.getElementById("textBlock");
     const textAnswer = document.getElementById("textAnswer");
     const suggestionsEl = document.getElementById("suggestions");
+    const btnUnlockFromGame = document.getElementById("btnUnlockFromGame");
 
     function setMsg(text, type="neutral") {
       msgEl.className = "msg " + type;
@@ -609,13 +760,11 @@
     }
 
     // -----------------------------
-    // Leaflet map: LAZY INIT
+    // Leaflet map (lazy)
     // -----------------------------
     let map = null;
-
     function ensureMapReady() {
       if (map) return;
-
       map = L.map("map", {
         zoomControl: true,
         attributionControl: false,
@@ -623,10 +772,8 @@
         fadeAnimation: false,
         markerZoomAnimation: false
       });
-
       map.setView([39.5, -8.0], 7);
     }
-
     function invalidateMapSizeHard() {
       if (!map) return;
       requestAnimationFrame(() => {
@@ -638,12 +785,12 @@
     }
 
     // -----------------------------
-    // Layers / State
+    // Layers / state
     // -----------------------------
     let fillLayer = null;
-    let byKey = new Map();          // key(normalizado) -> leaflet layer
-    let keyToOfficial = new Map();  // key(normalizado) -> nome oficial
-    let solved = new Set();         // usado no Estudar
+    let byKey = new Map();
+    let keyToOfficial = new Map();
+    let solved = new Set();
     let total = 0;
 
     // Jogar: round state
@@ -690,8 +837,8 @@
 
     function getRegionLabel() {
       return (currentRegion === "pt") ? "Portugal Continental"
-        : (currentRegion === "az") ? "Zonas Autónomas — Açores"
-        : "Zonas Autónomas — Madeira";
+        : (currentRegion === "az") ? "Açores"
+        : "Madeira";
     }
 
     function getContextLabel() {
@@ -710,11 +857,9 @@
     function styleFill(feature) {
       const props = feature.properties || {};
       const mode = gameModeSel.value;
-
       const raw = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
       const key = normalize(raw);
 
-      // Jogar: highlight do target
       if (playActive) {
         const isTarget = (key && key === currentTargetKey);
         return {
@@ -725,7 +870,6 @@
         };
       }
 
-      // Estudar
       const ok = solved.has(key);
       return {
         color: "#000",
@@ -751,25 +895,17 @@
       clearLayer();
 
       const { cleaned } = sanitizeFeatureCollection(fc);
-      if (!cleaned.features || cleaned.features.length === 0) {
-        throw new Error("GeoJSON sem features válidas.");
-      }
+      if (!cleaned.features || cleaned.features.length === 0) throw new Error("GeoJSON sem features válidas.");
 
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
         onEachFeature: (feature, lyr) => {
           const p = feature.properties || {};
           const mode = gameModeSel.value;
-
           const raw = (mode === "municipios") ? getMunicipalityName(p) : getParishName(p);
           const key = normalize(raw);
+          if (key) { byKey.set(key, lyr); keyToOfficial.set(key, raw); }
 
-          if (key) {
-            byKey.set(key, lyr);
-            keyToOfficial.set(key, raw);
-          }
-
-          // tooltips só em Estudar/Treino
           if (!playActive && viewModeSel.value === "treino" && raw) {
             lyr.bindTooltip(raw, { sticky: true, opacity: 0.85 });
           }
@@ -779,14 +915,10 @@
       total = byKey.size;
 
       invalidateMapSizeHard();
-
       try {
         const b = fillLayer.getBounds();
-        if (b && b.isValid && b.isValid()) {
-          map.fitBounds(b, { padding: [12, 12], animate: false });
-        }
+        if (b && b.isValid && b.isValid()) map.fitBounds(b, { padding: [12,12], animate: false });
       } catch {}
-
       updateUI();
     }
 
@@ -800,9 +932,7 @@
     // -----------------------------
     function renderMissingList() {
       const missing = [];
-      for (const [key, official] of keyToOfficial.entries()) {
-        if (!solved.has(key)) missing.push(official);
-      }
+      for (const [key, official] of keyToOfficial.entries()) if (!solved.has(key)) missing.push(official);
       missing.sort((a,b)=>a.localeCompare(b,"pt"));
 
       missingList.innerHTML = "";
@@ -819,75 +949,63 @@
     function updateUI() {
       const regionLabel = getRegionLabel();
       const ctx = getContextLabel();
-
       const type = playTypeSel.value;
 
-      // topo
       titleLine.textContent = `${regionLabel} — ${gameModeSel.value === "municipios" ? "Municípios" : "Freguesias"}`;
       subTitleLine.textContent = ctx;
 
-      // hint / data hint
-      if (currentRegion === "pt") {
-        dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
-      } else if (currentRegion === "az") {
-        dataHint.innerHTML = `concelhos_acores.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
-      } else {
-        dataHint.innerHTML = `concelhos_madeira.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
-      }
+      if (currentRegion === "pt") dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
+      else if (currentRegion === "az") dataHint.innerHTML = `concelhos_acores.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
+      else dataHint.innerHTML = `concelhos_madeira.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
 
       if (type === "estudar") {
-        // Estudar: mostra elementos antigos
         labelViewMode.style.display = "";
         studyButtons.style.display = "";
         playStats.style.display = "none";
         questionLine.style.display = "none";
-
         guessInput.style.display = "";
         guessInput.disabled = false;
-
-        btnSkip.style.display = "none";
-        btnHint.style.display = "none";
+        btnUnlockFromGame.style.display = "none";
 
         if (viewModeSel.value === "jogo") {
-          hintLine.textContent = "Modo Estudo (Jogo): escreve nomes; vai ficando a escuro.";
+          hintLine.textContent = "Estudar: escreve nomes; vai ficando a escuro.";
           btnShowMissing.style.display = "none";
           btnHideMissing.style.display = "none";
           btnRevealAll.style.display = "none";
           missingBlock.style.display = "none";
         } else {
-          hintLine.textContent = "Modo Estudo (Treino): podes ver faltas e revelar tudo.";
+          hintLine.textContent = "Estudar (Treino): podes ver faltas e revelar tudo.";
           btnShowMissing.style.display = (missingBlock.style.display === "none") ? "inline-block" : "none";
           btnHideMissing.style.display = (missingBlock.style.display === "none") ? "none" : "inline-block";
           btnRevealAll.style.display = "inline-block";
           if (missingBlock.style.display !== "none") renderMissingList();
         }
       } else {
-        // Jogar
         labelViewMode.style.display = "none";
         studyButtons.style.display = "none";
         missingBlock.style.display = "none";
         playStats.style.display = "";
         questionLine.style.display = "";
-
-        // input principal do estudar não é usado
         guessInput.style.display = "none";
 
-        hintLine.textContent = "Modo Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; hint reduz XP.";
+        const st = syncLevelAndTokensAfterXP();
+        xpTotalLine.textContent = String(st.xpTotal || 0);
+        playerLevelLine.textContent = String(st.playerLevel || 1);
+        tokensLine.textContent = String(st.tokens || 0);
+        btnUnlockFromGame.style.display = (st.tokens > 0) ? "" : "none";
 
+        hintLine.textContent = "Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; hint reduz XP.";
         renderPlayUI();
       }
     }
 
     function renderPlayUI() {
-      xpTotalLine.textContent = String(getXP());
       packLevelLine.textContent = String(playPackLevel);
-
       sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
       correctLine.textContent = String(sessionCorrect);
       wrongLine.textContent = String(sessionWrong);
       xpSessionLine.textContent = String(sessionXP);
 
-      // pergunta
       if (playActive && currentTargetKey) {
         const q = (gameModeSel.value === "municipios") ? "Que município é este?" : "Que freguesia é esta?";
         questionLine.innerHTML = `<strong>${q}</strong>`;
@@ -895,13 +1013,9 @@
         questionLine.innerHTML = `<strong>—</strong>`;
       }
 
-      // botão hint
       btnHint.disabled = !playActive || hintUsedThisRound;
 
-      // blocos por nível
       const isTextLevel = (playPackLevel >= 4);
-
-      // regra pedida: se estamos no nível 4 e usar hint => mostrar 8 opções nesse round
       const showChoicesInTextLevel = (isTextLevel && hintUsedThisRound);
 
       if (!isTextLevel || showChoicesInTextLevel) {
@@ -912,18 +1026,12 @@
         textBlock.style.display = "";
       }
 
-      // sugestões
       suggestionsEl.style.display = "none";
       suggestionsEl.innerHTML = "";
       textAnswer.value = "";
 
-      // limpar escolhas
       choicesEl.innerHTML = "";
       if (choicesBlock.style.display !== "none") {
-        // 4/6/8 ou 8 no nível 4 com hint
-        const n = (!isTextLevel) ? PLAY.optionsByPackLevel(playPackLevel) : 8;
-        // grelha: 2 colunas em mobile, mas com mais itens fica maior (ok)
-        // render botões quando as escolhas estiverem prontas
         if (playActive && currentChoicesKeys.length) {
           for (const k of currentChoicesKeys) {
             const b = document.createElement("button");
@@ -933,17 +1041,16 @@
             choicesEl.appendChild(b);
           }
         } else {
-          // placeholder
           const small = document.createElement("div");
           small.className = "small";
-          small.textContent = (playActive ? "A preparar opções…" : "Inicia o jogo para começar.");
+          small.textContent = (playActive ? "A preparar opções…" : "Inicia para começar.");
           choicesEl.appendChild(small);
         }
       }
     }
 
     // -----------------------------
-    // Carregamento de datasets
+    // Carregamento datasets
     // -----------------------------
     let currentRegion = "pt";
     let lastConcelhosKey = "";
@@ -977,41 +1084,45 @@
 
     async function populateMunicipalitySelector(concelhosFC) {
       const munis = municipalitiesFromConcelhos(concelhosFC);
-
       const prev = municipalitySel.value;
       municipalitySel.innerHTML = "";
-
       for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
-
-      if (prev && Array.from(municipalitySel.options).some(o => o.value === prev)) {
-        municipalitySel.value = prev;
-      }
+      if (prev && Array.from(municipalitySel.options).some(o => o.value === prev)) municipalitySel.value = prev;
     }
 
     async function loadFreguesiasFC() {
       setLoading("A carregar freguesias…", 45);
-
       const muniSlug = municipalitySel.value;
       const url = FILES.freguesias(currentRegion, muniSlug);
       const fc = await loadJSON(url);
-
       const check = assertGeoJSONLooksLikeLonLat(fc);
       if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-
       return fc;
     }
 
+    // Pack key por contexto (para níveis 1..4 por distrito/município)
+    function getPackKey() {
+      const region = currentRegion;
+      const mode = gameModeSel.value;
+
+      if (mode === "municipios") {
+        if (region === "pt") return `${region}|${mode}|${districtSel.value}`;
+        if (region === "az") return `${region}|${mode}|acores`;
+        return `${region}|${mode}|madeira`;
+      } else {
+        return `${region}|${mode}|${municipalitySel.value || "?"}`;
+      }
+    }
+
     // -----------------------------
-    // Fluxo UI: aplicar seleções e carregar mapa
+    // Fluxo: load + build
     // -----------------------------
     function applyRegionToUI() {
       labelDistrict.style.display = (currentRegion === "pt") ? "" : "none";
     }
 
     async function applyModeToUIAndLoad() {
-      // ao mudar de contexto, parar jogo e limpar sessão
       clearPlaySession();
-
       showScreen(screenLoading);
 
       try {
@@ -1020,7 +1131,6 @@
         if (gameModeSel.value === "municipios") {
           labelMunicipality.style.display = "none";
           setLoading("A preparar…", 10);
-
           fcToDraw = await loadConcelhosFC();
 
           setLoading("Pronto a desenhar…", 75);
@@ -1061,9 +1171,10 @@
         setLoading("Concluído", 100);
 
         if (playTypeSel.value === "estudar") {
-          guessInput.style.display = "";
           guessInput.placeholder = (gameModeSel.value === "municipios") ? "Escreve um município…" : "Escreve uma freguesia…";
           guessInput.focus();
+        } else {
+          beginPlaySession();
         }
       } catch (e) {
         console.error(e);
@@ -1079,14 +1190,12 @@
     // -----------------------------
     function resolveTypedToKey(typedNorm) {
       if (byKey.has(typedNorm)) return typedNorm;
-
       const simplified = typedNorm
         .replace(/^vila nova de /, "")
         .replace(/^santa maria da /, "")
         .replace(/^sao /,"")
         .replace(/^são /,"")
         .trim();
-
       if (byKey.has(simplified)) return simplified;
       return "";
     }
@@ -1096,26 +1205,18 @@
       if (!typed) return;
 
       const key = resolveTypedToKey(typed);
-      if (!key) {
-        setMsg(`Não encontrado: "${rawInput}"`, "bad");
-        return;
-      }
-
-      if (solved.has(key)) {
-        setMsg(`Já estava: ${keyToOfficial.get(key) || rawInput}`, "neutral");
-        return;
-      }
+      if (!key) { setMsg(`Não encontrado: "${rawInput}"`, "bad"); return; }
+      if (solved.has(key)) { setMsg(`Já estava: ${keyToOfficial.get(key) || rawInput}`, "neutral"); return; }
 
       solved.add(key);
       refreshStyles();
       setMsg(`Certo: ${keyToOfficial.get(key) || rawInput}`, "good");
       updateUI();
-
       if (solved.size === total && total > 0) setMsg("Concluído. Acertaste tudo.", "good");
     }
 
     // -----------------------------
-    // Jogar: lógica do quiz
+    // Jogar: quiz
     // -----------------------------
     function shuffle(arr) {
       const a = arr.slice();
@@ -1125,7 +1226,6 @@
       }
       return a;
     }
-
     function sampleDistinct(arr, n, forbidSet) {
       const pool = [];
       for (const x of arr) {
@@ -1139,7 +1239,6 @@
     function startTimer() {
       stopTimer();
       roundStartedAt = Date.now();
-
       timerHandle = setInterval(() => {
         if (!playActive) return;
 
@@ -1166,27 +1265,20 @@
     }
 
     function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
-      // XP base: 10..50 (rápido dá mais)
       const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
       const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC; // 1..0
       const base = 10;
       const bonus = Math.round(40 * timeFactor);
       let xp = base + bonus;
 
-      // Dificuldade
       xp = xp * PLAY.difficultyMultByPackLevel(packLevel);
-
-      // Hint reduz XP
       if (usedHint) xp = xp * PLAY.hintMult;
 
       return Math.max(0, Math.floor(xp));
     }
 
     function pickNewTargetKey() {
-      if (playRemainingKeys.length === 0) {
-        // repõe com shuffle, mas evita repetir imediato se possível
-        playRemainingKeys = shuffle(playPoolKeys);
-      }
+      if (playRemainingKeys.length === 0) playRemainingKeys = shuffle(playPoolKeys);
       return playRemainingKeys.pop() || "";
     }
 
@@ -1194,14 +1286,9 @@
       const isTextLevel = (playPackLevel >= 4);
       const forcedChoices = (isTextLevel && hintUsedThisRound);
 
-      if (isTextLevel && !forcedChoices) {
-        currentChoicesKeys = [];
-        return;
-      }
+      if (isTextLevel && !forcedChoices) { currentChoicesKeys = []; return; }
 
-      // 4/6/8 ou 8 no último nível com hint
-      const n = (!isTextLevel) ? PLAY.optionsByPackLevel(playPackLevel) : 8;
-
+      const n = (!isTextLevel) ? (playPackLevel === 1 ? 4 : playPackLevel === 2 ? 6 : 8) : 8;
       const forbid = new Set([currentTargetKey]);
       const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
       currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
@@ -1213,23 +1300,15 @@
         suggestionsEl.innerHTML = "";
         return;
       }
-
-      // filtra por prefixo
       const matches = [];
       for (const k of playPoolKeys) {
         const off = keyToOfficial.get(k) || "";
         const norm = normalize(off);
         if (norm.startsWith(prefixNorm)) matches.push(k);
       }
-
-      // limitar
       const top = matches.slice(0, 10);
-
       suggestionsEl.innerHTML = "";
-      if (top.length === 0) {
-        suggestionsEl.style.display = "none";
-        return;
-      }
+      if (top.length === 0) { suggestionsEl.style.display = "none"; return; }
 
       for (const k of top) {
         const b = document.createElement("button");
@@ -1237,16 +1316,11 @@
         b.addEventListener("click", () => submitAnswerText(k));
         suggestionsEl.appendChild(b);
       }
-
       suggestionsEl.style.display = "";
     }
 
     function beginPlaySession() {
-      if (!byKey.size) {
-        setMsg("Sem dados carregados.", "bad");
-        return;
-      }
-
+      if (!byKey.size) { setMsg("Sem dados carregados.", "bad"); return; }
       clearPlaySession();
       playActive = true;
 
@@ -1256,10 +1330,6 @@
       playPoolKeys = Array.from(byKey.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
-      xpTotalLine.textContent = String(getXP());
-      packLevelLine.textContent = String(playPackLevel);
-
-      // iniciar round 1
       nextRound();
     }
 
@@ -1271,17 +1341,14 @@
       currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
 
       prepareChoicesForRound();
-      refreshStyles(); // pinta target
+      refreshStyles();
 
-      // UI
       setMsg("", "neutral");
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       timerBar.style.width = "100%";
 
-      // mostrar opções/input
       renderPlayUI();
 
-      // ligar input do nível 4
       if (playPackLevel >= 4 && !hintUsedThisRound) {
         textAnswer.value = "";
         showSuggestions("");
@@ -1308,16 +1375,12 @@
       const extra = promoted ? ` Subiste para o nível ${playPackLevel} deste pack.` : "";
       setMsg(`Fim da sessão. Certos: ${sessionCorrect}/${sessionIndex}. XP ganho: ${sessionXP}.${extra}`, promoted ? "good" : "neutral");
 
+      updateUI();
       renderPlayUI();
     }
 
     function nextRoundOrEnd() {
-      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
-        endSession();
-        return;
-      }
-
-      // pequena pausa visual
+      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) { endSession(); return; }
       setTimeout(() => {
         if (playTypeSel.value !== "jogar") return;
         if (!byKey.size) return;
@@ -1328,7 +1391,6 @@
 
     function submitAnswerChoice(chosenKey) {
       if (!playActive) return;
-
       stopTimer();
       const elapsed = (Date.now() - roundStartedAt) / 1000;
 
@@ -1338,9 +1400,8 @@
 
         const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
         sessionXP += xp;
-        const totalXP = addXP(xp);
 
-        xpTotalLine.textContent = String(totalXP);
+        const st = addXP(xp);
         setMsg(`Certo (+${xp} XP)`, "good");
       } else {
         sessionWrong++;
@@ -1348,17 +1409,11 @@
         setMsg(`Errado. Era: ${currentTargetOfficial}`, "bad");
       }
 
-      correctLine.textContent = String(sessionCorrect);
-      wrongLine.textContent = String(sessionWrong);
-      xpSessionLine.textContent = String(sessionXP);
-      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
-
       nextRoundOrEnd();
     }
 
     function submitAnswerText(chosenKey) {
       if (!playActive) return;
-
       stopTimer();
       const elapsed = (Date.now() - roundStartedAt) / 1000;
 
@@ -1368,9 +1423,8 @@
 
         const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
         sessionXP += xp;
-        const totalXP = addXP(xp);
 
-        xpTotalLine.textContent = String(totalXP);
+        addXP(xp);
         setMsg(`Certo (+${xp} XP)`, "good");
       } else {
         sessionWrong++;
@@ -1380,32 +1434,23 @@
 
       suggestionsEl.style.display = "none";
       suggestionsEl.innerHTML = "";
-
-      correctLine.textContent = String(sessionCorrect);
-      wrongLine.textContent = String(sessionWrong);
-      xpSessionLine.textContent = String(sessionXP);
-      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
-
       nextRoundOrEnd();
     }
 
     function useHint() {
-      if (!playActive) return;
-      if (hintUsedThisRound) return;
-
+      if (!playActive || hintUsedThisRound) return;
       hintUsedThisRound = true;
 
       if (playPackLevel >= 4) {
-        // regra pedida: no último nível, hint mostra 8 opções
-        prepareChoicesForRound();
+        prepareChoicesForRound(); // força 8 opções
         renderPlayUI();
         setMsg("Hint: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
         return;
       }
 
-      // níveis 1-3: remover metade das erradas (mantendo a correta)
-      const n = PLAY.optionsByPackLevel(playPackLevel);
-      const keep = Math.ceil(n / 2); // ex: 6->3, 8->4, 4->2
+      // níveis 1-3: remover metade das erradas mantendo a correta
+      const n = (playPackLevel === 1 ? 4 : playPackLevel === 2 ? 6 : 8);
+      const keep = Math.ceil(n / 2);
       const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
       const keepWrongCount = Math.max(1, keep - 1);
       const keptWrong = sampleDistinct(wrong, keepWrongCount);
@@ -1425,81 +1470,112 @@
     }
 
     // -----------------------------
-    // Eventos: menu e navegação
+    // Região / modo / loads
+    // -----------------------------
+    async function enterArea(region) {
+      currentRegion = region;
+      showScreen(screenLoading);
+      setLoading("A iniciar…", 5);
+
+      applyRegionToUI();
+
+      if (currentRegion === "pt") {
+        districtSel.innerHTML = "";
+        for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
+
+        if (playTypeSel.value === "jogar") {
+          // Em jogar: escolher automaticamente o primeiro distrito desbloqueado, se existir
+          const unlocked = getUnlockedSet();
+          const first = DISTRICTS_PT.map(([,slug]) => `pt:${slug}`).find(id => unlocked.has(id));
+          if (!first) throw new Error("Sem distritos desbloqueados no Continente.");
+          districtSel.value = first.split(":")[1];
+        } else {
+          districtSel.value = DISTRICTS_PT[0][1];
+        }
+      }
+
+      gameModeSel.value = "municipios";
+      viewModeSel.value = "jogo";
+
+      await applyModeToUIAndLoad();
+    }
+
+    // -----------------------------
+    // Eventos
     // -----------------------------
     document.getElementById("backToMenu").addEventListener("click", () => {
       clearPlaySession();
       clearLayer();
       showScreen(screenMenu);
+      refreshMenuProgressUI();
+      applyMenuLocking();
     });
 
-    document.getElementById("startPT").addEventListener("click", async () => {
-      currentRegion = "pt";
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
-
-      applyRegionToUI();
-
-      districtSel.innerHTML = "";
-      for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
-      districtSel.value = DISTRICTS_PT[0][1];
-
-      gameModeSel.value = "municipios";
-      viewModeSel.value = "jogo";
+    menuTypeStudy.addEventListener("click", () => {
+      setMenuType("estudar");
       playTypeSel.value = "estudar";
-
-      await applyModeToUIAndLoad();
     });
 
-    document.getElementById("startAZ").addEventListener("click", async () => {
-      currentRegion = "az";
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
-
-      applyRegionToUI();
-      gameModeSel.value = "municipios";
-      viewModeSel.value = "jogo";
-      playTypeSel.value = "estudar";
-
-      await applyModeToUIAndLoad();
+    menuTypePlay.addEventListener("click", () => {
+      setMenuType("jogar");
+      playTypeSel.value = "jogar";
+      ensureStarterUnlockIfNeeded();
+      applyMenuLocking();
     });
 
-    document.getElementById("startMD").addEventListener("click", async () => {
-      currentRegion = "md";
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
-
-      applyRegionToUI();
-      gameModeSel.value = "municipios";
-      viewModeSel.value = "jogo";
-      playTypeSel.value = "estudar";
-
-      await applyModeToUIAndLoad();
+    btnUnlock.addEventListener("click", () => {
+      openUnlockPicker(false);
+      applyMenuLocking();
     });
 
-    // Mudanças de contexto
+    btnResetProgress.addEventListener("click", () => {
+      if (!confirm("Reset progresso?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      ensureStateDefaults();
+      refreshMenuProgressUI();
+      applyMenuLocking();
+      alert("Ok.");
+    });
+
+    startPT.addEventListener("click", async () => {
+      if (menuPlayType === "jogar") {
+        ensureStarterUnlockIfNeeded();
+        applyMenuLocking();
+        if (startPT.disabled) return;
+      }
+      await enterArea("pt");
+    });
+
+    startAZ.addEventListener("click", async () => {
+      if (menuPlayType === "jogar") {
+        ensureStarterUnlockIfNeeded();
+        applyMenuLocking();
+        if (startAZ.disabled) return;
+      }
+      await enterArea("az");
+    });
+
+    startMD.addEventListener("click", async () => {
+      if (menuPlayType === "jogar") {
+        ensureStarterUnlockIfNeeded();
+        applyMenuLocking();
+        if (startMD.disabled) return;
+      }
+      await enterArea("md");
+    });
+
+    // dentro do jogo, mudar tipo
     playTypeSel.addEventListener("change", async () => {
-      // parar sessão
       clearPlaySession();
-      playActive = false;
       refreshStyles();
       updateUI();
-
-      // se entrar em jogar, inicia sessão automaticamente
-      if (playTypeSel.value === "jogar") {
-        // desenhar mapa sem tooltips e iniciar
-        beginPlaySession();
-      } else {
-        // voltar a estudar: repor estilos e inputs
-        refreshStyles();
-        guessInput.style.display = "";
-        guessInput.focus();
-      }
+      // recomeçar sessão se estiver em jogar
+      if (playTypeSel.value === "jogar") beginPlaySession();
+      else { guessInput.style.display = ""; guessInput.focus(); }
     });
 
     gameModeSel.addEventListener("change", async () => {
       await applyModeToUIAndLoad();
-      if (playTypeSel.value === "jogar") beginPlaySession();
     });
 
     viewModeSel.addEventListener("change", async () => {
@@ -1510,16 +1586,14 @@
     districtSel.addEventListener("change", async () => {
       if (currentRegion !== "pt") return;
       await applyModeToUIAndLoad();
-      if (playTypeSel.value === "jogar") beginPlaySession();
     });
 
     municipalitySel.addEventListener("change", async () => {
       if (gameModeSel.value !== "freguesias") return;
       await applyModeToUIAndLoad();
-      if (playTypeSel.value === "jogar") beginPlaySession();
     });
 
-    // Estudar: enter no input
+    // Estudar input
     guessInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       if (playTypeSel.value !== "estudar") return;
@@ -1539,7 +1613,6 @@
         updateUI();
         guessInput.focus();
       } else {
-        // Jogar: reinicia sessão
         beginPlaySession();
       }
     });
@@ -1550,12 +1623,10 @@
       renderMissingList();
       updateUI();
     });
-
     btnHideMissing.addEventListener("click", () => {
       missingBlock.style.display = "none";
       updateUI();
     });
-
     btnRevealAll.addEventListener("click", () => {
       if (viewModeSel.value !== "treino") return;
       for (const key of byKey.keys()) solved.add(key);
@@ -1569,13 +1640,18 @@
     btnHint.addEventListener("click", () => useHint());
     btnSkip.addEventListener("click", () => skipQuestion());
 
+    // Desbloquear dentro do jogo
+    btnUnlockFromGame.addEventListener("click", () => {
+      openUnlockPicker(false);
+      updateUI();
+    });
+
     // Jogar: texto + sugestões
     textAnswer.addEventListener("input", () => {
       if (!playActive) return;
       const prefix = normalize(textAnswer.value);
       showSuggestions(prefix);
     });
-
     textAnswer.addEventListener("keydown", (e) => {
       if (!playActive) return;
       if (e.key !== "Enter") return;
@@ -1583,32 +1659,29 @@
       const typed = normalize(textAnswer.value);
       if (!typed) return;
 
-      // se escrever exatamente o alvo, aceitar
       if (typed === normalize(currentTargetOfficial)) {
         submitAnswerText(currentTargetKey);
         return;
       }
 
-      // se houver match exato a algum item (e for alvo), aceitar; senão falha
       let matchedKey = "";
       for (const k of playPoolKeys) {
         const off = keyToOfficial.get(k) || "";
         if (normalize(off) === typed) { matchedKey = k; break; }
       }
 
-      if (!matchedKey) {
-        // tentativa errada (não existe no pool)
-        submitAnswerText("__nope__");
-      } else {
-        submitAnswerText(matchedKey);
-      }
+      if (!matchedKey) submitAnswerText("__nope__");
+      else submitAnswerText(matchedKey);
     });
 
     // -----------------------------
-    // Init default
+    // Init
     // -----------------------------
-    (function initDefaults() {
-      // no menu; nada a fazer
+    (function init() {
+      ensureStateDefaults();
+      refreshMenuProgressUI();
+      setMenuType("estudar"); // default
+      applyMenuLocking();
     })();
   </script>
 </body>
