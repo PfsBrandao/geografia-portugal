@@ -29,15 +29,11 @@
       border-bottom: 1px solid #eee;
       background: #fff;
     }
-
-    /* usar dvh para evitar bugs de viewport no mobile */
-    .screen { display: none; height: 100dvh; }
+    .screen { display: none; height: 100vh; }
     .screen.active { display: block; }
-    /* screenGame precisa de flex para header + shell */
-    #screenGame.screen.active { display: flex; flex-direction: column; }
 
     .center {
-      height: 100dvh;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -87,7 +83,21 @@
     ul { padding-left: 18px; margin: 6px 0 0; }
     li { margin: 4px 0; }
 
-    /* Jogar: grelha de opções */
+    /* Menu blocks */
+    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .pill {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .pill.active { background:#111; color:#fff; border-color:#111; }
+    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
+    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+
+    /* Choices (base) */
     .choices {
       display: grid;
       gap: 8px;
@@ -136,139 +146,192 @@
     }
     .suggestions button:last-child { border-bottom: none; }
 
-    /* Menu blocks */
-    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    .pill {
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 13px;
+    /* =========================================================
+       MOBILE GAME SHELL (HUD + MAP + BOTTOM)
+       ========================================================= */
+    :root {
+      --bg: #0b0b0f;
+      --panel: #efefef;
+      --panelBorder: #bdbdbd;
     }
-    .pill.active { background:#111; color:#fff; border-color:#111; }
-    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
-    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
-
-    /* ===========================
-       APP-LIKE GAME LAYOUT (base)
-       =========================== */
-
-    /* screenGame = header (legacy) + gameShell */
-    #legacyHeader { flex: 0 0 auto; }
-    .gameShell {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: 70px 1fr auto;
-      gap: 10px;
-      padding: 10px;
-    }
-
-    /* Em Jogar: esconder header antigo */
-    body.playing #legacyHeader { display: none; }
-
-    .gameHUD{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border:1px solid #e6e6e6;
-      background:#fff;
-      border-radius:16px;
-      padding:10px 12px;
-    }
-    .hudBox{
-      min-width:92px;
-      text-align:center;
-      border:1px solid #eee;
-      background:#fafafa;
-      border-radius:14px;
-      padding:8px 10px;
-    }
-    .hudBox .k{ font-size:12px; color:#555; }
-    .hudBox .v{ font-size:22px; font-weight:700; }
-
-    .hudBtn{
-      border:1px solid #111;
-      background:#111;
-      color:#fff;
-      border-radius:16px;
-      padding:12px 14px;
-      font-size:18px;
-    }
-
-    .gameStage{
-      border:1px solid #e6e6e6;
-      background:#fff;
-      border-radius:18px;
-      overflow:hidden;
-      min-height: 38dvh;
-    }
-
-    .gameBottom{
-      border:1px solid #e6e6e6;
-      background:#fff;
-      border-radius:18px;
-      padding:12px;
-    }
-
-    /* Leaflet container */
-    #map { height: 100%; width: 100%; background:#fff; }
-
-    /* ===========================
-       MOBILE: corrigir ecrã de jogo
-       =========================== */
 
     html, body { height: 100%; }
 
-    /* Em Jogar, prende o ecrã e evita scroll no body */
     body.playing {
+      background: var(--bg);
       height: 100dvh;
       overflow: hidden;
     }
 
-    /* HUD mais compacto em telemóveis pequenos */
-    @media (max-width: 420px) {
-      .gameHUD { gap: 8px; }
-      .hudBox .v { font-size: 20px; }
-      .hudBtn { font-size: 18px; }
+    /* CRÍTICO: em Jogar, esconder tudo no topo (header legacy) */
+    body.playing #legacyHeader,
+    body.playing header {
+      display: none !important;
     }
 
-    /* Painel inferior: scroll interno para nunca cortar opções */
+    /* Shell full-screen */
+    .gameShell {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: 70px 1fr auto;
+      gap: 10px;
+      padding: 10px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
+    }
+
+    .gameHUD {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .hudBox {
+      background: var(--panel);
+      border: 2px solid var(--panelBorder);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.05;
+      padding: 6px;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    .hudBox .k { font-size: 12px; color: #222; opacity: .75; }
+    .hudBox .v { font-size: 24px; font-weight: 900; color: #111; }
+
+    .hudBtn {
+      border-radius: 14px;
+      border: 2px solid #cfcfcf;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(#33b5ff, #0c79d6);
+      color: #071018;
+      user-select: none;
+    }
+    .hudBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .gameStage {
+      background: #eaeaea;
+      border-radius: 18px;
+      border: 3px solid var(--panelBorder);
+      overflow: hidden;
+      min-height: 38dvh;
+    }
+    #map { height: 100%; width: 100%; background: #fff; }
+
+    /* Em Jogar: impedir gestos no mapa (extra) */
+    body.playing #map {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    body.playing .leaflet-control-zoom { display: none !important; }
+
     .gameBottom {
+      background: rgba(16,16,24,.95);
+      border-radius: 18px;
+      padding: 12px;
+      box-sizing: border-box;
+      color: #f2f2f2;
+
+      /* CRÍTICO: scroll interno para nunca cortar opções */
       overflow: auto;
       max-height: 46dvh;
       -webkit-overflow-scrolling: touch;
     }
+    .gameBottom .small { color: rgba(255,255,255,.8); }
+    .gameBottom code { color: rgba(255,255,255,.9); }
+    .gameMeta strong { color: #fff; }
 
-    /* Se houver muitas opções, scroll só nas opções */
+    body.playing .timerWrap {
+      border: 1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.18);
+    }
+    body.playing .timerBar { background: #ffffff; }
+
+    body.playing .choices {
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    body.playing .choiceBtn {
+      min-height: 54px;
+      border-radius: 16px;
+      border: 2px solid #cfcfcf;
+      font-size: 16px;
+      font-weight: 900;
+      background: linear-gradient(#33b5ff, #0c79d6);
+      color: #071018;
+      white-space: normal;
+      line-height: 1.1;
+    }
+    body.playing .choiceBtn:active { transform: translateY(1px); }
+
+    /* Se houver muitas opções, scroll nesta zona */
     #choicesBlock {
       overflow: auto;
       max-height: 30dvh;
       -webkit-overflow-scrolling: touch;
     }
 
-    /* Grelha de opções sem “cortar” e texto quebra bem */
-    .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .choiceBtn {
-      min-height: 54px;
-      font-size: 16px;
-      white-space: normal;
-      line-height: 1.1;
+    body.playing .btnRow button {
+      min-height: 46px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+      color: #fff;
     }
 
-    /* iOS: evitar zoom automático em inputs (>=16px) */
-    #textAnswer { font-size: 16px; }
+    body.playing #textAnswer {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      font-size: 16px; /* evitar zoom iOS */
+      box-sizing: border-box;
+    }
+
+    body.playing .suggestions {
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      border-radius: 14px;
+    }
+    body.playing .suggestions button {
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      background: transparent;
+      color: #fff;
+      padding: 12px 12px;
+    }
+
+    /* Inputs para evitar zoom iOS em Estudar também */
     #guess { font-size: 16px; }
 
-    /* Desktop: dá um pouco mais de espaço ao painel inferior */
+    /* HUD mais compacto em ecrãs pequenos */
+    @media (max-width: 420px) {
+      .gameShell { grid-template-rows: 60px 1fr auto; }
+      .gameHUD { gap: 8px; }
+      .hudBox { border-radius: 12px; }
+      .hudBox .k { font-size: 11px; }
+      .hudBox .v { font-size: 18px; }
+      .hudBtn { font-size: 16px; }
+      .gameBottom { max-height: 52dvh; }
+      #choicesBlock { max-height: 34dvh; }
+    }
+
+    /* Desktop: centra e dá mais espaço ao bottom se necessário */
     @media (min-width: 900px) {
       .gameShell {
         max-width: 1100px;
         margin: 0 auto;
-        grid-template-rows: 74px 0.9fr 1.1fr;
+        grid-template-rows: 70px 0.9fr 1.1fr;
       }
+      .gameBottom { max-height: none; }
+      #choicesBlock { max-height: none; overflow: visible; }
     }
   </style>
 </head>
@@ -394,7 +457,7 @@
 
   <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
-    <!-- Header "web" (legacy). Em Jogar fica escondido. -->
+    <!-- Header legacy (só para Estudar / debug). Em Jogar fica escondido pelo CSS -->
     <header id="legacyHeader">
       <button id="backToMenu">Voltar ao menu</button>
 
@@ -1068,6 +1131,7 @@
     // Leaflet map (lazy)
     // -----------------------------
     let map = null;
+
     function ensureMapReady() {
       if (map) return;
       map = L.map("map", {
@@ -1079,6 +1143,7 @@
       });
       map.setView([39.5, -8.0], 7);
     }
+
     function invalidateMapSizeHard() {
       if (!map) return;
       requestAnimationFrame(() => {
@@ -1087,6 +1152,29 @@
           try { map.invalidateSize(true); } catch {}
         });
       });
+    }
+
+    // NOVO: tornar o mapa estático em Jogar
+    function setMapInteractive(enabled) {
+      if (!map) return;
+      const m = map;
+      if (enabled) {
+        m.dragging.enable();
+        m.touchZoom.enable();
+        m.doubleClickZoom.enable();
+        m.scrollWheelZoom.enable();
+        m.boxZoom.enable();
+        m.keyboard.enable();
+        if (m.tap) m.tap.enable();
+      } else {
+        m.dragging.disable();
+        m.touchZoom.disable();
+        m.doubleClickZoom.disable();
+        m.scrollWheelZoom.disable();
+        m.boxZoom.disable();
+        m.keyboard.disable();
+        if (m.tap) m.tap.disable();
+      }
     }
 
     // -----------------------------
@@ -1256,12 +1344,18 @@
     // UI update
     // -----------------------------
     function updateUI() {
-      document.body.classList.toggle("playing", playTypeSel.value === "jogar");
       applyPlayLocks();
+
+      const isPlay = (playTypeSel.value === "jogar");
+
+      // CRÍTICO: classe que ativa o modo "app"
+      document.body.classList.toggle("playing", isPlay);
+
+      // CRÍTICO: mapa estático em Jogar
+      setMapInteractive(!isPlay);
 
       const regionLabel = getRegionLabel();
       const ctx = getContextLabel();
-      const type = playTypeSel.value;
 
       titleLine.textContent = `${regionLabel} — ${gameModeSel.value === "municipios" ? "Municípios" : "Freguesias"}`;
       subTitleLine.textContent = ctx;
@@ -1270,7 +1364,7 @@
       else if (currentRegion === "az") dataHint.innerHTML = `concelhos_acores.geojson | freguesias_&lt;municipio&gt;.geojson`;
       else dataHint.innerHTML = `concelhos_madeira.geojson | freguesias_&lt;municipio&gt;.geojson`;
 
-      if (type === "estudar") {
+      if (!isPlay) {
         labelViewMode.style.display = "";
         studyButtons.style.display = "";
         playKpis.style.display = "none";
@@ -1308,7 +1402,7 @@
         tokensLine.textContent = String(st.tokens || 0);
         btnUnlockFromGame.style.display = (st.tokens > 0) ? "" : "none";
 
-        hintLine.textContent = "Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; hint reduz XP.";
+        hintLine.textContent = "Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; dica reduz XP.";
         renderPlayUI();
       }
     }
@@ -1450,8 +1544,6 @@
 
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
-          invalidateMapSizeHard();
-          setTimeout(invalidateMapSizeHard, 250);
         } else {
           labelMunicipality.style.display = "";
           setLoading("A carregar concelhos (para lista)…", 15);
@@ -1476,13 +1568,15 @@
 
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
-          invalidateMapSizeHard();
-          setTimeout(invalidateMapSizeHard, 250);
         }
 
         showScreen(screenGame);
         updateUI();
         setLoading("Concluído", 100);
+
+        // CRÍTICO: garantir layout/Leaflet certo em mobile
+        invalidateMapSizeHard();
+        setTimeout(invalidateMapSizeHard, 250);
 
         if (playTypeSel.value === "estudar") {
           guessInput.placeholder = (gameModeSel.value === "municipios") ? "Escreve um município…" : "Escreve uma freguesia…";
@@ -1756,7 +1850,7 @@
       if (playPackLevel >= 4) {
         prepareChoicesForRound();
         renderPlayUI();
-        setMsg("Hint: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
+        setMsg("Dica: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
         return;
       }
 
@@ -1768,7 +1862,7 @@
 
       currentChoicesKeys = shuffle([currentTargetKey, ...keptWrong]);
       renderPlayUI();
-      setMsg("Hint: removidas opções (XP desta pergunta reduzido).", "neutral");
+      setMsg("Dica: removidas opções (XP desta pergunta reduzido).", "neutral");
     }
 
     function skipQuestion() {
@@ -1823,6 +1917,8 @@
       showScreen(screenMenu);
       refreshMenuProgressUI();
       applyMenuLocking();
+      document.body.classList.remove("playing");
+      setMapInteractive(true);
     });
 
     backToMenu2.addEventListener("click", () => {
@@ -1831,6 +1927,8 @@
       showScreen(screenMenu);
       refreshMenuProgressUI();
       applyMenuLocking();
+      document.body.classList.remove("playing");
+      setMapInteractive(true);
     });
 
     resetPlayBtn.addEventListener("click", () => {
@@ -2062,4 +2160,5 @@
   </script>
 </body>
 </html>
+
 
