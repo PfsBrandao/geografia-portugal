@@ -296,6 +296,80 @@
       return { ok: true, reason: "ok" };
     }
 
+    // -----------------------------
+    // Sanitização de GeoJSON (evita Leaflet NaN/LatLng)
+    // -----------------------------
+    function coordPairOk(pair) {
+      if (!Array.isArray(pair) || pair.length < 2) return false;
+
+      const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
+      const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
+
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+
+      // faixa “lon/lat”
+      if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
+
+      return true;
+    }
+
+    function geometryHasOnlyValidCoords(geom) {
+      if (!geom) return false;
+
+      const t = geom.type;
+      const c = geom.coordinates;
+
+      if (t === "Point") return coordPairOk(c);
+
+      if (t === "MultiPoint" || t === "LineString") {
+        return Array.isArray(c) && c.every(coordPairOk);
+      }
+
+      if (t === "MultiLineString" || t === "Polygon") {
+        return Array.isArray(c) && c.every(line => Array.isArray(line) && line.every(coordPairOk));
+      }
+
+      if (t === "MultiPolygon") {
+        return Array.isArray(c) && c.every(poly =>
+          Array.isArray(poly) && poly.every(ring =>
+            Array.isArray(ring) && ring.every(coordPairOk)
+          )
+        );
+      }
+
+      if (t === "GeometryCollection") {
+        return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
+      }
+
+      return false;
+    }
+
+    function sanitizeFeatureCollection(fc) {
+      const features = Array.isArray(fc?.features) ? fc.features : [];
+      const kept = [];
+      let dropped = 0;
+      const droppedNames = [];
+
+      for (const f of features) {
+        if (geometryHasOnlyValidCoords(f?.geometry)) {
+          kept.push(f);
+        } else {
+          dropped++;
+          // tentar capturar um nome útil para debug
+          const p = f?.properties || {};
+          const n = getMunicipalityName(p) || getParishName(p) || pickProp(p, ["NAME","Name","NOME","nome"]);
+          if (n) droppedNames.push(n);
+        }
+      }
+
+      return {
+        cleaned: { ...fc, features: kept },
+        dropped,
+        total: features.length,
+        droppedNames
+      };
+    }
+
     // Cache de downloads
     const cache = new Map();
     async function loadJSON(url) {
@@ -410,7 +484,21 @@
     function buildLayer(fc) {
       clearLayer();
 
-      fillLayer = L.geoJSON(fc, {
+      // Sanitizar antes de passar ao Leaflet
+      const { cleaned, dropped, total: totalIn, droppedNames } = sanitizeFeatureCollection(fc);
+
+      if (dropped > 0) {
+        console.warn(`Sanitize: removidas ${dropped}/${totalIn} features por coords inválidas.`);
+        if (droppedNames && droppedNames.length) {
+          console.warn("Exemplos removidos:", droppedNames.slice(0, 12));
+        }
+      }
+
+      if (!cleaned.features || cleaned.features.length === 0) {
+        throw new Error("GeoJSON sem features válidas (tudo foi filtrado por coordenadas inválidas).");
+      }
+
+      fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
         onEachFeature: (feature, lyr) => {
           const p = feature.properties || {};
@@ -434,6 +522,9 @@
 
       // Só faz fitBounds se os bounds forem válidos
       try {
+        // garantir que o mapa tem size correto (screens usam display:none)
+        map.invalidateSize(true);
+
         const b = fillLayer.getBounds();
         if (b && b.isValid && b.isValid()) {
           map.fitBounds(b, { padding: [12, 12], animate: false });
@@ -620,12 +711,24 @@
         }
 
         showScreen(screenGame);
+
+        // CRÍTICO: Leaflet + display:none => size 0 => problemas no renderer
+        setTimeout(() => {
+          try { map.invalidateSize(true); } catch {}
+        }, 0);
+
         updateUI();
         guessInput.focus();
         setLoading("Concluído", 100);
       } catch (e) {
         console.error(e);
         showScreen(screenGame);
+
+        // também força size correto quando cai em erro e muda de screen
+        setTimeout(() => {
+          try { map.invalidateSize(true); } catch {}
+        }, 0);
+
         setMsg(`Erro: ${e.message}`, "bad");
       }
     }
@@ -776,7 +879,6 @@
   </script>
 </body>
 </html>
-
 
 
 
