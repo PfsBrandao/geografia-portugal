@@ -29,11 +29,15 @@
       border-bottom: 1px solid #eee;
       background: #fff;
     }
-    .screen { display: none; height: 100vh; }
+
+    /* usar dvh para evitar bugs de viewport no mobile */
+    .screen { display: none; height: 100dvh; }
     .screen.active { display: block; }
+    /* screenGame precisa de flex para header + shell */
+    #screenGame.screen.active { display: flex; flex-direction: column; }
 
     .center {
-      height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -83,21 +87,7 @@
     ul { padding-left: 18px; margin: 6px 0 0; }
     li { margin: 4px 0; }
 
-    /* Menu blocks */
-    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    .pill {
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-    .pill.active { background:#111; color:#fff; border-color:#111; }
-    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
-    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
-
-    /* --- JOGAR: componentes base (já existiam) --- */
+    /* Jogar: grelha de opções */
     .choices {
       display: grid;
       gap: 8px;
@@ -146,148 +136,138 @@
     }
     .suggestions button:last-child { border-bottom: none; }
 
-    /* =========================================================
-       NOVO TEMA + LAYOUT "MOBILE GAME" (HUD + MAPA + BOTTOM)
-       ========================================================= */
-    :root {
-      --bg: #0b0b0f;
-      --panel: #efefef;
-      --panelBorder: #bdbdbd;
+    /* Menu blocks */
+    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .pill {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
     }
+    .pill.active { background:#111; color:#fff; border-color:#111; }
+    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
+    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
 
-    body.playing {
-      background: var(--bg);
-      height: 100dvh;
-      overflow: hidden;
-    }
+    /* ===========================
+       APP-LIKE GAME LAYOUT (base)
+       =========================== */
 
-    /* Oculta o header "web" durante Jogar (mobile) */
-    body.playing #legacyHeader { display: none; }
-
-    /* Shell full-screen */
+    /* screenGame = header (legacy) + gameShell */
+    #legacyHeader { flex: 0 0 auto; }
     .gameShell {
-      height: 100dvh;
+      flex: 1 1 auto;
+      min-height: 0;
       display: grid;
-      grid-template-rows: 74px 1fr auto;
+      grid-template-rows: 70px 1fr auto;
       gap: 10px;
       padding: 10px;
-      padding-bottom: calc(10px + env(safe-area-inset-bottom));
-      box-sizing: border-box;
     }
 
-    .gameHUD {
-      display: grid;
-      grid-template-columns: 1fr 1.2fr 1fr;
-      gap: 10px;
-      align-items: stretch;
-    }
-    .hudBox {
-      background: var(--panel);
-      border: 2px solid var(--panelBorder);
-      border-radius: 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      line-height: 1.05;
-      padding: 6px;
-      box-sizing: border-box;
-      user-select: none;
-    }
-    .hudBox .k { font-size: 12px; color: #222; opacity: .75; }
-    .hudBox .v { font-size: 24px; font-weight: 900; color: #111; }
+    /* Em Jogar: esconder header antigo */
+    body.playing #legacyHeader { display: none; }
 
-    .hudBtn {
-      border-radius: 14px;
-      border: 2px solid #cfcfcf;
-      font-size: 20px;
-      font-weight: 900;
-      cursor: pointer;
-      background: linear-gradient(#33b5ff, #0c79d6);
-      color: #071018;
-      user-select: none;
+    .gameHUD{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid #e6e6e6;
+      background:#fff;
+      border-radius:16px;
+      padding:10px 12px;
     }
-    .hudBtn:disabled { opacity: .6; cursor: not-allowed; }
+    .hudBox{
+      min-width:92px;
+      text-align:center;
+      border:1px solid #eee;
+      background:#fafafa;
+      border-radius:14px;
+      padding:8px 10px;
+    }
+    .hudBox .k{ font-size:12px; color:#555; }
+    .hudBox .v{ font-size:22px; font-weight:700; }
 
-    .gameStage {
-      background: #eaeaea;
-      border-radius: 18px;
-      border: 3px solid var(--panelBorder);
+    .hudBtn{
+      border:1px solid #111;
+      background:#111;
+      color:#fff;
+      border-radius:16px;
+      padding:12px 14px;
+      font-size:18px;
+    }
+
+    .gameStage{
+      border:1px solid #e6e6e6;
+      background:#fff;
+      border-radius:18px;
+      overflow:hidden;
+      min-height: 38dvh;
+    }
+
+    .gameBottom{
+      border:1px solid #e6e6e6;
+      background:#fff;
+      border-radius:18px;
+      padding:12px;
+    }
+
+    /* Leaflet container */
+    #map { height: 100%; width: 100%; background:#fff; }
+
+    /* ===========================
+       MOBILE: corrigir ecrã de jogo
+       =========================== */
+
+    html, body { height: 100%; }
+
+    /* Em Jogar, prende o ecrã e evita scroll no body */
+    body.playing {
+      height: 100dvh;
       overflow: hidden;
     }
-    #map { height: 100%; width: 100%; background: #fff; }
 
+    /* HUD mais compacto em telemóveis pequenos */
+    @media (max-width: 420px) {
+      .gameHUD { gap: 8px; }
+      .hudBox .v { font-size: 20px; }
+      .hudBtn { font-size: 18px; }
+    }
+
+    /* Painel inferior: scroll interno para nunca cortar opções */
     .gameBottom {
-      background: rgba(16,16,24,.95);
-      border-radius: 18px;
-      padding: 12px;
-      box-sizing: border-box;
-      color: #f2f2f2;
-    }
-    .gameBottom .small { color: rgba(255,255,255,.8); }
-    .gameBottom code { color: rgba(255,255,255,.9); }
-
-    .gameMeta strong { color: #fff; }
-
-    body.playing .timerWrap {
-      border: 1px solid rgba(255,255,255,.2);
-      background: rgba(255,255,255,.18);
-    }
-    body.playing .timerBar { background: #ffffff; }
-
-    body.playing .choices {
-      gap: 10px;
-      grid-template-columns: repeat(2, 1fr);
-    }
-    body.playing .choiceBtn {
-      min-height: 60px;
-      border-radius: 16px;
-      border: 2px solid #cfcfcf;
-      font-size: 18px;
-      font-weight: 900;
-      background: linear-gradient(#33b5ff, #0c79d6);
-      color: #071018;
-    }
-    body.playing .choiceBtn:active { transform: translateY(1px); }
-
-    body.playing .btnRow button {
-      min-height: 50px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.25);
-      background: rgba(255,255,255,.08);
-      color: #fff;
+      overflow: auto;
+      max-height: 46dvh;
+      -webkit-overflow-scrolling: touch;
     }
 
-    body.playing #textAnswer {
-      width: 100%;
-      min-height: 52px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.25);
-      background: rgba(255,255,255,.06);
-      color: #fff;
-      font-size: 18px;
-      box-sizing: border-box;
+    /* Se houver muitas opções, scroll só nas opções */
+    #choicesBlock {
+      overflow: auto;
+      max-height: 30dvh;
+      -webkit-overflow-scrolling: touch;
     }
 
-    body.playing .suggestions {
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
-      border-radius: 14px;
-    }
-    body.playing .suggestions button {
-      border-bottom: 1px solid rgba(255,255,255,.14);
-      background: transparent;
-      color: #fff;
-      padding: 12px 12px;
+    /* Grelha de opções sem “cortar” e texto quebra bem */
+    .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .choiceBtn {
+      min-height: 54px;
+      font-size: 16px;
+      white-space: normal;
+      line-height: 1.1;
     }
 
-    /* Desktop: permite header + centra shell */
+    /* iOS: evitar zoom automático em inputs (>=16px) */
+    #textAnswer { font-size: 16px; }
+    #guess { font-size: 16px; }
+
+    /* Desktop: dá um pouco mais de espaço ao painel inferior */
     @media (min-width: 900px) {
-      body.playing #legacyHeader { display: flex; }
       .gameShell {
         max-width: 1100px;
         margin: 0 auto;
-        grid-template-rows: 74px 1fr 340px;
+        grid-template-rows: 74px 0.9fr 1.1fr;
       }
     }
   </style>
@@ -414,7 +394,7 @@
 
   <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
-    <!-- Header "web" (legacy). Em Jogar mobile fica escondido. -->
+    <!-- Header "web" (legacy). Em Jogar fica escondido. -->
     <header id="legacyHeader">
       <button id="backToMenu">Voltar ao menu</button>
 
@@ -486,10 +466,8 @@
           <div><strong id="titleLine">—</strong></div>
           <div id="subTitleLine" class="small">—</div>
 
-          <!-- linha de pergunta (mostra no Jogar) -->
           <div id="questionLine" style="display:none; margin-top:8px;"><strong>—</strong></div>
 
-          <!-- KPIs compactos (mantém IDs usados no JS) -->
           <div id="playKpis" class="small" style="margin-top:8px; display:none;">
             Certos: <strong id="correctLine">0</strong> |
             Errados: <strong id="wrongLine">0</strong> |
@@ -1278,10 +1256,8 @@
     // UI update
     // -----------------------------
     function updateUI() {
-      applyPlayLocks();
-
-      // Toggle aspeto "game" no body
       document.body.classList.toggle("playing", playTypeSel.value === "jogar");
+      applyPlayLocks();
 
       const regionLabel = getRegionLabel();
       const ctx = getContextLabel();
@@ -1303,7 +1279,6 @@
         guessInput.disabled = false;
         btnUnlockFromGame.style.display = "none";
 
-        // Em estudo, barra de timer não interessa: deixa cheia
         timerBar.style.width = "100%";
 
         if (viewModeSel.value === "jogo") {
@@ -1476,6 +1451,7 @@
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
           invalidateMapSizeHard();
+          setTimeout(invalidateMapSizeHard, 250);
         } else {
           labelMunicipality.style.display = "";
           setLoading("A carregar concelhos (para lista)…", 15);
@@ -1501,6 +1477,7 @@
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
           invalidateMapSizeHard();
+          setTimeout(invalidateMapSizeHard, 250);
         }
 
         showScreen(screenGame);
@@ -2085,3 +2062,4 @@
   </script>
 </body>
 </html>
+
