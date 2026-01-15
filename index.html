@@ -340,6 +340,13 @@
 
   <script>
     // -----------------------------
+    // Feature flags
+    // -----------------------------
+    const FEATURES = {
+      playFreguesiasEnabled: false, // quando decidires suportar freguesias no Jogar, muda para true
+    };
+
+    // -----------------------------
     // Ficheiros
     // -----------------------------
     const FILES = {
@@ -358,16 +365,17 @@
       ["Vila Real","vila_real"], ["Viseu","viseu"]
     ];
 
-    // Áreas desbloqueáveis no Jogar: distritos + az + md (tratados como “distritos especiais”)
+    function slugToName(slug) {
+      const found = DISTRICTS_PT.find(([,s]) => s === slug);
+      return found ? found[0] : slug;
+    }
+
+    // Áreas desbloqueáveis no Jogar
     function getAllUnlockables() {
       const arr = DISTRICTS_PT.map(([,slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${slugToName(slug)}`, kind:"ptDistrict", region:"pt", slug }));
       arr.push({ id:"az", label:"Região — Açores", kind:"region", region:"az", slug:"acores" });
       arr.push({ id:"md", label:"Região — Madeira", kind:"region", region:"md", slug:"madeira" });
       return arr;
-    }
-    function slugToName(slug) {
-      const found = DISTRICTS_PT.find(([,s]) => s === slug);
-      return found ? found[0] : slug;
     }
 
     // -----------------------------
@@ -382,7 +390,6 @@
       hintMult: 0.60,
       promoteThreshold: 0.80,
 
-      // XP incremental necessário para passar do nível global L para L+1
       xpNeededForNext: (playerLevel) => {
         const L = Math.max(1, playerLevel);
         const x = (L - 1);
@@ -390,7 +397,7 @@
       }
     };
 
-    const STORAGE_KEY = "geoPT_play_v2";
+    const STORAGE_KEY = "geoPT_play_v3";
 
     function loadState() {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {}; }
@@ -399,73 +406,61 @@
     function saveState(st) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(st || {}));
     }
-
     function ensureStateDefaults() {
       const st = loadState();
       st.xpTotal = st.xpTotal || 0;
       st.playerLevel = st.playerLevel || 1;
       st.tokens = st.tokens || 0;
-      st.unlocked = st.unlocked || []; // array de ids: "pt:aveiro", "az", "md"
-      st.packs = st.packs || {};        // progress por packKey
+      st.unlocked = st.unlocked || [];
+      st.packs = st.packs || {};
       saveState(st);
       return st;
     }
-
     function computePlayerLevelFromXP(xpTotal) {
-      // Usa o modelo incremental: vai consumindo thresholds sucessivos.
       let level = 1;
       let remaining = Math.max(0, xpTotal);
       while (true) {
         const need = PLAY.xpNeededForNext(level);
-        if (remaining >= need) {
-          remaining -= need;
-          level++;
-        } else break;
+        if (remaining >= need) { remaining -= need; level++; }
+        else break;
       }
       return { level, carry: remaining };
     }
-
     function syncLevelAndTokensAfterXP() {
       const st = ensureStateDefaults();
       const beforeLevel = st.playerLevel;
-
       const calc = computePlayerLevelFromXP(st.xpTotal);
       const afterLevel = calc.level;
 
       if (afterLevel > beforeLevel) {
         const gained = afterLevel - beforeLevel;
         st.playerLevel = afterLevel;
-        st.tokens += gained; // 1 token por nível ganho
+        st.tokens += gained;
         saveState(st);
       }
       return ensureStateDefaults();
     }
-
     function addXP(xp) {
       const st = ensureStateDefaults();
       st.xpTotal += Math.max(0, Math.round(xp || 0));
       saveState(st);
       return syncLevelAndTokensAfterXP();
     }
-
     function getUnlockedSet() {
       const st = ensureStateDefaults();
       return new Set(st.unlocked || []);
     }
-
     function unlockOne(id) {
       const st = ensureStateDefaults();
       if (st.tokens <= 0) return { ok:false, reason:"Sem desbloqueios disponíveis." };
       const set = new Set(st.unlocked || []);
       if (set.has(id)) return { ok:false, reason:"Já desbloqueado." };
-
       set.add(id);
       st.unlocked = Array.from(set);
       st.tokens -= 1;
       saveState(st);
       return { ok:true };
     }
-
     function getPackLevel(packKey) {
       const st = ensureStateDefaults();
       const lvl = st.packs?.[packKey]?.level || 1;
@@ -531,7 +526,6 @@
       return { ok: true, reason: "ok" };
     }
 
-    // Sanitização (defensivo)
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
       const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
@@ -594,7 +588,7 @@
     }
 
     // -----------------------------
-    // Menu UI (Estudar/Jogar antes)
+    // Menu UI
     // -----------------------------
     const menuTypeStudy = document.getElementById("menuTypeStudy");
     const menuTypePlay = document.getElementById("menuTypePlay");
@@ -612,7 +606,7 @@
     const startAZ = document.getElementById("startAZ");
     const startMD = document.getElementById("startMD");
 
-    let menuPlayType = "estudar"; // escolhido no menu
+    let menuPlayType = "estudar";
 
     function setMenuType(type) {
       menuPlayType = type;
@@ -643,29 +637,24 @@
       mUnlockedCount.textContent = String(unlocked.size);
 
       btnUnlock.style.display = (st.tokens > 0 || unlocked.size === 0) ? "" : "none";
-      btnResetProgress.style.display = ""; // debug
+      btnResetProgress.style.display = "";
     }
 
     function applyMenuLocking() {
-      // Em Jogar: PT precisa de ter pelo menos 1 distrito desbloqueado para entrar no Continente.
-      // AZ/MD só entram se desbloqueados (az/md).
       const st = ensureStateDefaults();
       const unlocked = new Set(st.unlocked || []);
       const hasAnyPT = Array.from(unlocked).some(x => x.startsWith("pt:"));
-
       startPT.disabled = !hasAnyPT;
       startAZ.disabled = !unlocked.has("az");
       startMD.disabled = !unlocked.has("md");
     }
 
     function ensureStarterUnlockIfNeeded() {
-      // Se está em Jogar e não tem nada desbloqueado, força escolha.
       const st = ensureStateDefaults();
       const unlocked = new Set(st.unlocked || []);
       if (menuPlayType !== "jogar") return true;
       if (unlocked.size > 0) return true;
 
-      // dá 1 token inicial “starter” automaticamente (para começar com 1)
       st.tokens = Math.max(st.tokens || 0, 1);
       saveState(st);
 
@@ -680,6 +669,7 @@
 
       const unlocked = new Set(st.unlocked || []);
       const all = getAllUnlockables().filter(x => !unlocked.has(x.id));
+      if (all.length === 0) { alert("Já está tudo desbloqueado."); return; }
 
       const lines = all.map((x, i) => `${i+1}. ${x.label}`).join("\n");
       const promptText = (isStarter
@@ -698,10 +688,7 @@
 
       const picked = all[idx];
       const res = unlockOne(picked.id);
-      if (!res.ok) {
-        alert(res.reason || "Não foi possível desbloquear.");
-        return;
-      }
+      if (!res.ok) { alert(res.reason || "Não foi possível desbloquear."); return; }
 
       refreshMenuProgressUI();
       applyMenuLocking();
@@ -757,6 +744,33 @@
     function setMsg(text, type="neutral") {
       msgEl.className = "msg " + type;
       msgEl.textContent = text || "";
+    }
+
+    // -----------------------------
+    // Play locks (CRITICAL FIX)
+    // -----------------------------
+    function applyPlayLocks() {
+      const isPlay = (playTypeSel.value === "jogar");
+
+      if (isPlay) {
+        // No Jogar: por agora não permitimos freguesias (a menos que ligues a flag)
+        if (!FEATURES.playFreguesiasEnabled) {
+          gameModeSel.value = "municipios";
+          gameModeSel.disabled = true;
+        } else {
+          gameModeSel.disabled = false;
+        }
+
+        // Em Jogar: não há treino/tooltips
+        viewModeSel.value = "jogo";
+        viewModeSel.disabled = true;
+
+        // Município só é usado para freguesias; portanto escondido
+        labelMunicipality.style.display = "none";
+      } else {
+        gameModeSel.disabled = false;
+        viewModeSel.disabled = false;
+      }
     }
 
     // -----------------------------
@@ -834,6 +848,10 @@
       if (timerHandle) clearInterval(timerHandle);
       timerHandle = null;
     }
+
+    // Região corrente
+    let currentRegion = "pt";
+    let lastConcelhosKey = "";
 
     function getRegionLabel() {
       return (currentRegion === "pt") ? "Portugal Continental"
@@ -947,6 +965,8 @@
     // UI update
     // -----------------------------
     function updateUI() {
+      applyPlayLocks();
+
       const regionLabel = getRegionLabel();
       const ctx = getContextLabel();
       const type = playTypeSel.value;
@@ -1052,9 +1072,6 @@
     // -----------------------------
     // Carregamento datasets
     // -----------------------------
-    let currentRegion = "pt";
-    let lastConcelhosKey = "";
-
     async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
 
@@ -1100,7 +1117,6 @@
       return fc;
     }
 
-    // Pack key por contexto (para níveis 1..4 por distrito/município)
     function getPackKey() {
       const region = currentRegion;
       const mode = gameModeSel.value;
@@ -1400,8 +1416,7 @@
 
         const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
         sessionXP += xp;
-
-        const st = addXP(xp);
+        addXP(xp);
         setMsg(`Certo (+${xp} XP)`, "good");
       } else {
         sessionWrong++;
@@ -1423,7 +1438,6 @@
 
         const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
         sessionXP += xp;
-
         addXP(xp);
         setMsg(`Certo (+${xp} XP)`, "good");
       } else {
@@ -1448,7 +1462,6 @@
         return;
       }
 
-      // níveis 1-3: remover metade das erradas mantendo a correta
       const n = (playPackLevel === 1 ? 4 : playPackLevel === 2 ? 6 : 8);
       const keep = Math.ceil(n / 2);
       const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
@@ -1478,22 +1491,27 @@
       setLoading("A iniciar…", 5);
 
       applyRegionToUI();
+      applyPlayLocks();
 
+      // PT: preencher distritos (NO JOGAR: só desbloqueados)
       if (currentRegion === "pt") {
         districtSel.innerHTML = "";
-        for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
 
         if (playTypeSel.value === "jogar") {
-          // Em jogar: escolher automaticamente o primeiro distrito desbloqueado, se existir
           const unlocked = getUnlockedSet();
-          const first = DISTRICTS_PT.map(([,slug]) => `pt:${slug}`).find(id => unlocked.has(id));
-          if (!first) throw new Error("Sem distritos desbloqueados no Continente.");
-          districtSel.value = first.split(":")[1];
+          const unlockedDistricts = DISTRICTS_PT.filter(([,slug]) => unlocked.has(`pt:${slug}`));
+
+          for (const [name, slug] of unlockedDistricts) districtSel.appendChild(new Option(name, slug));
+
+          if (unlockedDistricts.length === 0) throw new Error("Sem distritos desbloqueados no Continente.");
+          districtSel.value = unlockedDistricts[0][1];
         } else {
+          for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
           districtSel.value = DISTRICTS_PT[0][1];
         }
       }
 
+      // Sempre arrancar em municípios (jogar bloqueia freguesias via applyPlayLocks)
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
 
@@ -1514,11 +1532,13 @@
     menuTypeStudy.addEventListener("click", () => {
       setMenuType("estudar");
       playTypeSel.value = "estudar";
+      applyPlayLocks();
     });
 
     menuTypePlay.addEventListener("click", () => {
       setMenuType("jogar");
       playTypeSel.value = "jogar";
+      applyPlayLocks();
       ensureStarterUnlockIfNeeded();
       applyMenuLocking();
     });
@@ -1568,13 +1588,18 @@
     playTypeSel.addEventListener("change", async () => {
       clearPlaySession();
       refreshStyles();
+      applyPlayLocks();
       updateUI();
-      // recomeçar sessão se estiver em jogar
       if (playTypeSel.value === "jogar") beginPlaySession();
       else { guessInput.style.display = ""; guessInput.focus(); }
     });
 
     gameModeSel.addEventListener("change", async () => {
+      // robustez: no Jogar, não deixa mudar para freguesias se flag off
+      if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) {
+        gameModeSel.value = "municipios";
+        return;
+      }
       await applyModeToUIAndLoad();
     });
 
@@ -1585,11 +1610,14 @@
 
     districtSel.addEventListener("change", async () => {
       if (currentRegion !== "pt") return;
+      // no Jogar, a lista já só tem desbloqueados; segue normal
       await applyModeToUIAndLoad();
     });
 
     municipalitySel.addEventListener("change", async () => {
       if (gameModeSel.value !== "freguesias") return;
+      // no Jogar, freguesias está bloqueado (a menos que ligues a flag)
+      if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) return;
       await applyModeToUIAndLoad();
     });
 
@@ -1679,8 +1707,9 @@
     // -----------------------------
     (function init() {
       ensureStateDefaults();
+      syncLevelAndTokensAfterXP();
       refreshMenuProgressUI();
-      setMenuType("estudar"); // default
+      setMenuType("estudar");
       applyMenuLocking();
     })();
   </script>
