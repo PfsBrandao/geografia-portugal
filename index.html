@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Geografia PT — Municípios e Freguesias</title>
+  <title>Geografia PT — Jogo + Estudo</title>
   <link rel="icon" href="data:,">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -56,7 +56,7 @@
       height: 100%;
       width: 0%;
       background: #111;
-      transition: width 220ms ease;
+      transition: width 150ms linear;
     }
 
     #wrap { height: calc(100vh - 56px); }
@@ -87,17 +87,69 @@
     /* MOBILE-FIRST */
     #wrap { display: flex; flex-direction: column; height: calc(100vh - 56px); }
     #map { flex: 1; min-height: 52vh; }
-    #side { border-left: none; border-top: 1px solid #eee; max-height: 40vh; }
+    #side { border-left: none; border-top: 1px solid #eee; max-height: 44vh; }
 
     header { flex-direction: column; align-items: stretch; }
     header label, header input, header button, header select { width: 100%; }
 
     @media (min-width: 900px) {
-      #wrap { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 56px); }
+      #wrap { display: grid; grid-template-columns: 1fr 360px; height: calc(100vh - 56px); }
       #side { border-left: 1px solid #eee; border-top: none; max-height: none; }
       header { flex-direction: row; align-items: center; }
       header label, header input, header button, header select { width: auto; }
     }
+
+    /* Jogar: grelha de opções */
+    .choices {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, 1fr);
+      margin-top: 10px;
+    }
+    .choiceBtn {
+      padding: 12px 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .choiceBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .timerWrap {
+      margin-top: 10px;
+      border: 1px solid #e6e6e6;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 12px;
+      background: #eee;
+    }
+    .timerBar {
+      height: 100%;
+      width: 100%;
+      background: #111;
+      transition: width 90ms linear;
+    }
+
+    .suggestions {
+      margin-top: 8px;
+      border: 1px solid #e6e6e6;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .suggestions button {
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border: none;
+      border-bottom: 1px solid #eee;
+      background: #fff;
+      cursor: pointer;
+    }
+    .suggestions button:last-child { border-bottom: none; }
   </style>
 </head>
 
@@ -108,7 +160,7 @@
       <div class="card">
         <h2 style="margin:6px 0 10px;">Geografia PT</h2>
         <div class="small" style="margin-bottom:12px;">
-          Escolhe a região. A app vai descarregar apenas o que for necessário.
+          Escolhe a região. A app descarrega apenas o necessário.
         </div>
         <div class="row">
           <button id="startPT">Portugal Continental</button>
@@ -139,6 +191,13 @@
     <header>
       <button id="backToMenu">Voltar ao menu</button>
 
+      <label>Tipo:
+        <select id="playType">
+          <option value="estudar">Estudar (escrever e pintar)</option>
+          <option value="jogar">Jogar (tempo + XP + níveis)</option>
+        </select>
+      </label>
+
       <label>Modo:
         <select id="gameMode">
           <option value="municipios">Municípios</option>
@@ -146,7 +205,7 @@
         </select>
       </label>
 
-      <label>Visual:
+      <label id="labelViewMode">Visual:
         <select id="viewMode">
           <option value="jogo">Jogo (sem nomes)</option>
           <option value="treino">Treino (com nomes)</option>
@@ -178,11 +237,39 @@
       <div id="side">
         <div class="kpi">
           <div><strong id="titleLine">—</strong></div>
-          <div>Acertados: <strong id="scoreLine">0</strong></div>
-          <div class="small" id="hintLine">—</div>
+          <div id="subTitleLine" class="small">—</div>
+          <div id="questionLine" style="display:none; margin-top:8px;"><strong>—</strong></div>
+
+          <div id="playStats" style="display:none; margin-top:8px;">
+            <div>Tempo: <strong id="timeLine">60</strong>s</div>
+            <div>Sessão: <strong id="sessionLine">0 / 12</strong></div>
+            <div>Certos: <strong id="correctLine">0</strong> | Errados: <strong id="wrongLine">0</strong></div>
+            <div>XP (sessão): <strong id="xpSessionLine">0</strong> | XP total: <strong id="xpTotalLine">0</strong></div>
+            <div>Nível do pack: <strong id="packLevelLine">1</strong> (4/6/8/escrever)</div>
+
+            <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
+
+            <div class="btnRow" style="margin-top:10px;">
+              <button id="btnHint">Hint</button>
+              <button id="btnSkip">Passar</button>
+            </div>
+
+            <div id="choicesBlock" style="display:none;">
+              <div class="choices" id="choices"></div>
+            </div>
+
+            <div id="textBlock" style="display:none; margin-top:10px;">
+              <div class="small">Escreve a resposta (com sugestões):</div>
+              <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
+              <div id="suggestions" class="suggestions" style="display:none;"></div>
+            </div>
+          </div>
+
+          <div class="small" id="hintLine" style="margin-top:8px;">—</div>
         </div>
 
-        <div class="btnRow">
+        <!-- Estudar: botões -->
+        <div id="studyButtons" class="btnRow">
           <button id="btnShowMissing" style="display:none;">Mostrar faltas</button>
           <button id="btnHideMissing" style="display:none;">Esconder faltas</button>
           <button id="btnRevealAll" style="display:none;">Revelar tudo</button>
@@ -196,7 +283,7 @@
         </div>
 
         <div class="small" style="margin-top:12px;">
-          Dados em <code>/data</code> (nomes reais no repo):<br>
+          Dados em <code>/data</code>:<br>
           <span id="dataHint"></span>
         </div>
       </div>
@@ -222,6 +309,92 @@
       ["Setúbal","setubal"], ["Viana do Castelo","viana_do_castelo"],
       ["Vila Real","vila_real"], ["Viseu","viseu"]
     ];
+
+    // -----------------------------
+    // Progressão / XP (Jogar)
+    // -----------------------------
+    const PLAY = {
+      QUESTIONS_PER_SESSION: 12,
+      TIME_LIMIT_SEC: 60,
+
+      // Número de opções por nível (1..4)
+      optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : lvl === 3 ? 8 : 0),
+
+      // Multiplicador de XP por dificuldade (cumpre: 8 > 6 > 4, escrever > tudo)
+      // (podes ajustar depois sem mexer na lógica)
+      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : lvl === 3 ? 1.38 : 1.70),
+
+      // Penalização de hint (XP reduzido)
+      hintMult: 0.60,
+
+      // Regra de subir nível do pack (>= 80% certos numa sessão)
+      promoteThreshold: 0.80,
+
+      // XP necessário para subir níveis do jogador (global) - por agora só mostramos XP total
+      // (quando ligares desbloqueios, isto vira level-ups)
+      xpNeededForNext: (playerLevel) => {
+        const L = Math.max(1, playerLevel);
+        const x = (L - 1);
+        return Math.round(250 + 90*x + 12*x*x);
+      }
+    };
+
+    // Storage (simples por agora)
+    const STORAGE_KEY = "geoPT_play_v1";
+    function loadPlayState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+      } catch {
+        return {};
+      }
+    }
+    function savePlayState(st) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(st || {}));
+    }
+
+    function getPackKey() {
+      // pack = região + modo + scope
+      // municípios: pt + distrito; az/md são "região"
+      // freguesias: sempre por município selecionado
+      const region = currentRegion; // pt/az/md
+      const mode = gameModeSel.value; // municipios/freguesias
+
+      if (mode === "municipios") {
+        if (region === "pt") return `${region}|${mode}|${districtSel.value}`;
+        if (region === "az") return `${region}|${mode}|acores`;
+        return `${region}|${mode}|madeira`;
+      } else {
+        // freguesias: por município selecionado (slug)
+        return `${region}|${mode}|${municipalitySel.value || "?"}`;
+      }
+    }
+
+    function getPackLevel(packKey) {
+      const st = loadPlayState();
+      const packs = st.packs || {};
+      const lvl = packs[packKey]?.level || 1;
+      return Math.max(1, Math.min(4, lvl));
+    }
+
+    function setPackLevel(packKey, lvl) {
+      const st = loadPlayState();
+      st.packs = st.packs || {};
+      st.packs[packKey] = st.packs[packKey] || {};
+      st.packs[packKey].level = Math.max(1, Math.min(4, lvl));
+      savePlayState(st);
+    }
+
+    function addXP(xp) {
+      const st = loadPlayState();
+      st.xpTotal = (st.xpTotal || 0) + Math.max(0, Math.round(xp || 0));
+      savePlayState(st);
+      return st.xpTotal;
+    }
+
+    function getXP() {
+      const st = loadPlayState();
+      return st.xpTotal || 0;
+    }
 
     // -----------------------------
     // Utilitários
@@ -346,9 +519,7 @@
       return { cleaned: { ...fc, features: kept }, dropped, total: features.length };
     }
 
-    // -----------------------------
     // Cache downloads
-    // -----------------------------
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -388,8 +559,11 @@
     // -----------------------------
     // UI Elements
     // -----------------------------
+    const playTypeSel = document.getElementById("playType");
     const gameModeSel = document.getElementById("gameMode");
     const viewModeSel = document.getElementById("viewMode");
+    const labelViewMode = document.getElementById("labelViewMode");
+
     const labelDistrict = document.getElementById("labelDistrict");
     const districtSel = document.getElementById("district");
     const labelMunicipality = document.getElementById("labelMunicipality");
@@ -397,16 +571,37 @@
 
     const guessInput = document.getElementById("guess");
     const titleLine = document.getElementById("titleLine");
-    const scoreLine = document.getElementById("scoreLine");
+    const subTitleLine = document.getElementById("subTitleLine");
+    const questionLine = document.getElementById("questionLine");
     const hintLine = document.getElementById("hintLine");
     const msgEl = document.getElementById("msg");
 
+    // Estudar UI
+    const studyButtons = document.getElementById("studyButtons");
     const btnShowMissing = document.getElementById("btnShowMissing");
     const btnHideMissing = document.getElementById("btnHideMissing");
     const btnRevealAll = document.getElementById("btnRevealAll");
     const missingBlock = document.getElementById("missingBlock");
     const missingList = document.getElementById("missingList");
     const dataHint = document.getElementById("dataHint");
+
+    // Jogar UI
+    const playStats = document.getElementById("playStats");
+    const timeLine = document.getElementById("timeLine");
+    const sessionLine = document.getElementById("sessionLine");
+    const correctLine = document.getElementById("correctLine");
+    const wrongLine = document.getElementById("wrongLine");
+    const xpSessionLine = document.getElementById("xpSessionLine");
+    const xpTotalLine = document.getElementById("xpTotalLine");
+    const packLevelLine = document.getElementById("packLevelLine");
+    const timerBar = document.getElementById("timerBar");
+    const btnHint = document.getElementById("btnHint");
+    const btnSkip = document.getElementById("btnSkip");
+    const choicesBlock = document.getElementById("choicesBlock");
+    const choicesEl = document.getElementById("choices");
+    const textBlock = document.getElementById("textBlock");
+    const textAnswer = document.getElementById("textAnswer");
+    const suggestionsEl = document.getElementById("suggestions");
 
     function setMsg(text, type="neutral") {
       msgEl.className = "msg " + type;
@@ -443,13 +638,74 @@
     }
 
     // -----------------------------
-    // Layers / Game state
+    // Layers / State
     // -----------------------------
     let fillLayer = null;
-    let byKey = new Map();
-    let keyToOfficial = new Map();
-    let solved = new Set();
+    let byKey = new Map();          // key(normalizado) -> leaflet layer
+    let keyToOfficial = new Map();  // key(normalizado) -> nome oficial
+    let solved = new Set();         // usado no Estudar
     let total = 0;
+
+    // Jogar: round state
+    let playActive = false;
+    let playPackKey = "";
+    let playPackLevel = 1;
+    let playPoolKeys = [];
+    let playRemainingKeys = [];
+    let currentTargetKey = "";
+    let currentTargetOfficial = "";
+    let currentChoicesKeys = [];
+    let hintUsedThisRound = false;
+    let roundStartedAt = 0;
+    let timerHandle = null;
+
+    let sessionIndex = 0;
+    let sessionCorrect = 0;
+    let sessionWrong = 0;
+    let sessionXP = 0;
+
+    function clearPlaySession() {
+      playActive = false;
+      playPoolKeys = [];
+      playRemainingKeys = [];
+      currentTargetKey = "";
+      currentTargetOfficial = "";
+      currentChoicesKeys = [];
+      hintUsedThisRound = false;
+      roundStartedAt = 0;
+
+      sessionIndex = 0;
+      sessionCorrect = 0;
+      sessionWrong = 0;
+      sessionXP = 0;
+
+      stopTimer();
+      renderPlayUI();
+    }
+
+    function stopTimer() {
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = null;
+    }
+
+    function getRegionLabel() {
+      return (currentRegion === "pt") ? "Portugal Continental"
+        : (currentRegion === "az") ? "Zonas Autónomas — Açores"
+        : "Zonas Autónomas — Madeira";
+    }
+
+    function getContextLabel() {
+      if (gameModeSel.value === "municipios") {
+        if (currentRegion === "pt") {
+          const dName = districtSel.options[districtSel.selectedIndex]?.textContent || "—";
+          return `Distrito: ${dName}`;
+        }
+        return (currentRegion === "az") ? "Região: Açores" : "Região: Madeira";
+      } else {
+        const mName = municipalitySel.options[municipalitySel.selectedIndex]?.textContent || "—";
+        return `Município: ${mName}`;
+      }
+    }
 
     function styleFill(feature) {
       const props = feature.properties || {};
@@ -457,8 +713,20 @@
 
       const raw = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
       const key = normalize(raw);
-      const ok = solved.has(key);
 
+      // Jogar: highlight do target
+      if (playActive) {
+        const isTarget = (key && key === currentTargetKey);
+        return {
+          color: "#000",
+          weight: isTarget ? 2.0 : 1.1,
+          fillColor: isTarget ? "#c00" : "#fff",
+          fillOpacity: 1
+        };
+      }
+
+      // Estudar
+      const ok = solved.has(key);
       return {
         color: "#000",
         weight: 1.1,
@@ -474,7 +742,6 @@
       keyToOfficial.clear();
       solved.clear();
       total = 0;
-      scoreLine.textContent = "0";
       setMsg("");
       missingBlock.style.display = "none";
     }
@@ -483,10 +750,9 @@
       ensureMapReady();
       clearLayer();
 
-      const { cleaned, dropped, total: totalIn } = sanitizeFeatureCollection(fc);
-      if (dropped > 0) console.warn(`Sanitize: removidas ${dropped}/${totalIn} features por coords inválidas.`);
+      const { cleaned } = sanitizeFeatureCollection(fc);
       if (!cleaned.features || cleaned.features.length === 0) {
-        throw new Error("GeoJSON sem features válidas (tudo filtrado).");
+        throw new Error("GeoJSON sem features válidas.");
       }
 
       fillLayer = L.geoJSON(cleaned, {
@@ -503,7 +769,8 @@
             keyToOfficial.set(key, raw);
           }
 
-          if (viewModeSel.value === "treino" && raw) {
+          // tooltips só em Estudar/Treino
+          if (!playActive && viewModeSel.value === "treino" && raw) {
             lyr.bindTooltip(raw, { sticky: true, opacity: 0.85 });
           }
         }
@@ -517,12 +784,8 @@
         const b = fillLayer.getBounds();
         if (b && b.isValid && b.isValid()) {
           map.fitBounds(b, { padding: [12, 12], animate: false });
-        } else {
-          console.warn("Bounds inválidos.");
         }
-      } catch (e) {
-        console.warn("Falha ao calcular bounds:", e);
-      }
+      } catch {}
 
       updateUI();
     }
@@ -532,6 +795,9 @@
       fillLayer.setStyle(styleFill);
     }
 
+    // -----------------------------
+    // Estudar: faltas
+    // -----------------------------
     function renderMissingList() {
       const missing = [];
       for (const [key, official] of keyToOfficial.entries()) {
@@ -547,40 +813,20 @@
       }
     }
 
+    // -----------------------------
+    // UI update
+    // -----------------------------
     function updateUI() {
-      scoreLine.textContent = `${solved.size} / ${total}`;
+      const regionLabel = getRegionLabel();
+      const ctx = getContextLabel();
 
-      const regionLabel =
-        (currentRegion === "pt") ? "Portugal Continental" :
-        (currentRegion === "az") ? "Zonas Autónomas — Açores" :
-        "Zonas Autónomas — Madeira";
+      const type = playTypeSel.value;
 
-      if (gameModeSel.value === "municipios") {
-        if (currentRegion === "pt") {
-          const dName = districtSel.options[districtSel.selectedIndex]?.textContent || "—";
-          titleLine.textContent = `${regionLabel} — Distrito: ${dName}`;
-        } else {
-          titleLine.textContent = `${regionLabel} — Municípios`;
-        }
-      } else {
-        const mName = municipalitySel.options[municipalitySel.selectedIndex]?.textContent || "—";
-        titleLine.textContent = `${regionLabel} — Município: ${mName}`;
-      }
+      // topo
+      titleLine.textContent = `${regionLabel} — ${gameModeSel.value === "municipios" ? "Municípios" : "Freguesias"}`;
+      subTitleLine.textContent = ctx;
 
-      if (viewModeSel.value === "jogo") {
-        hintLine.textContent = "Modo Jogo: escreve nomes; vai ficando a escuro.";
-        btnShowMissing.style.display = "none";
-        btnHideMissing.style.display = "none";
-        btnRevealAll.style.display = "none";
-        missingBlock.style.display = "none";
-      } else {
-        hintLine.textContent = "Modo Treino: podes ver faltas e revelar tudo.";
-        btnShowMissing.style.display = (missingBlock.style.display === "none") ? "inline-block" : "none";
-        btnHideMissing.style.display = (missingBlock.style.display === "none") ? "none" : "inline-block";
-        btnRevealAll.style.display = "inline-block";
-        if (missingBlock.style.display !== "none") renderMissingList();
-      }
-
+      // hint / data hint
       if (currentRegion === "pt") {
         dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
       } else if (currentRegion === "az") {
@@ -588,14 +834,118 @@
       } else {
         dataHint.innerHTML = `concelhos_madeira.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
       }
+
+      if (type === "estudar") {
+        // Estudar: mostra elementos antigos
+        labelViewMode.style.display = "";
+        studyButtons.style.display = "";
+        playStats.style.display = "none";
+        questionLine.style.display = "none";
+
+        guessInput.style.display = "";
+        guessInput.disabled = false;
+
+        btnSkip.style.display = "none";
+        btnHint.style.display = "none";
+
+        if (viewModeSel.value === "jogo") {
+          hintLine.textContent = "Modo Estudo (Jogo): escreve nomes; vai ficando a escuro.";
+          btnShowMissing.style.display = "none";
+          btnHideMissing.style.display = "none";
+          btnRevealAll.style.display = "none";
+          missingBlock.style.display = "none";
+        } else {
+          hintLine.textContent = "Modo Estudo (Treino): podes ver faltas e revelar tudo.";
+          btnShowMissing.style.display = (missingBlock.style.display === "none") ? "inline-block" : "none";
+          btnHideMissing.style.display = (missingBlock.style.display === "none") ? "none" : "inline-block";
+          btnRevealAll.style.display = "inline-block";
+          if (missingBlock.style.display !== "none") renderMissingList();
+        }
+      } else {
+        // Jogar
+        labelViewMode.style.display = "none";
+        studyButtons.style.display = "none";
+        missingBlock.style.display = "none";
+        playStats.style.display = "";
+        questionLine.style.display = "";
+
+        // input principal do estudar não é usado
+        guessInput.style.display = "none";
+
+        hintLine.textContent = "Modo Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; hint reduz XP.";
+
+        renderPlayUI();
+      }
+    }
+
+    function renderPlayUI() {
+      xpTotalLine.textContent = String(getXP());
+      packLevelLine.textContent = String(playPackLevel);
+
+      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
+      correctLine.textContent = String(sessionCorrect);
+      wrongLine.textContent = String(sessionWrong);
+      xpSessionLine.textContent = String(sessionXP);
+
+      // pergunta
+      if (playActive && currentTargetKey) {
+        const q = (gameModeSel.value === "municipios") ? "Que município é este?" : "Que freguesia é esta?";
+        questionLine.innerHTML = `<strong>${q}</strong>`;
+      } else {
+        questionLine.innerHTML = `<strong>—</strong>`;
+      }
+
+      // botão hint
+      btnHint.disabled = !playActive || hintUsedThisRound;
+
+      // blocos por nível
+      const isTextLevel = (playPackLevel >= 4);
+
+      // regra pedida: se estamos no nível 4 e usar hint => mostrar 8 opções nesse round
+      const showChoicesInTextLevel = (isTextLevel && hintUsedThisRound);
+
+      if (!isTextLevel || showChoicesInTextLevel) {
+        choicesBlock.style.display = "";
+        textBlock.style.display = "none";
+      } else {
+        choicesBlock.style.display = "none";
+        textBlock.style.display = "";
+      }
+
+      // sugestões
+      suggestionsEl.style.display = "none";
+      suggestionsEl.innerHTML = "";
+      textAnswer.value = "";
+
+      // limpar escolhas
+      choicesEl.innerHTML = "";
+      if (choicesBlock.style.display !== "none") {
+        // 4/6/8 ou 8 no nível 4 com hint
+        const n = (!isTextLevel) ? PLAY.optionsByPackLevel(playPackLevel) : 8;
+        // grelha: 2 colunas em mobile, mas com mais itens fica maior (ok)
+        // render botões quando as escolhas estiverem prontas
+        if (playActive && currentChoicesKeys.length) {
+          for (const k of currentChoicesKeys) {
+            const b = document.createElement("button");
+            b.className = "choiceBtn";
+            b.textContent = keyToOfficial.get(k) || k;
+            b.addEventListener("click", () => submitAnswerChoice(k));
+            choicesEl.appendChild(b);
+          }
+        } else {
+          // placeholder
+          const small = document.createElement("div");
+          small.className = "small";
+          small.textContent = (playActive ? "A preparar opções…" : "Inicia o jogo para começar.");
+          choicesEl.appendChild(small);
+        }
+      }
     }
 
     // -----------------------------
-    // Estado: Região e datasets
+    // Carregamento de datasets
     // -----------------------------
     let currentRegion = "pt";
-
-    // Evita reconstruir a lista de municípios quando só mudas o município
     let lastConcelhosKey = "";
 
     async function loadConcelhosFC() {
@@ -628,18 +978,19 @@
     async function populateMunicipalitySelector(concelhosFC) {
       const munis = municipalitiesFromConcelhos(concelhosFC);
 
-      const prev = municipalitySel.value; // slug atual
+      const prev = municipalitySel.value;
       municipalitySel.innerHTML = "";
 
       for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
 
-      // preserva seleção se existir
       if (prev && Array.from(municipalitySel.options).some(o => o.value === prev)) {
         municipalitySel.value = prev;
       }
     }
 
     async function loadFreguesiasFC() {
+      setLoading("A carregar freguesias…", 45);
+
       const muniSlug = municipalitySel.value;
       const url = FILES.freguesias(currentRegion, muniSlug);
       const fc = await loadJSON(url);
@@ -650,50 +1001,27 @@
       return fc;
     }
 
-    async function loadOnlyFreguesiasAndDraw() {
-      showScreen(screenLoading);
-      setLoading("A carregar freguesias…", 55);
-
-      const fc = await loadFreguesiasFC();
-
-      setLoading("Pronto a desenhar…", 75);
-
-      showScreen(screenGame);
-      ensureMapReady();
-      invalidateMapSizeHard();
-
-      setLoading("A desenhar…", 90);
-      buildLayer(fc);
-
-      updateUI();
-      guessInput.focus();
-      setLoading("Concluído", 100);
-    }
-
     // -----------------------------
-    // Fluxo UI por região e modo
+    // Fluxo UI: aplicar seleções e carregar mapa
     // -----------------------------
     function applyRegionToUI() {
       labelDistrict.style.display = (currentRegion === "pt") ? "" : "none";
     }
 
     async function applyModeToUIAndLoad() {
-      const mode = gameModeSel.value;
-
-      solved.clear();
-      refreshStyles();
-      missingBlock.style.display = "none";
-      setMsg("");
+      // ao mudar de contexto, parar jogo e limpar sessão
+      clearPlaySession();
 
       showScreen(screenLoading);
 
       try {
-        if (mode === "municipios") {
-          labelMunicipality.style.display = "none";
-          guessInput.placeholder = "Escreve um município…";
+        let fcToDraw = null;
 
+        if (gameModeSel.value === "municipios") {
+          labelMunicipality.style.display = "none";
           setLoading("A preparar…", 10);
-          const fc = await loadConcelhosFC();
+
+          fcToDraw = await loadConcelhosFC();
 
           setLoading("Pronto a desenhar…", 75);
           showScreen(screenGame);
@@ -701,18 +1029,13 @@
           invalidateMapSizeHard();
 
           setLoading("A desenhar…", 90);
-          buildLayer(fc);
+          buildLayer(fcToDraw);
         } else {
           labelMunicipality.style.display = "";
-          guessInput.placeholder = "Escreve uma freguesia…";
-
           setLoading("A carregar concelhos (para lista)…", 15);
-          const concelhosFC = await loadConcelhosFC();
 
-          const ctxKey =
-            (currentRegion === "pt")
-              ? `pt:${districtSel.value}`
-              : `${currentRegion}:all`;
+          const concelhosFC = await loadConcelhosFC();
+          const ctxKey = (currentRegion === "pt") ? `pt:${districtSel.value}` : `${currentRegion}:all`;
 
           const needRebuildList = (ctxKey !== lastConcelhosKey);
           lastConcelhosKey = ctxKey;
@@ -720,12 +1043,9 @@
           if (needRebuildList) {
             setLoading("A preparar lista de municípios…", 35);
             await populateMunicipalitySelector(concelhosFC);
-          } else {
-            setLoading("Lista ok…", 35);
           }
 
-          setLoading("A carregar freguesias…", 55);
-          const fc = await loadFreguesiasFC();
+          fcToDraw = await loadFreguesiasFC();
 
           setLoading("Pronto a desenhar…", 75);
           showScreen(screenGame);
@@ -733,25 +1053,29 @@
           invalidateMapSizeHard();
 
           setLoading("A desenhar…", 90);
-          buildLayer(fc);
+          buildLayer(fcToDraw);
         }
 
+        showScreen(screenGame);
         updateUI();
-        guessInput.focus();
         setLoading("Concluído", 100);
+
+        if (playTypeSel.value === "estudar") {
+          guessInput.style.display = "";
+          guessInput.placeholder = (gameModeSel.value === "municipios") ? "Escreve um município…" : "Escreve uma freguesia…";
+          guessInput.focus();
+        }
       } catch (e) {
         console.error(e);
-
         showScreen(screenGame);
         ensureMapReady();
         invalidateMapSizeHard();
-
         setMsg(`Erro: ${e.message}`, "bad");
       }
     }
 
     // -----------------------------
-    // Adivinhação
+    // Estudar: adivinhação
     // -----------------------------
     function resolveTypedToKey(typedNorm) {
       if (byKey.has(typedNorm)) return typedNorm;
@@ -767,7 +1091,7 @@
       return "";
     }
 
-    function handleGuess(rawInput) {
+    function handleStudyGuess(rawInput) {
       const typed = normalize(rawInput);
       if (!typed) return;
 
@@ -791,9 +1115,320 @@
     }
 
     // -----------------------------
-    // Eventos
+    // Jogar: lógica do quiz
+    // -----------------------------
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function sampleDistinct(arr, n, forbidSet) {
+      const pool = [];
+      for (const x of arr) {
+        if (forbidSet && forbidSet.has(x)) continue;
+        pool.push(x);
+      }
+      const s = shuffle(pool);
+      return s.slice(0, Math.min(n, s.length));
+    }
+
+    function startTimer() {
+      stopTimer();
+      roundStartedAt = Date.now();
+
+      timerHandle = setInterval(() => {
+        if (!playActive) return;
+
+        const elapsed = (Date.now() - roundStartedAt) / 1000;
+        const remain = Math.max(0, PLAY.TIME_LIMIT_SEC - elapsed);
+
+        timeLine.textContent = String(Math.ceil(remain));
+        const pct = (remain / PLAY.TIME_LIMIT_SEC) * 100;
+        timerBar.style.width = `${pct}%`;
+
+        if (remain <= 0) {
+          stopTimer();
+          onTimeout();
+        }
+      }, 100);
+    }
+
+    function onTimeout() {
+      if (!playActive) return;
+      sessionWrong++;
+      sessionIndex++;
+      setMsg(`Tempo! Era: ${currentTargetOfficial}`, "bad");
+      nextRoundOrEnd();
+    }
+
+    function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
+      // XP base: 10..50 (rápido dá mais)
+      const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
+      const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC; // 1..0
+      const base = 10;
+      const bonus = Math.round(40 * timeFactor);
+      let xp = base + bonus;
+
+      // Dificuldade
+      xp = xp * PLAY.difficultyMultByPackLevel(packLevel);
+
+      // Hint reduz XP
+      if (usedHint) xp = xp * PLAY.hintMult;
+
+      return Math.max(0, Math.floor(xp));
+    }
+
+    function pickNewTargetKey() {
+      if (playRemainingKeys.length === 0) {
+        // repõe com shuffle, mas evita repetir imediato se possível
+        playRemainingKeys = shuffle(playPoolKeys);
+      }
+      return playRemainingKeys.pop() || "";
+    }
+
+    function prepareChoicesForRound() {
+      const isTextLevel = (playPackLevel >= 4);
+      const forcedChoices = (isTextLevel && hintUsedThisRound);
+
+      if (isTextLevel && !forcedChoices) {
+        currentChoicesKeys = [];
+        return;
+      }
+
+      // 4/6/8 ou 8 no último nível com hint
+      const n = (!isTextLevel) ? PLAY.optionsByPackLevel(playPackLevel) : 8;
+
+      const forbid = new Set([currentTargetKey]);
+      const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+      currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
+    }
+
+    function showSuggestions(prefixNorm) {
+      if (!prefixNorm) {
+        suggestionsEl.style.display = "none";
+        suggestionsEl.innerHTML = "";
+        return;
+      }
+
+      // filtra por prefixo
+      const matches = [];
+      for (const k of playPoolKeys) {
+        const off = keyToOfficial.get(k) || "";
+        const norm = normalize(off);
+        if (norm.startsWith(prefixNorm)) matches.push(k);
+      }
+
+      // limitar
+      const top = matches.slice(0, 10);
+
+      suggestionsEl.innerHTML = "";
+      if (top.length === 0) {
+        suggestionsEl.style.display = "none";
+        return;
+      }
+
+      for (const k of top) {
+        const b = document.createElement("button");
+        b.textContent = keyToOfficial.get(k) || k;
+        b.addEventListener("click", () => submitAnswerText(k));
+        suggestionsEl.appendChild(b);
+      }
+
+      suggestionsEl.style.display = "";
+    }
+
+    function beginPlaySession() {
+      if (!byKey.size) {
+        setMsg("Sem dados carregados.", "bad");
+        return;
+      }
+
+      clearPlaySession();
+      playActive = true;
+
+      playPackKey = getPackKey();
+      playPackLevel = getPackLevel(playPackKey);
+
+      playPoolKeys = Array.from(byKey.keys());
+      playRemainingKeys = shuffle(playPoolKeys);
+
+      xpTotalLine.textContent = String(getXP());
+      packLevelLine.textContent = String(playPackLevel);
+
+      // iniciar round 1
+      nextRound();
+    }
+
+    function nextRound() {
+      stopTimer();
+      hintUsedThisRound = false;
+
+      currentTargetKey = pickNewTargetKey();
+      currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
+
+      prepareChoicesForRound();
+      refreshStyles(); // pinta target
+
+      // UI
+      setMsg("", "neutral");
+      timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+      timerBar.style.width = "100%";
+
+      // mostrar opções/input
+      renderPlayUI();
+
+      // ligar input do nível 4
+      if (playPackLevel >= 4 && !hintUsedThisRound) {
+        textAnswer.value = "";
+        showSuggestions("");
+        textAnswer.focus();
+      }
+
+      startTimer();
+    }
+
+    function endSession() {
+      stopTimer();
+      playActive = false;
+      refreshStyles();
+
+      const acc = (sessionIndex > 0) ? (sessionCorrect / sessionIndex) : 0;
+      let promoted = false;
+
+      if (acc >= PLAY.promoteThreshold && playPackLevel < 4 && sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
+        playPackLevel++;
+        setPackLevel(playPackKey, playPackLevel);
+        promoted = true;
+      }
+
+      const extra = promoted ? ` Subiste para o nível ${playPackLevel} deste pack.` : "";
+      setMsg(`Fim da sessão. Certos: ${sessionCorrect}/${sessionIndex}. XP ganho: ${sessionXP}.${extra}`, promoted ? "good" : "neutral");
+
+      renderPlayUI();
+    }
+
+    function nextRoundOrEnd() {
+      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
+        endSession();
+        return;
+      }
+
+      // pequena pausa visual
+      setTimeout(() => {
+        if (playTypeSel.value !== "jogar") return;
+        if (!byKey.size) return;
+        playActive = true;
+        nextRound();
+      }, 450);
+    }
+
+    function submitAnswerChoice(chosenKey) {
+      if (!playActive) return;
+
+      stopTimer();
+      const elapsed = (Date.now() - roundStartedAt) / 1000;
+
+      if (chosenKey === currentTargetKey) {
+        sessionCorrect++;
+        sessionIndex++;
+
+        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
+        sessionXP += xp;
+        const totalXP = addXP(xp);
+
+        xpTotalLine.textContent = String(totalXP);
+        setMsg(`Certo (+${xp} XP)`, "good");
+      } else {
+        sessionWrong++;
+        sessionIndex++;
+        setMsg(`Errado. Era: ${currentTargetOfficial}`, "bad");
+      }
+
+      correctLine.textContent = String(sessionCorrect);
+      wrongLine.textContent = String(sessionWrong);
+      xpSessionLine.textContent = String(sessionXP);
+      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
+
+      nextRoundOrEnd();
+    }
+
+    function submitAnswerText(chosenKey) {
+      if (!playActive) return;
+
+      stopTimer();
+      const elapsed = (Date.now() - roundStartedAt) / 1000;
+
+      if (chosenKey === currentTargetKey) {
+        sessionCorrect++;
+        sessionIndex++;
+
+        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
+        sessionXP += xp;
+        const totalXP = addXP(xp);
+
+        xpTotalLine.textContent = String(totalXP);
+        setMsg(`Certo (+${xp} XP)`, "good");
+      } else {
+        sessionWrong++;
+        sessionIndex++;
+        setMsg(`Errado. Era: ${currentTargetOfficial}`, "bad");
+      }
+
+      suggestionsEl.style.display = "none";
+      suggestionsEl.innerHTML = "";
+
+      correctLine.textContent = String(sessionCorrect);
+      wrongLine.textContent = String(sessionWrong);
+      xpSessionLine.textContent = String(sessionXP);
+      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
+
+      nextRoundOrEnd();
+    }
+
+    function useHint() {
+      if (!playActive) return;
+      if (hintUsedThisRound) return;
+
+      hintUsedThisRound = true;
+
+      if (playPackLevel >= 4) {
+        // regra pedida: no último nível, hint mostra 8 opções
+        prepareChoicesForRound();
+        renderPlayUI();
+        setMsg("Hint: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
+        return;
+      }
+
+      // níveis 1-3: remover metade das erradas (mantendo a correta)
+      const n = PLAY.optionsByPackLevel(playPackLevel);
+      const keep = Math.ceil(n / 2); // ex: 6->3, 8->4, 4->2
+      const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
+      const keepWrongCount = Math.max(1, keep - 1);
+      const keptWrong = sampleDistinct(wrong, keepWrongCount);
+
+      currentChoicesKeys = shuffle([currentTargetKey, ...keptWrong]);
+      renderPlayUI();
+      setMsg("Hint: removidas opções (XP desta pergunta reduzido).", "neutral");
+    }
+
+    function skipQuestion() {
+      if (!playActive) return;
+      stopTimer();
+      sessionWrong++;
+      sessionIndex++;
+      setMsg(`Passaste. Era: ${currentTargetOfficial}`, "neutral");
+      nextRoundOrEnd();
+    }
+
+    // -----------------------------
+    // Eventos: menu e navegação
     // -----------------------------
     document.getElementById("backToMenu").addEventListener("click", () => {
+      clearPlaySession();
       clearLayer();
       showScreen(screenMenu);
     });
@@ -811,6 +1446,7 @@
 
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
+      playTypeSel.value = "estudar";
 
       await applyModeToUIAndLoad();
     });
@@ -823,6 +1459,7 @@
       applyRegionToUI();
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
+      playTypeSel.value = "estudar";
 
       await applyModeToUIAndLoad();
     });
@@ -835,60 +1472,79 @@
       applyRegionToUI();
       gameModeSel.value = "municipios";
       viewModeSel.value = "jogo";
+      playTypeSel.value = "estudar";
 
       await applyModeToUIAndLoad();
+    });
+
+    // Mudanças de contexto
+    playTypeSel.addEventListener("change", async () => {
+      // parar sessão
+      clearPlaySession();
+      playActive = false;
+      refreshStyles();
+      updateUI();
+
+      // se entrar em jogar, inicia sessão automaticamente
+      if (playTypeSel.value === "jogar") {
+        // desenhar mapa sem tooltips e iniciar
+        beginPlaySession();
+      } else {
+        // voltar a estudar: repor estilos e inputs
+        refreshStyles();
+        guessInput.style.display = "";
+        guessInput.focus();
+      }
     });
 
     gameModeSel.addEventListener("change", async () => {
       await applyModeToUIAndLoad();
+      if (playTypeSel.value === "jogar") beginPlaySession();
     });
 
     viewModeSel.addEventListener("change", async () => {
+      if (playTypeSel.value !== "estudar") return;
       await applyModeToUIAndLoad();
     });
 
     districtSel.addEventListener("change", async () => {
       if (currentRegion !== "pt") return;
       await applyModeToUIAndLoad();
+      if (playTypeSel.value === "jogar") beginPlaySession();
     });
 
-    // IMPORTANTÍSSIMO: mudar município NÃO deve reconstruir a lista; só recarrega freguesias
     municipalitySel.addEventListener("change", async () => {
       if (gameModeSel.value !== "freguesias") return;
+      await applyModeToUIAndLoad();
+      if (playTypeSel.value === "jogar") beginPlaySession();
+    });
 
-      solved.clear();
-      refreshStyles();
-      missingBlock.style.display = "none";
-      setMsg("");
+    // Estudar: enter no input
+    guessInput.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      if (playTypeSel.value !== "estudar") return;
+      const raw = guessInput.value;
+      guessInput.value = "";
+      handleStudyGuess(raw);
+      guessInput.focus();
+    });
 
-      try {
-        await loadOnlyFreguesiasAndDraw();
-      } catch (e) {
-        console.error(e);
-        showScreen(screenGame);
-        ensureMapReady();
-        invalidateMapSizeHard();
-        setMsg(`Erro: ${e.message}`, "bad");
+    // Repor
+    document.getElementById("reset").addEventListener("click", () => {
+      if (playTypeSel.value === "estudar") {
+        solved.clear();
+        refreshStyles();
+        missingBlock.style.display = "none";
+        setMsg("");
+        updateUI();
+        guessInput.focus();
+      } else {
+        // Jogar: reinicia sessão
+        beginPlaySession();
       }
     });
 
-    guessInput.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      const raw = guessInput.value;
-      guessInput.value = "";
-      handleGuess(raw);
-      guessInput.focus();
-    });
-
-    document.getElementById("reset").addEventListener("click", () => {
-      solved.clear();
-      refreshStyles();
-      missingBlock.style.display = "none";
-      setMsg("");
-      updateUI();
-      guessInput.focus();
-    });
-
+    // Estudar: faltas/revelar
     btnShowMissing.addEventListener("click", () => {
       missingBlock.style.display = "block";
       renderMissingList();
@@ -908,9 +1564,56 @@
       updateUI();
       guessInput.focus();
     });
+
+    // Jogar: hint/skip
+    btnHint.addEventListener("click", () => useHint());
+    btnSkip.addEventListener("click", () => skipQuestion());
+
+    // Jogar: texto + sugestões
+    textAnswer.addEventListener("input", () => {
+      if (!playActive) return;
+      const prefix = normalize(textAnswer.value);
+      showSuggestions(prefix);
+    });
+
+    textAnswer.addEventListener("keydown", (e) => {
+      if (!playActive) return;
+      if (e.key !== "Enter") return;
+
+      const typed = normalize(textAnswer.value);
+      if (!typed) return;
+
+      // se escrever exatamente o alvo, aceitar
+      if (typed === normalize(currentTargetOfficial)) {
+        submitAnswerText(currentTargetKey);
+        return;
+      }
+
+      // se houver match exato a algum item (e for alvo), aceitar; senão falha
+      let matchedKey = "";
+      for (const k of playPoolKeys) {
+        const off = keyToOfficial.get(k) || "";
+        if (normalize(off) === typed) { matchedKey = k; break; }
+      }
+
+      if (!matchedKey) {
+        // tentativa errada (não existe no pool)
+        submitAnswerText("__nope__");
+      } else {
+        submitAnswerText(matchedKey);
+      }
+    });
+
+    // -----------------------------
+    // Init default
+    // -----------------------------
+    (function initDefaults() {
+      // no menu; nada a fazer
+    })();
   </script>
 </body>
 </html>
+
 
 
 
