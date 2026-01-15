@@ -31,6 +31,7 @@
     }
     .screen { display: none; height: 100vh; }
     .screen.active { display: block; }
+
     .center {
       height: 100vh;
       display: flex;
@@ -67,14 +68,6 @@
       transition: width 150ms linear;
     }
 
-    #wrap { height: calc(100vh - 56px); }
-    #map { background: #fff; }
-    #side {
-      padding: 12px;
-      overflow: auto;
-      background: #fafafa;
-      border-left: 1px solid #eee;
-    }
     input, select, button { padding: 7px; }
     input { min-width: 320px; }
 
@@ -90,22 +83,21 @@
     ul { padding-left: 18px; margin: 6px 0 0; }
     li { margin: 4px 0; }
 
-    /* MOBILE-FIRST */
-    #wrap { display: flex; flex-direction: column; height: calc(100vh - 56px); }
-    #map { flex: 1; min-height: 52vh; }
-    #side { border-left: none; border-top: 1px solid #eee; max-height: 44vh; }
-
-    header { flex-direction: column; align-items: stretch; }
-    header label, header input, header button, header select { width: 100%; }
-
-    @media (min-width: 900px) {
-      #wrap { display: grid; grid-template-columns: 1fr 380px; height: calc(100vh - 56px); }
-      #side { border-left: 1px solid #eee; border-top: none; max-height: none; }
-      header { flex-direction: row; align-items: center; }
-      header label, header input, header button, header select { width: auto; }
+    /* Menu blocks */
+    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    .pill {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
     }
+    .pill.active { background:#111; color:#fff; border-color:#111; }
+    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
+    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
 
-    /* Jogar: grelha de opções */
+    /* --- JOGAR: componentes base (já existiam) --- */
     .choices {
       display: grid;
       gap: 8px;
@@ -154,19 +146,150 @@
     }
     .suggestions button:last-child { border-bottom: none; }
 
-    /* Menu blocks */
-    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    .pill {
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 13px;
+    /* =========================================================
+       NOVO TEMA + LAYOUT "MOBILE GAME" (HUD + MAPA + BOTTOM)
+       ========================================================= */
+    :root {
+      --bg: #0b0b0f;
+      --panel: #efefef;
+      --panelBorder: #bdbdbd;
     }
-    .pill.active { background:#111; color:#fff; border-color:#111; }
-    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
-    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
+
+    body.playing {
+      background: var(--bg);
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* Oculta o header "web" durante Jogar (mobile) */
+    body.playing #legacyHeader { display: none; }
+
+    /* Shell full-screen */
+    .gameShell {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: 74px 1fr auto;
+      gap: 10px;
+      padding: 10px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
+    }
+
+    .gameHUD {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .hudBox {
+      background: var(--panel);
+      border: 2px solid var(--panelBorder);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.05;
+      padding: 6px;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    .hudBox .k { font-size: 12px; color: #222; opacity: .75; }
+    .hudBox .v { font-size: 24px; font-weight: 900; color: #111; }
+
+    .hudBtn {
+      border-radius: 14px;
+      border: 2px solid #cfcfcf;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(#33b5ff, #0c79d6);
+      color: #071018;
+      user-select: none;
+    }
+    .hudBtn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .gameStage {
+      background: #eaeaea;
+      border-radius: 18px;
+      border: 3px solid var(--panelBorder);
+      overflow: hidden;
+    }
+    #map { height: 100%; width: 100%; background: #fff; }
+
+    .gameBottom {
+      background: rgba(16,16,24,.95);
+      border-radius: 18px;
+      padding: 12px;
+      box-sizing: border-box;
+      color: #f2f2f2;
+    }
+    .gameBottom .small { color: rgba(255,255,255,.8); }
+    .gameBottom code { color: rgba(255,255,255,.9); }
+
+    .gameMeta strong { color: #fff; }
+
+    body.playing .timerWrap {
+      border: 1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.18);
+    }
+    body.playing .timerBar { background: #ffffff; }
+
+    body.playing .choices {
+      gap: 10px;
+      grid-template-columns: repeat(2, 1fr);
+    }
+    body.playing .choiceBtn {
+      min-height: 60px;
+      border-radius: 16px;
+      border: 2px solid #cfcfcf;
+      font-size: 18px;
+      font-weight: 900;
+      background: linear-gradient(#33b5ff, #0c79d6);
+      color: #071018;
+    }
+    body.playing .choiceBtn:active { transform: translateY(1px); }
+
+    body.playing .btnRow button {
+      min-height: 50px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+    }
+
+    body.playing #textAnswer {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      font-size: 18px;
+      box-sizing: border-box;
+    }
+
+    body.playing .suggestions {
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      border-radius: 14px;
+    }
+    body.playing .suggestions button {
+      border-bottom: 1px solid rgba(255,255,255,.14);
+      background: transparent;
+      color: #fff;
+      padding: 12px 12px;
+    }
+
+    /* Desktop: permite header + centra shell */
+    @media (min-width: 900px) {
+      body.playing #legacyHeader { display: flex; }
+      .gameShell {
+        max-width: 1100px;
+        margin: 0 auto;
+        grid-template-rows: 74px 1fr 340px;
+      }
+    }
   </style>
 </head>
 
@@ -291,7 +414,8 @@
 
   <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
-    <header>
+    <!-- Header "web" (legacy). Em Jogar mobile fica escondido. -->
+    <header id="legacyHeader">
       <button id="backToMenu">Voltar ao menu</button>
 
       <label id="headerModeLabel">Tipo:
@@ -335,68 +459,85 @@
       <button id="reset">Repor</button>
     </header>
 
-    <div id="wrap">
-      <div id="map"></div>
-      <div id="side">
-        <div class="kpi">
+    <div class="gameShell">
+      <!-- HUD -->
+      <div class="gameHUD">
+        <div class="hudBox">
+          <div class="k">Tempo</div>
+          <div class="v"><span id="timeLine">60</span></div>
+        </div>
+
+        <button class="hudBtn" id="btnHint">Dica</button>
+
+        <div class="hudBox">
+          <div class="k">Questão</div>
+          <div class="v"><span id="sessionLine">0 / 12</span></div>
+        </div>
+      </div>
+
+      <!-- Stage -->
+      <div class="gameStage">
+        <div id="map"></div>
+      </div>
+
+      <!-- Bottom panel -->
+      <div class="gameBottom">
+        <div class="gameMeta">
           <div><strong id="titleLine">—</strong></div>
           <div id="subTitleLine" class="small">—</div>
+
+          <!-- linha de pergunta (mostra no Jogar) -->
           <div id="questionLine" style="display:none; margin-top:8px;"><strong>—</strong></div>
 
-          <div id="playStats" style="display:none; margin-top:8px;">
-            <div>Tempo: <strong id="timeLine">60</strong>s</div>
-            <div>Sessão: <strong id="sessionLine">0 / 12</strong></div>
-            <div>Certos: <strong id="correctLine">0</strong> | Errados: <strong id="wrongLine">0</strong></div>
-            <div>XP (sessão): <strong id="xpSessionLine">0</strong></div>
-
-            <div style="margin-top:6px;">
-              <div>Nível global: <strong id="playerLevelLine">1</strong> | XP total: <strong id="xpTotalLine">0</strong></div>
-              <div>Desbloqueios: <strong id="tokensLine">0</strong></div>
-              <div>Nível do pack: <strong id="packLevelLine">1</strong> (4/6/8/escrever)</div>
-            </div>
-
-            <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
-
-            <div class="btnRow" style="margin-top:10px;">
-              <button id="btnHint">Hint</button>
-              <button id="btnSkip">Passar</button>
-            </div>
-
-            <div id="choicesBlock" style="display:none;">
-              <div class="choices" id="choices"></div>
-            </div>
-
-            <div id="textBlock" style="display:none; margin-top:10px;">
-              <div class="small">Escreve a resposta (com sugestões):</div>
-              <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
-              <div id="suggestions" class="suggestions" style="display:none;"></div>
-            </div>
-
-            <div class="btnRow" style="margin-top:10px;">
-              <button id="btnUnlockFromGame" style="display:none;">Desbloquear 1 área</button>
-            </div>
+          <!-- KPIs compactos (mantém IDs usados no JS) -->
+          <div id="playKpis" class="small" style="margin-top:8px; display:none;">
+            Certos: <strong id="correctLine">0</strong> |
+            Errados: <strong id="wrongLine">0</strong> |
+            XP (sessão): <strong id="xpSessionLine">0</strong><br>
+            Nível: <strong id="playerLevelLine">1</strong> |
+            XP total: <strong id="xpTotalLine">0</strong> |
+            Tokens: <strong id="tokensLine">0</strong> |
+            Nível do pack: <strong id="packLevelLine">1</strong>
           </div>
 
           <div class="small" id="hintLine" style="margin-top:8px;">—</div>
         </div>
 
+        <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
+
+        <div class="msg neutral" id="msg" style="margin-top:10px;"></div>
+
+        <div class="btnRow" id="playActions" style="margin-top:10px;">
+          <button id="btnSkip">Passar</button>
+          <button id="btnUnlockFromGame" style="display:none;">Desbloquear 1 área</button>
+          <button id="resetPlayBtn" type="button">Recomeçar</button>
+          <button id="backToMenu2" type="button">Menu</button>
+        </div>
+
+        <div id="choicesBlock" style="display:none; margin-top:10px;">
+          <div class="choices" id="choices"></div>
+        </div>
+
+        <div id="textBlock" style="display:none; margin-top:10px;">
+          <div class="small">Escreve a resposta (com sugestões):</div>
+          <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
+          <div id="suggestions" class="suggestions" style="display:none;"></div>
+        </div>
+
         <!-- Estudar: botões -->
-        <div id="studyButtons" class="btnRow">
+        <div id="studyButtons" class="btnRow" style="margin-top:10px;">
           <button id="btnShowMissing" style="display:none;">Mostrar faltas</button>
           <button id="btnHideMissing" style="display:none;">Esconder faltas</button>
           <button id="btnRevealAll" style="display:none;">Revelar tudo</button>
         </div>
 
-        <div class="msg neutral" id="msg"></div>
-
-        <div id="missingBlock" style="display:none;">
+        <div id="missingBlock" style="display:none; margin-top:10px;">
           <div class="listTitle">Faltam</div>
           <ul id="missingList"></ul>
         </div>
 
         <div class="small" style="margin-top:12px;">
-          Dados em <code>/data</code>:<br>
-          <span id="dataHint"></span>
+          Dados em <code>/data</code>: <span id="dataHint"></span>
         </div>
       </div>
     </div>
@@ -896,7 +1037,7 @@
     const missingList = document.getElementById("missingList");
     const dataHint = document.getElementById("dataHint");
 
-    const playStats = document.getElementById("playStats");
+    const playKpis = document.getElementById("playKpis");
     const timeLine = document.getElementById("timeLine");
     const sessionLine = document.getElementById("sessionLine");
     const correctLine = document.getElementById("correctLine");
@@ -906,6 +1047,7 @@
     const playerLevelLine = document.getElementById("playerLevelLine");
     const tokensLine = document.getElementById("tokensLine");
     const packLevelLine = document.getElementById("packLevelLine");
+
     const timerBar = document.getElementById("timerBar");
     const btnHint = document.getElementById("btnHint");
     const btnSkip = document.getElementById("btnSkip");
@@ -915,6 +1057,9 @@
     const textAnswer = document.getElementById("textAnswer");
     const suggestionsEl = document.getElementById("suggestions");
     const btnUnlockFromGame = document.getElementById("btnUnlockFromGame");
+
+    const resetPlayBtn = document.getElementById("resetPlayBtn");
+    const backToMenu2 = document.getElementById("backToMenu2");
 
     function setMsg(text, type="neutral") {
       msgEl.className = "msg " + type;
@@ -1135,6 +1280,9 @@
     function updateUI() {
       applyPlayLocks();
 
+      // Toggle aspeto "game" no body
+      document.body.classList.toggle("playing", playTypeSel.value === "jogar");
+
       const regionLabel = getRegionLabel();
       const ctx = getContextLabel();
       const type = playTypeSel.value;
@@ -1142,18 +1290,21 @@
       titleLine.textContent = `${regionLabel} — ${gameModeSel.value === "municipios" ? "Municípios" : "Freguesias"}`;
       subTitleLine.textContent = ctx;
 
-      if (currentRegion === "pt") dataHint.innerHTML = `concelhos_${districtSel.value}.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
-      else if (currentRegion === "az") dataHint.innerHTML = `concelhos_acores.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
-      else dataHint.innerHTML = `concelhos_madeira.geojson<br>freguesias_&lt;municipio&gt;.geojson`;
+      if (currentRegion === "pt") dataHint.innerHTML = `concelhos_${districtSel.value}.geojson | freguesias_&lt;municipio&gt;.geojson`;
+      else if (currentRegion === "az") dataHint.innerHTML = `concelhos_acores.geojson | freguesias_&lt;municipio&gt;.geojson`;
+      else dataHint.innerHTML = `concelhos_madeira.geojson | freguesias_&lt;municipio&gt;.geojson`;
 
       if (type === "estudar") {
         labelViewMode.style.display = "";
         studyButtons.style.display = "";
-        playStats.style.display = "none";
+        playKpis.style.display = "none";
         questionLine.style.display = "none";
         guessInput.style.display = "";
         guessInput.disabled = false;
         btnUnlockFromGame.style.display = "none";
+
+        // Em estudo, barra de timer não interessa: deixa cheia
+        timerBar.style.width = "100%";
 
         if (viewModeSel.value === "jogo") {
           hintLine.textContent = "Estudar: escreve nomes; vai ficando a escuro.";
@@ -1172,7 +1323,7 @@
         labelViewMode.style.display = "none";
         studyButtons.style.display = "none";
         missingBlock.style.display = "none";
-        playStats.style.display = "";
+        playKpis.style.display = "";
         questionLine.style.display = "";
         guessInput.style.display = "none";
 
@@ -1324,6 +1475,7 @@
 
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
+          invalidateMapSizeHard();
         } else {
           labelMunicipality.style.display = "";
           setLoading("A carregar concelhos (para lista)…", 15);
@@ -1348,6 +1500,7 @@
 
           setLoading("A desenhar…", 90);
           buildLayer(fcToDraw);
+          invalidateMapSizeHard();
         }
 
         showScreen(screenGame);
@@ -1695,6 +1848,26 @@
       applyMenuLocking();
     });
 
+    backToMenu2.addEventListener("click", () => {
+      clearPlaySession();
+      clearLayer();
+      showScreen(screenMenu);
+      refreshMenuProgressUI();
+      applyMenuLocking();
+    });
+
+    resetPlayBtn.addEventListener("click", () => {
+      if (playTypeSel.value === "jogar") beginPlaySession();
+      else {
+        solved.clear();
+        refreshStyles();
+        missingBlock.style.display = "none";
+        setMsg("");
+        updateUI();
+        guessInput.focus();
+      }
+    });
+
     // Menu: abrir perfil
     btnOpenProfile.addEventListener("click", () => {
       refreshProfileUI();
@@ -1912,12 +2085,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
