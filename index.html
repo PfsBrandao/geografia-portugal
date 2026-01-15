@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html><!doctype html>
 <html lang="pt">
 <head>
   <meta charset="utf-8" />
@@ -205,21 +205,15 @@
 
   <script>
     // -----------------------------
-    // Configurações de ficheiros (BATEM com o teu /data no GitHub)
+    // Configurações de ficheiros
     // -----------------------------
     const FILES = {
-      // Continente: 1 ficheiro por distrito (ex.: data/concelhos_aveiro.geojson)
       concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
-
-      // Zonas Autónomas: 1 ficheiro por região
       concelhosAZ: `data/concelhos_acores.geojson`,
       concelhosMD: `data/concelhos_madeira.geojson`,
-
-      // Freguesias: 1 ficheiro por município (ex.: data/freguesias_abrantes.geojson)
       freguesias: (_region, municipalitySlug) => `data/freguesias_${municipalitySlug}.geojson`,
     };
 
-    // Lista de distritos
     const DISTRICTS_PT = [
       ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
       ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
@@ -260,7 +254,6 @@
       return pickProp(props, ["Freguesia","FREGUESIA","NM_FREG","parish","NAME_3","NAME3","NAME"]);
     }
 
-    // Validação rápida de CRS/coords (diagnóstico de NaN/LatLng inválido)
     function assertGeoJSONLooksLikeLonLat(fc, sampleN = 3) {
       const coords = [];
 
@@ -297,7 +290,7 @@
     }
 
     // -----------------------------
-    // Sanitização de GeoJSON (evita Leaflet NaN/LatLng)
+    // Sanitização (mantém, mas agora não é a “bala” principal)
     // -----------------------------
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
@@ -306,16 +299,12 @@
       const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
 
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
-
-      // faixa “lon/lat”
       if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
-
       return true;
     }
 
     function geometryHasOnlyValidCoords(geom) {
       if (!geom) return false;
-
       const t = geom.type;
       const c = geom.coordinates;
 
@@ -348,29 +337,18 @@
       const features = Array.isArray(fc?.features) ? fc.features : [];
       const kept = [];
       let dropped = 0;
-      const droppedNames = [];
 
       for (const f of features) {
-        if (geometryHasOnlyValidCoords(f?.geometry)) {
-          kept.push(f);
-        } else {
-          dropped++;
-          // tentar capturar um nome útil para debug
-          const p = f?.properties || {};
-          const n = getMunicipalityName(p) || getParishName(p) || pickProp(p, ["NAME","Name","NOME","nome"]);
-          if (n) droppedNames.push(n);
-        }
+        if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
+        else dropped++;
       }
 
-      return {
-        cleaned: { ...fc, features: kept },
-        dropped,
-        total: features.length,
-        droppedNames
-      };
+      return { cleaned: { ...fc, features: kept }, dropped, total: features.length };
     }
 
-    // Cache de downloads
+    // -----------------------------
+    // Cache downloads
+    // -----------------------------
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -436,17 +414,40 @@
     }
 
     // -----------------------------
-    // Map (sem tiles) + SEM ANIMAÇÕES (evita crash com bounds/coords)
+    // Leaflet map: LAZY INIT (só quando screenGame está visível)
     // -----------------------------
-    const map = L.map("map", {
-      zoomControl: true,
-      attributionControl: false,
-      zoomAnimation: false,
-      fadeAnimation: false,
-      markerZoomAnimation: false
-    });
-    map.setView([39.5, -8.0], 7);
+    let map = null;
 
+    function ensureMapReady() {
+      if (map) return;
+
+      map = L.map("map", {
+        zoomControl: true,
+        attributionControl: false,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false
+      });
+
+      // view inicial "segura"
+      map.setView([39.5, -8.0], 7);
+    }
+
+    function invalidateMapSizeHard() {
+      if (!map) return;
+
+      // 2 frames (muito mais eficaz do que setTimeout(0))
+      requestAnimationFrame(() => {
+        try { map.invalidateSize(true); } catch {}
+        requestAnimationFrame(() => {
+          try { map.invalidateSize(true); } catch {}
+        });
+      });
+    }
+
+    // -----------------------------
+    // Layers / Game state
+    // -----------------------------
     let fillLayer = null;
     let byKey = new Map();
     let keyToOfficial = new Map();
@@ -482,20 +483,13 @@
     }
 
     function buildLayer(fc) {
+      ensureMapReady();
       clearLayer();
 
-      // Sanitizar antes de passar ao Leaflet
-      const { cleaned, dropped, total: totalIn, droppedNames } = sanitizeFeatureCollection(fc);
-
-      if (dropped > 0) {
-        console.warn(`Sanitize: removidas ${dropped}/${totalIn} features por coords inválidas.`);
-        if (droppedNames && droppedNames.length) {
-          console.warn("Exemplos removidos:", droppedNames.slice(0, 12));
-        }
-      }
-
+      const { cleaned, dropped, total: totalIn } = sanitizeFeatureCollection(fc);
+      if (dropped > 0) console.warn(`Sanitize: removidas ${dropped}/${totalIn} features por coords inválidas.`);
       if (!cleaned.features || cleaned.features.length === 0) {
-        throw new Error("GeoJSON sem features válidas (tudo foi filtrado por coordenadas inválidas).");
+        throw new Error("GeoJSON sem features válidas (tudo filtrado).");
       }
 
       fillLayer = L.geoJSON(cleaned, {
@@ -520,16 +514,14 @@
 
       total = byKey.size;
 
-      // Só faz fitBounds se os bounds forem válidos
-      try {
-        // garantir que o mapa tem size correto (screens usam display:none)
-        map.invalidateSize(true);
+      invalidateMapSizeHard();
 
+      try {
         const b = fillLayer.getBounds();
         if (b && b.isValid && b.isValid()) {
           map.fitBounds(b, { padding: [12, 12], animate: false });
         } else {
-          console.warn("Bounds inválidos (geojson vazio ou geometria inválida).");
+          console.warn("Bounds inválidos.");
         }
       } catch (e) {
         console.warn("Falha ao calcular bounds:", e);
@@ -606,29 +598,22 @@
     // -----------------------------
     let currentRegion = "pt";
 
-    async function loadConcelhosForCurrentSelection() {
+    async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
 
       if (currentRegion === "pt") {
         const url = FILES.concelhosPT(districtSel.value);
         const fc = await loadJSON(url);
-
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-
-        setLoading("A desenhar…", 85);
-        buildLayer(fc);
-        return;
+        return fc;
       }
 
       const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
       const fc = await loadJSON(url);
-
       const check = assertGeoJSONLooksLikeLonLat(fc);
       if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-
-      setLoading("A desenhar…", 85);
-      buildLayer(fc);
+      return fc;
     }
 
     function municipalitiesFromConcelhos(fc) {
@@ -640,47 +625,30 @@
       return Array.from(set).sort((a,b)=>a.localeCompare(b,"pt"));
     }
 
-    async function populateMunicipalitySelector() {
-      let concelhosFC;
-
-      if (currentRegion === "pt") {
-        const url = FILES.concelhosPT(districtSel.value);
-        concelhosFC = await loadJSON(url);
-      } else {
-        const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
-        concelhosFC = await loadJSON(url);
-      }
-
+    async function populateMunicipalitySelector(concelhosFC) {
       const munis = municipalitiesFromConcelhos(concelhosFC);
-
       municipalitySel.innerHTML = "";
       for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
     }
 
-    async function loadFreguesiasForSelectedMunicipality() {
+    async function loadFreguesiasFC() {
       setLoading("A carregar freguesias…", 45);
 
       const muniSlug = municipalitySel.value;
       const url = FILES.freguesias(currentRegion, muniSlug);
-
       const fc = await loadJSON(url);
 
       const check = assertGeoJSONLooksLikeLonLat(fc);
       if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
-      setLoading("A desenhar…", 85);
-      buildLayer(fc);
+      return fc;
     }
 
     // -----------------------------
     // Fluxo UI por região e modo
     // -----------------------------
     function applyRegionToUI() {
-      if (currentRegion === "pt") {
-        labelDistrict.style.display = "";
-      } else {
-        labelDistrict.style.display = "none";
-      }
+      labelDistrict.style.display = (currentRegion === "pt") ? "" : "none";
     }
 
     async function applyModeToUIAndLoad() {
@@ -694,47 +662,63 @@
       showScreen(screenLoading);
 
       try {
+        let fcToDraw = null;
+
         if (mode === "municipios") {
           labelMunicipality.style.display = "none";
           guessInput.placeholder = "Escreve um município…";
+
           setLoading("A preparar…", 10);
-          await loadConcelhosForCurrentSelection();
+          fcToDraw = await loadConcelhosFC();
+
+          setLoading("Pronto a desenhar…", 75);
+
+          // Só agora mostramos o ecrã do mapa
+          showScreen(screenGame);
+          ensureMapReady();
+          invalidateMapSizeHard();
+
+          setLoading("A desenhar…", 90);
+          buildLayer(fcToDraw);
         } else {
           labelMunicipality.style.display = "";
           guessInput.placeholder = "Escreve uma freguesia…";
 
-          setLoading("A preparar lista de municípios…", 15);
-          await populateMunicipalitySelector();
+          setLoading("A carregar concelhos (para lista)…", 15);
+          const concelhosFC = await loadConcelhosFC();
 
-          setLoading("A carregar mapa do município…", 30);
-          await loadFreguesiasForSelectedMunicipality();
+          setLoading("A preparar lista de municípios…", 35);
+          await populateMunicipalitySelector(concelhosFC);
+
+          setLoading("A carregar freguesias…", 55);
+          fcToDraw = await loadFreguesiasFC();
+
+          setLoading("Pronto a desenhar…", 75);
+
+          showScreen(screenGame);
+          ensureMapReady();
+          invalidateMapSizeHard();
+
+          setLoading("A desenhar…", 90);
+          buildLayer(fcToDraw);
         }
-
-        showScreen(screenGame);
-
-        // CRÍTICO: Leaflet + display:none => size 0 => problemas no renderer
-        setTimeout(() => {
-          try { map.invalidateSize(true); } catch {}
-        }, 0);
 
         updateUI();
         guessInput.focus();
         setLoading("Concluído", 100);
       } catch (e) {
         console.error(e);
-        showScreen(screenGame);
 
-        // também força size correto quando cai em erro e muda de screen
-        setTimeout(() => {
-          try { map.invalidateSize(true); } catch {}
-        }, 0);
+        showScreen(screenGame);
+        ensureMapReady();
+        invalidateMapSizeHard();
 
         setMsg(`Erro: ${e.message}`, "bad");
       }
     }
 
     // -----------------------------
-    // Adivinhação (input)
+    // Adivinhação
     // -----------------------------
     function resolveTypedToKey(typedNorm) {
       if (byKey.has(typedNorm)) return typedNorm;
@@ -879,7 +863,6 @@
   </script>
 </body>
 </html>
-
 
 
 
