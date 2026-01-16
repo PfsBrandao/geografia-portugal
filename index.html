@@ -10,7 +10,7 @@
   <link rel="manifest" href="/geografia-portugal/manifest.webmanifest">
   <meta name="theme-color" content="#ffffff">
 
-  <!-- iOS (Add to Home Screen) -->
+  <!-- iOS / Mobile (Add to Home Screen) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -389,9 +389,7 @@
       </div>
 
       <div class="gameBottom">
-        <!-- (fica no DOM, mas em Jogar está escondido por CSS) -->
         <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
-
         <div class="msg" id="msg"></div>
         <div class="tapHint" id="tapHint">Toca no ecrã para continuar…</div>
 
@@ -620,6 +618,10 @@
       });
     }
 
+    function afterNextPaint(fn) {
+      requestAnimationFrame(() => requestAnimationFrame(fn));
+    }
+
     function setMapInteractive(enabled) {
       if (!map) return;
       const m = map;
@@ -671,7 +673,7 @@
     let roundStartedAt = 0;
     let timerHandle = null;
 
-    let sessionIndex = 0;      // quantas perguntas já foram feitas
+    let sessionIndex = 0;
     let sessionCorrect = 0;
     let sessionWrong = 0;
     let sessionXP = 0;
@@ -718,7 +720,7 @@
       fillLayer.setStyle(styleFill);
     }
 
-    // === CRÍTICO: build com cleaned (evita NaN) ===
+    // build com cleaned (evita NaN)
     function buildLayer(fc) {
       ensureMapReady();
       clearLayer();
@@ -788,9 +790,6 @@
       lockChoices(true);
       setTapHint(true);
 
-      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
-        // overlay no tap seguinte
-      }
       renderHUD();
     }
 
@@ -970,7 +969,7 @@
     // Carregamento datasets
     // -----------------------------
     let currentRegion = "pt";
-    let currentDistrict = "porto"; // muda se quiseres
+    let currentDistrict = "porto"; // default
 
     async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
@@ -1026,19 +1025,32 @@
       setLoading("A iniciar…", 10);
 
       try {
+        resetSession();
+        setLoading("A preparar ecrã…", 25);
+
+        // CRÍTICO: mostrar o ecrã do jogo ANTES de criar o Leaflet map
+        showScreen(screenGame);
+
+        // esperar 2 frames para layout/calcular tamanhos
+        await new Promise(resolve => afterNextPaint(resolve));
+
         ensureMapReady();
         setMapInteractive(false);
 
-        resetSession();
+        // garantir sizes corretos antes de desenhar
+        invalidateMapSizeHard();
+
         setLoading("A carregar mapa…", 55);
 
         const fc = await loadConcelhosFC();
 
         setLoading("A desenhar…", 85);
-        showScreen(screenGame);
-        invalidateMapSizeHard();
 
         buildLayer(fc);
+
+        // Leaflet/SVG às vezes precisa de outro invalidate
+        invalidateMapSizeHard();
+        setTimeout(invalidateMapSizeHard, 200);
 
         playPackLevel = PLAY.CURRENT_PACK_LEVEL;
         playPoolKeys = Array.from(byKey.keys());
@@ -1047,8 +1059,6 @@
         playActive = true;
 
         setLoading("Concluído", 100);
-        invalidateMapSizeHard();
-        setTimeout(invalidateMapSizeHard, 250);
 
         nextRound();
       } catch (e) {
@@ -1094,5 +1104,6 @@
   </script>
 </body>
 </html>
+
 
 
