@@ -12,6 +12,7 @@
 
   <!-- iOS (Add to Home Screen) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="/geografia-portugal/icons/icon-192.png">
 
@@ -410,36 +411,32 @@
     }
 
     // -----------------------------
+    // Base path (GitHub Pages)
+    // -----------------------------
+    const BASE = "/geografia-portugal/";
+
+    // -----------------------------
     // Ficheiros
     // -----------------------------
     const FILES = {
-      concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
-      concelhosAZ: `data/concelhos_acores.geojson`,
-      concelhosMD: `data/concelhos_madeira.geojson`,
+      concelhosPT: (districtSlug) => `${BASE}data/concelhos_${districtSlug}.geojson`,
+      concelhosAZ: `${BASE}data/concelhos_acores.geojson`,
+      concelhosMD: `${BASE}data/concelhos_madeira.geojson`,
     };
-
-    const DISTRICTS_PT = [
-      ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
-      ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
-      ["Faro","faro"], ["Guarda","guarda"], ["Leiria","leiria"], ["Lisboa","lisboa"],
-      ["Portalegre","portalegre"], ["Porto","porto"], ["Santarém","santarem"],
-      ["Setúbal","setubal"], ["Viana do Castelo","viana_do_castelo"],
-      ["Vila Real","vila_real"], ["Viseu","viseu"]
-    ];
 
     // -----------------------------
     // Jogar: XP e configurações
     // -----------------------------
     const PLAY = {
-      QUESTIONS_PER_SESSION: 10,     // A) agora é 10
+      QUESTIONS_PER_SESSION: 10,
       TIME_LIMIT_SEC: 60,
 
-      // Mantemos isto para no futuro variares por dificuldade (B)
-      optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : lvl === 3 ? 8 : 8),
-      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : lvl === 3 ? 1.38 : 1.38),
+      // Mantém a arquitetura de dificuldade (para o futuro)
+      optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
+      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
       hintMult: 0.60,
 
-      // Por agora fixamos a dificuldade em 3 para bater com o layout de 8 opções do Penpot.
+      // Por agora: 8 opções (Penpot) -> packLevel 3
       CURRENT_PACK_LEVEL: 3,
     };
 
@@ -501,6 +498,33 @@
       const inLonLatRange = (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
       if (!inLonLatRange) return { ok: false, reason: `CRS errado? Ex: [${lon}, ${lat}]` };
       return { ok: true, reason: "ok" };
+    }
+
+    // === CRÍTICO: limpeza (evitar Invalid LatLng NaN,NaN) ===
+    function coordPairOk(pair) {
+      if (!Array.isArray(pair) || pair.length < 2) return false;
+      const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
+      const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+      if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
+      return true;
+    }
+    function geometryHasOnlyValidCoords(geom) {
+      if (!geom) return false;
+      const t = geom.type;
+      const c = geom.coordinates;
+      if (t === "Point") return coordPairOk(c);
+      if (t === "MultiPoint" || t === "LineString") return Array.isArray(c) && c.every(coordPairOk);
+      if (t === "MultiLineString" || t === "Polygon") return Array.isArray(c) && c.every(line => Array.isArray(line) && line.every(coordPairOk));
+      if (t === "MultiPolygon") return Array.isArray(c) && c.every(poly => Array.isArray(poly) && poly.every(ring => Array.isArray(ring) && ring.every(coordPairOk)));
+      if (t === "GeometryCollection") return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
+      return false;
+    }
+    function sanitizeFeatureCollection(fc) {
+      const features = Array.isArray(fc?.features) ? fc.features : [];
+      const kept = [];
+      for (const f of features) if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
+      return { cleaned: { ...fc, features: kept } };
     }
 
     // Cache downloads
@@ -649,13 +673,12 @@
 
     let sessionIndex = 0;      // quantas perguntas já foram feitas
     let sessionCorrect = 0;
-    let sessionWrong = 0;      // (não usado no overlay, mas fica)
+    let sessionWrong = 0;
     let sessionXP = 0;
 
     // tap-to-continue
     let awaitingTap = false;
     let tapGuardUntil = 0;
-    let lastChosenKey = "";
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
@@ -695,11 +718,17 @@
       fillLayer.setStyle(styleFill);
     }
 
+    // === CRÍTICO: build com cleaned (evita NaN) ===
     function buildLayer(fc) {
       ensureMapReady();
       clearLayer();
 
-      fillLayer = L.geoJSON(fc, {
+      const { cleaned } = sanitizeFeatureCollection(fc);
+      if (!cleaned.features || cleaned.features.length === 0) {
+        throw new Error("GeoJSON sem features válidas (após limpeza).");
+      }
+
+      fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
         onEachFeature: (feature, lyr) => {
           const p = feature.properties || {};
@@ -725,14 +754,13 @@
 
       timerHandle = setInterval(() => {
         if (!playActive) return;
-        if (awaitingTap) return; // depois de responder, não continua a mexer
+        if (awaitingTap) return;
 
         const elapsed = (Date.now() - roundStartedAt) / 1000;
         const remain = Math.max(0, PLAY.TIME_LIMIT_SEC - elapsed);
 
         timeLine.textContent = String(Math.ceil(remain));
 
-        // timerBar fica protegido (mesmo estando escondido, não queremos erros)
         if (timerBar) {
           const pct = (remain / PLAY.TIME_LIMIT_SEC) * 100;
           timerBar.style.width = `${pct}%`;
@@ -760,14 +788,14 @@
       lockChoices(true);
       setTapHint(true);
 
-      // Se acabou, mostramos overlay no tap seguinte (mantém o teu fluxo "tap para continuar")
       if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
-        // não chama end já; o tap vai fazê-lo
+        // overlay no tap seguinte
       }
+      renderHUD();
     }
 
     // -----------------------------
-    // XP (mantém a lógica base que tinhas)
+    // XP
     // -----------------------------
     function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
       const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
@@ -796,7 +824,6 @@
     }
 
     function renderHUD() {
-      // mostra 1/10, 2/10...
       const shown = Math.min(sessionIndex + 1, PLAY.QUESTIONS_PER_SESSION);
       sessionLine.textContent = `${shown}/${PLAY.QUESTIONS_PER_SESSION}`;
       btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound;
@@ -832,7 +859,6 @@
     function nextRound() {
       stopTimer();
       awaitingTap = false;
-      lastChosenKey = "";
       hintUsedThisRound = false;
       setTapHint(false);
       setMsg("");
@@ -872,7 +898,6 @@
       const elapsed = (Date.now() - roundStartedAt) / 1000;
 
       sessionIndex++;
-      lastChosenKey = chosenKey;
 
       if (chosenKey === currentTargetKey) {
         sessionCorrect++;
@@ -901,10 +926,8 @@
 
       hintUsedThisRound = true;
 
-      const n = PLAY.optionsByPackLevel(playPackLevel);
-      // remover 2 erradas (se houver espaço)
       const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
-      const removeCount = Math.min(2, Math.max(0, wrong.length - 1)); // nunca remove todas as erradas
+      const removeCount = Math.min(2, Math.max(0, wrong.length - 1));
       const toHide = sampleDistinct(wrong, removeCount);
 
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
@@ -922,7 +945,6 @@
 
     // Tap no ecrã para avançar (após responder/timeout)
     gameShell.addEventListener("click", () => {
-      // Se overlay está aberto, volta ao menu
       if (finalOverlay.classList.contains("show")) {
         backToMenu();
         return;
@@ -931,7 +953,6 @@
       if (!awaitingTap) return;
       if (Date.now() < tapGuardUntil) return;
 
-      // Se acabou, agora sim mostra overlay
       if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
         endSessionOverlay();
         return;
@@ -949,7 +970,7 @@
     // Carregamento datasets
     // -----------------------------
     let currentRegion = "pt";
-    let currentDistrict = "porto";
+    let currentDistrict = "porto"; // muda se quiseres
 
     async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
@@ -976,7 +997,6 @@
       stopTimer();
       awaitingTap = false;
       tapGuardUntil = 0;
-      lastChosenKey = "";
       hintUsedThisRound = false;
 
       sessionIndex = 0;
@@ -1047,7 +1067,6 @@
       document.body.classList.remove("playing");
       showScreen(screenMenu);
 
-      // manter mapa pronto, mas interativo fora do jogo (não é relevante agora)
       setMapInteractive(true);
     }
 
