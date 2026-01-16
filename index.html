@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Geografia PT — Jogo + Estudo</title>
+  <title>Geografia PT — Jogo</title>
   <link rel="icon" href="data:,">
 
   <!-- PWA -->
@@ -19,136 +19,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background:#fff; }
-    header {
-      padding: 10px 14px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-    }
-    .screen { display: none; height: 100vh; }
-    .screen.active { display: block; }
-
-    .center {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      padding: 18px;
-      text-align: center;
-    }
-    .card {
-      width: min(640px, 94vw);
-      border: 1px solid #eee;
-      border-radius: 14px;
-      padding: 16px;
-      background: #fafafa;
-    }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-    button { padding: 10px 12px; cursor: pointer; }
-    .small { font-size: 12px; color: #555; }
-
-    .bar {
-      width: min(420px, 90vw);
-      height: 10px;
-      background: #eee;
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid #e6e6e6;
-    }
-    .bar > div {
-      height: 100%;
-      width: 0%;
-      background: #111;
-      transition: width 150ms linear;
-    }
-
-    input, select, button { padding: 7px; }
-    input { min-width: 320px; }
-
-    .kpi { margin: 8px 0 12px; }
-    .kpi div { margin: 4px 0; }
-    .msg { margin-top: 6px; color: #222; min-height: 18px; }
-    .msg.bad { color: #8b0000; }
-    .msg.good { color: #0b5; }
-    .msg.neutral { color: #555; }
-    .btnRow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; justify-content:center; }
-
-    .listTitle { margin: 12px 0 6px; font-weight: bold; }
-    ul { padding-left: 18px; margin: 6px 0 0; }
-    li { margin: 4px 0; }
-
-    /* Menu blocks */
-    .menuBlock { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
-    .pillRow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    .pill {
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-    .pill.active { background:#111; color:#fff; border-color:#111; }
-    .grid3 { display:grid; gap:10px; grid-template-columns: repeat(1, 1fr); }
-    @media (min-width: 680px) { .grid3 { grid-template-columns: repeat(3, 1fr); } }
-
-    /* Choices (base) */
-    .choices {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(2, 1fr);
-      margin-top: 10px;
-    }
-    .choiceBtn {
-      padding: 12px 10px;
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 12px;
-      font-size: 14px;
-    }
-    .choiceBtn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .timerWrap {
-      margin-top: 10px;
-      border: 1px solid #e6e6e6;
-      border-radius: 999px;
-      overflow: hidden;
-      height: 12px;
-      background: #eee;
-    }
-    .timerBar {
-      height: 100%;
-      width: 100%;
-      background: #111;
-      transition: width 90ms linear;
-    }
-
-    .suggestions {
-      margin-top: 8px;
-      border: 1px solid #e6e6e6;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #fff;
-    }
-    .suggestions button {
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      border: none;
-      border-bottom: 1px solid #eee;
-      background: #fff;
-      cursor: pointer;
-    }
-    .suggestions button:last-child { border-bottom: none; }
-
-    /* =========================================================
-       MOBILE GAME SHELL (HUD + MAP + BOTTOM)
-       ========================================================= */
     :root {
       --bg: #0b0b0f;
       --panel: #efefef;
@@ -156,20 +26,84 @@
     }
 
     html, body { height: 100%; }
+    body { font-family: Arial, sans-serif; margin: 0; background: #fff; }
 
+    .screen { display: none; height: 100vh; }
+    .screen.active { display: block; }
+
+    /* =========================
+       MENU (estilo Penpot)
+       ========================= */
+    .menuWrap {
+      min-height: 100dvh;
+      background: #e8e9ea;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+    .menuPhone {
+      width: min(420px, 94vw);
+      background: #0b0b0f;
+      border-radius: 22px;
+      padding: 16px;
+      box-sizing: border-box;
+      border: 2px solid rgba(0,0,0,.12);
+    }
+    .menuLogo {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      background: #000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      margin-bottom: 14px;
+    }
+    .menuLogo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display:block;
+    }
+    .menuBtns {
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+    .menuBtn {
+      width: 100%;
+      min-height: 64px;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,.15);
+      background: #b1b2b5;
+      font-size: 28px;
+      font-weight: 900;
+      cursor: pointer;
+      user-select:none;
+    }
+    .menuBtn:active { transform: translateY(1px); }
+    .menuBtn.disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      filter: grayscale(0.2);
+    }
+    .menuBtn.small {
+      font-size: 26px;
+    }
+
+    /* =========================
+       GAME (shell Penpot)
+       ========================= */
     body.playing {
       background: var(--bg);
       height: 100dvh;
       overflow: hidden;
     }
 
-    /* CRÍTICO: em Jogar, esconder tudo no topo (header legacy) */
-    body.playing #legacyHeader,
-    body.playing header {
-      display: none !important;
-    }
-
-    /* Shell full-screen */
     .gameShell {
       height: 100dvh;
       display: grid;
@@ -177,10 +111,6 @@
       padding: 10px;
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
-    }
-
-    /* NOVO: layout estilo Penpot -> Top bar + Mapa + HUD + Opções */
-    body.playing .gameShell{
       grid-template-rows: 40px 1fr 70px auto;
     }
 
@@ -189,7 +119,7 @@
       align-items:center;
       justify-content:flex-start;
     }
-    body.playing .exitBtn{
+    .exitBtn{
       width: 44px;
       height: 34px;
       border-radius: 10px;
@@ -198,11 +128,30 @@
       color:#fff;
       font-weight: 900;
       user-select:none;
+      cursor:pointer;
     }
+
+    .gameStage {
+      background: #eaeaea;
+      border-radius: 18px;
+      border: 3px solid var(--panelBorder);
+      overflow: hidden;
+      min-height: 38dvh;
+      position: relative;
+    }
+    #map { height: 100%; width: 100%; background: #fff; }
+
+    body.playing #map {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    body.playing .leaflet-control-zoom,
+    body.playing .leaflet-control-attribution { display: none !important; }
 
     .gameHUD {
       display: grid;
-      grid-template-columns: 1fr 1fr 1.2fr; /* Tempo | Questão | Dica (botão) */
+      grid-template-columns: 1fr 1fr 1.2fr; /* Tempo | Questão | Ajuda */
       gap: 10px;
       align-items: stretch;
     }
@@ -234,49 +183,24 @@
     }
     .hudBtn:disabled { opacity: .6; cursor: not-allowed; }
 
-    .gameStage {
-      background: #eaeaea;
-      border-radius: 18px;
-      border: 3px solid var(--panelBorder);
-      overflow: hidden;
-      min-height: 38dvh;
-    }
-    #map { height: 100%; width: 100%; background: #fff; }
-
-    /* Em Jogar: impedir gestos no mapa (extra) */
-    body.playing #map {
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-    body.playing .leaflet-control-zoom { display: none !important; }
-
     .gameBottom {
       background: rgba(16,16,24,.95);
       border-radius: 18px;
       padding: 12px;
       box-sizing: border-box;
       color: #f2f2f2;
-
-      /* scroll interno para nunca cortar opções */
       overflow: auto;
       -webkit-overflow-scrolling: touch;
       max-height: 46dvh;
     }
-    .gameBottom .small { color: rgba(255,255,255,.8); }
-    .gameBottom code { color: rgba(255,255,255,.9); }
 
-    body.playing .timerWrap {
-      border: 1px solid rgba(255,255,255,.2);
-      background: rgba(255,255,255,.18);
-    }
-    body.playing .timerBar { background: #ffffff; }
-
-    body.playing .choices {
+    .choices {
+      display: grid;
       gap: 10px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 10px;
     }
-    body.playing .choiceBtn {
+    .choiceBtn {
       min-height: 54px;
       border-radius: 16px;
       border: 2px solid #cfcfcf;
@@ -286,264 +210,151 @@
       color: #071018;
       white-space: normal;
       line-height: 1.1;
+      cursor:pointer;
+      user-select:none;
     }
-    body.playing .choiceBtn:active { transform: translateY(1px); }
-
-    /* Se houver muitas opções, scroll nesta zona */
-    #choicesBlock {
-      overflow: auto;
-      max-height: 30dvh;
-      -webkit-overflow-scrolling: touch;
+    .choiceBtn:active { transform: translateY(1px); }
+    .choiceBtn:disabled { opacity: 0.65; cursor: not-allowed; }
+    .choiceBtn.hidden { visibility: hidden; }
+    .choiceBtn.correct {
+      background: #17c964;
+      border-color: rgba(0,0,0,.15);
+      color: #071018;
+    }
+    .choiceBtn.wrong {
+      background: #ff4d4f;
+      border-color: rgba(0,0,0,.15);
+      color: #071018;
     }
 
-    body.playing .btnRow button {
-      min-height: 46px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.25);
-      background: rgba(255,255,255,.08);
-      color: #fff;
+    .timerWrap {
+      margin-top: 10px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      overflow: hidden;
+      height: 12px;
+      background: rgba(255,255,255,.18);
     }
-
-    body.playing #textAnswer {
+    .timerBar {
+      height: 100%;
       width: 100%;
-      min-height: 52px;
-      border-radius: 14px;
-      border: 2px solid rgba(255,255,255,.25);
-      background: rgba(255,255,255,.06);
-      color: #fff;
-      font-size: 16px; /* evitar zoom iOS */
-      box-sizing: border-box;
+      background: #ffffff;
+      transition: width 90ms linear;
     }
 
-    body.playing .suggestions {
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
-      border-radius: 14px;
-    }
-    body.playing .suggestions button {
-      border-bottom: 1px solid rgba(255,255,255,.14);
-      background: transparent;
-      color: #fff;
-      padding: 12px 12px;
+    .msg {
+      margin-top: 10px;
+      min-height: 20px;
+      font-size: 14px;
+      color: rgba(255,255,255,.9);
     }
 
-    /* Inputs para evitar zoom iOS em Estudar também */
-    #guess { font-size: 16px; }
+    .tapHint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,.75);
+      display:none;
+    }
+    .tapHint.show { display:block; }
 
-    /* Em Jogar: esconder “texto a mais” (fica estilo Penpot) */
-    body.playing #titleLine,
-    body.playing #subTitleLine,
-    body.playing #playKpis,
-    body.playing #hintLine,
-    body.playing #studyButtons,
-    body.playing #missingBlock,
-    body.playing .dataFooter {
-      display: none !important;
+    /* Overlay final */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.58);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      box-sizing:border-box;
+      z-index: 50;
+    }
+    .overlay.show { display:flex; }
+    .overlayCard {
+      width: min(420px, 92vw);
+      background: #efefef;
+      border: 2px solid #bdbdbd;
+      border-radius: 18px;
+      padding: 16px;
+      box-sizing:border-box;
+      text-align:center;
+    }
+    .overlayCard .t {
+      font-size: 24px;
+      font-weight: 900;
+      color: #111;
+      margin: 0 0 10px;
+    }
+    .overlayCard .p {
+      font-size: 18px;
+      font-weight: 800;
+      color: #111;
+      margin: 8px 0;
+    }
+    .overlayCard .s {
+      font-size: 13px;
+      color: #333;
+      margin-top: 10px;
+      opacity: .85;
     }
 
-    /* HUD mais compacto em ecrãs pequenos */
     @media (max-width: 420px) {
-      body.playing .gameShell { grid-template-rows: 40px 1fr 60px auto; }
-      .gameHUD { gap: 8px; }
-      .hudBox { border-radius: 12px; }
-      .hudBox .k { font-size: 11px; }
+      .gameShell { grid-template-rows: 40px 1fr 60px auto; }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
       .gameBottom { max-height: 52dvh; }
-      #choicesBlock { max-height: 34dvh; }
     }
-
-    /* Desktop: centra e dá mais espaço ao bottom se necessário */
     @media (min-width: 900px) {
-      body.playing .gameShell {
+      .gameShell {
         max-width: 1100px;
         margin: 0 auto;
         grid-template-rows: 40px 0.95fr 70px 1.05fr;
       }
       .gameBottom { max-height: none; }
-      #choicesBlock { max-height: none; overflow: visible; }
     }
   </style>
 </head>
 
 <body>
-  <!-- SCREEN: LOGIN (OBRIGATÓRIO) -->
-  <div id="screenLogin" class="screen">
-    <div class="center">
-      <div class="card">
-        <h2 style="margin:6px 0 10px;">Geografia PT</h2>
-        <div class="small" style="margin-bottom:12px;">
-          Para guardar o teu progresso, escolhe ou cria um perfil.
-        </div>
-
-        <div class="row" style="align-items:center;">
-          <input id="profileName" type="text" placeholder="O teu nome" autocomplete="name" />
-          <button id="btnCreateProfile">Criar perfil</button>
-        </div>
-
-        <div class="menuBlock">
-          <div class="small" style="margin-bottom:8px;">Perfis existentes</div>
-          <div id="profilesList" class="btnRow"></div>
-          <div id="noProfilesHint" class="small" style="margin-top:8px; display:none;">
-            Ainda não há perfis. Cria o primeiro acima.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN: PROFILE -->
-  <div id="screenProfile" class="screen">
-    <div class="center">
-      <div class="card">
-        <h2 style="margin:6px 0 10px;">Perfil</h2>
-
-        <div class="kpi">
-          <div><strong>Utilizador:</strong> <span id="profileNameLabel">—</span></div>
-          <div class="small">O progresso é guardado só neste dispositivo.</div>
-        </div>
-
-        <div class="btnRow">
-          <button id="btnSwitchProfileProfile">Trocar utilizador</button>
-          <button id="btnResetProfile">Reset progresso</button>
-        </div>
-
-        <div class="btnRow" style="margin-top:16px;">
-          <button id="btnBackFromProfile">Voltar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- SCREEN: MENU -->
-  <div id="screenMenu" class="screen">
-    <div class="center">
-      <div class="card">
-        <h2 style="margin:6px 0 10px;">Geografia PT</h2>
-        <div class="small">
-          Primeiro escolhe o tipo: <strong>Estudar</strong> (livre) ou <strong>Jogar</strong> (tempo + XP + desbloqueios).
+  <div id="screenMenu" class="screen active">
+    <div class="menuWrap">
+      <div class="menuPhone">
+        <div class="menuLogo" aria-label="Geo-PT">
+          <!-- Se tiveres um logo real, mete aqui. Se não, fica este placeholder. -->
+          <img alt="Geo-PT" src="/geografia-portugal/icons/icon-192.png" onerror="this.style.display='none'">
         </div>
 
-        <div class="menuBlock">
-          <div class="pillRow">
-            <button class="pill active" id="menuTypeStudy">Estudar</button>
-            <button class="pill" id="menuTypePlay">Jogar</button>
-          </div>
-          <div class="small" style="margin-top:8px;">
-            <span id="menuTypeHint">Estudar: podes escolher qualquer área livremente.</span>
-          </div>
+        <div class="menuBtns">
+          <button id="btnMenuPlay" class="menuBtn">Jogar</button>
+          <button id="btnMenuStudy" class="menuBtn disabled" disabled>Estudar</button>
+          <button id="btnMenuProfile" class="menuBtn disabled" disabled>Perfil</button>
+          <button id="btnMenuExit" class="menuBtn small">Sair</button>
         </div>
-
-        <div class="menuBlock" id="playStatsMenu" style="display:none;">
-          <div class="grid3">
-            <div class="small"><strong>Nível:</strong> <span id="mLevel">1</span></div>
-            <div class="small"><strong>XP:</strong> <span id="mXP">0</span></div>
-            <div class="small"><strong>Desbloqueios:</strong> <span id="mTokens">0</span></div>
-          </div>
-          <div class="small" style="margin-top:6px;">
-            <span id="mUnlockedCount">0</span> áreas desbloqueadas (distritos + Açores/Madeira).
-          </div>
-          <div class="btnRow">
-            <button id="btnUnlock" style="display:none;">Desbloquear 1 área</button>
-            <button id="btnResetProgress" style="display:none;">Reset progresso (debug)</button>
-          </div>
-        </div>
-
-        <div class="menuBlock">
-          <div class="small" style="margin-bottom:10px;">
-            Escolhe a área a jogar/estudar:
-          </div>
-          <div class="row" id="menuAreaButtons">
-            <button id="startPT">Portugal Continental</button>
-            <button id="startAZ">Açores</button>
-            <button id="startMD">Madeira</button>
-          </div>
-          <div class="small" style="margin-top:10px;" id="menuAreaNote">
-            No Continente escolhes Distrito. Em Jogar, só aparecem áreas desbloqueadas.
-          </div>
-        </div>
-
-        <div class="menuBlock">
-          <div class="btnRow">
-            <button id="btnOpenProfile">Perfil</button>
-            <button id="btnSwitchProfile">Trocar perfil</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCREEN: LOADING -->
-  <div id="screenLoading" class="screen">
-    <div class="center">
-      <div class="card">
-        <h3 style="margin:6px 0 10px;">A carregar…</h3>
-        <div id="loadingText" class="small" style="margin-bottom:10px;">—</div>
-        <div class="bar"><div id="loadingBar"></div></div>
-        <div id="loadingPct" class="small" style="margin-top:10px;">0%</div>
       </div>
     </div>
   </div>
 
   <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
-    <!-- Header legacy (só para Estudar / debug). Em Jogar fica escondido pelo CSS -->
-    <header id="legacyHeader">
-      <button id="backToMenu">Voltar ao menu</button>
-
-      <label id="headerModeLabel">Tipo:
-        <select id="playType">
-          <option value="estudar">Estudar</option>
-          <option value="jogar">Jogar</option>
-        </select>
-      </label>
-
-      <label>Modo:
-        <select id="gameMode">
-          <option value="municipios">Municípios</option>
-          <option value="freguesias">Freguesias</option>
-        </select>
-      </label>
-
-      <label id="labelViewMode">Visual:
-        <select id="viewMode">
-          <option value="jogo">Jogo (sem nomes)</option>
-          <option value="treino">Treino (com nomes)</option>
-        </select>
-      </label>
-
-      <label id="labelDistrict" style="display:none;">Distrito:
-        <select id="district"></select>
-      </label>
-
-      <label id="labelMunicipality" style="display:none;">Município:
-        <select id="municipality"></select>
-      </label>
-
-      <input
-        id="guess"
-        type="text"
-        placeholder="Escreve um nome…"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="words"
-        enterkeyhint="done"
-      />
-      <button id="reset">Repor</button>
-    </header>
-
-    <div class="gameShell">
-      <!-- Top bar (só Sair/Menu no modo Jogar) -->
+    <div class="gameShell" id="gameShell">
       <div class="gameTop">
         <button id="btnExit" class="exitBtn" type="button">⟵</button>
       </div>
 
-      <!-- Stage -->
       <div class="gameStage">
         <div id="map"></div>
+
+        <div id="finalOverlay" class="overlay" role="dialog" aria-modal="true">
+          <div class="overlayCard">
+            <div class="t">Fim!</div>
+            <div class="p" id="finalCorrect">Corretas: 0/10</div>
+            <div class="p" id="finalXP">XP ganho: 0</div>
+            <div class="s">Toca para voltar ao menu</div>
+          </div>
+        </div>
       </div>
 
-      <!-- HUD (3 blocos) -->
       <div class="gameHUD">
         <div class="hudBox">
           <div class="k">Tempo</div>
@@ -552,69 +363,19 @@
 
         <div class="hudBox">
           <div class="k">Questão</div>
-          <div class="v"><span id="sessionLine">0 / 12</span></div>
+          <div class="v"><span id="sessionLine">1/10</span></div>
         </div>
 
-        <button class="hudBtn" id="btnHint" type="button">Dica</button>
+        <button class="hudBtn" id="btnHint" type="button">Ajuda</button>
       </div>
 
-      <!-- Bottom panel -->
       <div class="gameBottom">
-        <div class="gameMeta">
-          <div><strong id="titleLine">—</strong></div>
-          <div id="subTitleLine" class="small">—</div>
-
-          <div id="questionLine" style="display:none; margin-top:8px;"><strong>—</strong></div>
-
-          <div id="playKpis" class="small" style="margin-top:8px; display:none;">
-            Certos: <strong id="correctLine">0</strong> |
-            Errados: <strong id="wrongLine">0</strong> |
-            XP (sessão): <strong id="xpSessionLine">0</strong><br>
-            Nível: <strong id="playerLevelLine">1</strong> |
-            XP total: <strong id="xpTotalLine">0</strong> |
-            Tokens: <strong id="tokensLine">0</strong> |
-            Nível do pack: <strong id="packLevelLine">1</strong>
-          </div>
-
-          <div class="small" id="hintLine" style="margin-top:8px;">—</div>
-        </div>
-
         <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
 
-        <div class="msg neutral" id="msg" style="margin-top:10px;"></div>
+        <div class="msg" id="msg"></div>
+        <div class="tapHint" id="tapHint">Toca no ecrã para continuar…</div>
 
-        <div class="btnRow" id="playActions" style="margin-top:10px;">
-          <button id="btnSkip" type="button">Passar</button>
-          <button id="btnUnlockFromGame" style="display:none;" type="button">Desbloquear 1 área</button>
-          <button id="resetPlayBtn" type="button">Recomeçar</button>
-          <button id="backToMenu2" type="button">Menu</button>
-        </div>
-
-        <div id="choicesBlock" style="display:none; margin-top:10px;">
-          <div class="choices" id="choices"></div>
-        </div>
-
-        <div id="textBlock" style="display:none; margin-top:10px;">
-          <div class="small">Escreve a resposta (com sugestões):</div>
-          <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
-          <div id="suggestions" class="suggestions" style="display:none;"></div>
-        </div>
-
-        <!-- Estudar: botões -->
-        <div id="studyButtons" class="btnRow" style="margin-top:10px;">
-          <button id="btnShowMissing" style="display:none;">Mostrar faltas</button>
-          <button id="btnHideMissing" style="display:none;">Esconder faltas</button>
-          <button id="btnRevealAll" style="display:none;">Revelar tudo</button>
-        </div>
-
-        <div id="missingBlock" style="display:none; margin-top:10px;">
-          <div class="listTitle">Faltam</div>
-          <ul id="missingList"></ul>
-        </div>
-
-        <div class="small dataFooter" style="margin-top:12px;">
-          Dados em <code>/data</code>: <span id="dataHint"></span>
-        </div>
+        <div class="choices" id="choices"></div>
       </div>
     </div>
   </div>
@@ -628,182 +389,31 @@
     }
 
     // -----------------------------
-    // Perfis (login obrigatório)
+    // Config (por agora fixo)
     // -----------------------------
-    const PROFILES_KEY = "geoPT_profiles_v1";
-    const ACTIVE_PROFILE_KEY = "geoPT_activeProfileId_v1";
-
-    function loadProfiles() {
-      try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || "[]") || []; }
-      catch { return []; }
-    }
-    function saveProfiles(p) {
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(p || []));
-    }
-    function setActiveProfile(id) {
-      localStorage.setItem(ACTIVE_PROFILE_KEY, id);
-    }
-    function getActiveProfileId() {
-      return localStorage.getItem(ACTIVE_PROFILE_KEY);
-    }
-    function makeProfileId() {
-      return "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
-    }
-    function getActiveProfile() {
-      const id = getActiveProfileId();
-      if (!id) return null;
-      return loadProfiles().find(p => p.id === id) || null;
-    }
-
-    // -----------------------------
-    // Feature flags
-    // -----------------------------
-    const FEATURES = {
-      playFreguesiasEnabled: false,
+    const GAME = {
+      QUESTIONS_PER_SESSION: 10,
+      TIME_LIMIT_SEC: 60,
+      OPTIONS_COUNT: 8,
+      DEFAULT_REGION: "pt",
+      DEFAULT_DISTRICT: "porto", // troca aqui se quiseres outro por defeito
+      // XP simples (podes afinar)
+      XP_BASE: 10,
+      XP_TIME_BONUS_MAX: 40, // 0..40 conforme rapidez
+      XP_HINT_MULT: 0.60
     };
 
-    // -----------------------------
-    // Ficheiros
-    // -----------------------------
     const FILES = {
       concelhosPT: (districtSlug) => `data/concelhos_${districtSlug}.geojson`,
       concelhosAZ: `data/concelhos_acores.geojson`,
-      concelhosMD: `data/concelhos_madeira.geojson`,
-      freguesias: (_region, municipalitySlug) => `data/freguesias_${municipalitySlug}.geojson`,
+      concelhosMD: `data/concelhos_madeira.geojson`
     };
-
-    const DISTRICTS_PT = [
-      ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
-      ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
-      ["Faro","faro"], ["Guarda","guarda"], ["Leiria","leiria"], ["Lisboa","lisboa"],
-      ["Portalegre","portalegre"], ["Porto","porto"], ["Santarém","santarem"],
-      ["Setúbal","setubal"], ["Viana do Castelo","viana_do_castelo"],
-      ["Vila Real","vila_real"], ["Viseu","viseu"]
-    ];
-
-    function slugToName(slug) {
-      const found = DISTRICTS_PT.find(([,s]) => s === slug);
-      return found ? found[0] : slug;
-    }
-
-    function getAllUnlockables() {
-      const arr = DISTRICTS_PT.map(([,slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${slugToName(slug)}`, kind:"ptDistrict", region:"pt", slug }));
-      arr.push({ id:"az", label:"Região — Açores", kind:"region", region:"az", slug:"acores" });
-      arr.push({ id:"md", label:"Região — Madeira", kind:"region", region:"md", slug:"madeira" });
-      return arr;
-    }
-
-    // -----------------------------
-    // Jogar: XP e níveis
-    // -----------------------------
-    const PLAY = {
-      QUESTIONS_PER_SESSION: 12,
-      TIME_LIMIT_SEC: 60,
-
-      optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : lvl === 3 ? 8 : 0),
-      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : lvl === 3 ? 1.38 : 1.70),
-      hintMult: 0.60,
-      promoteThreshold: 0.80,
-
-      xpNeededForNext: (playerLevel) => {
-        const L = Math.max(1, playerLevel);
-        const x = (L - 1);
-        return Math.round(250 + 90*x + 12*x*x);
-      }
-    };
-
-    // PROGRESSO POR PERFIL
-    function STORAGE_KEY() {
-      return "geoPT_play_v3:" + getActiveProfileId();
-    }
-
-    function loadState() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY()) || "{}") || {}; }
-      catch { return {}; }
-    }
-    function saveState(st) {
-      localStorage.setItem(STORAGE_KEY(), JSON.stringify(st || {}));
-    }
-    function ensureStateDefaults() {
-      const st = loadState();
-      st.xpTotal = st.xpTotal || 0;
-      st.playerLevel = st.playerLevel || 1;
-      st.tokens = st.tokens || 0;
-      st.unlocked = st.unlocked || [];
-      st.packs = st.packs || {};
-      saveState(st);
-      return st;
-    }
-    function computePlayerLevelFromXP(xpTotal) {
-      let level = 1;
-      let remaining = Math.max(0, xpTotal);
-      while (true) {
-        const need = PLAY.xpNeededForNext(level);
-        if (remaining >= need) { remaining -= need; level++; }
-        else break;
-      }
-      return { level, carry: remaining };
-    }
-    function syncLevelAndTokensAfterXP() {
-      const st = ensureStateDefaults();
-      const beforeLevel = st.playerLevel;
-      const calc = computePlayerLevelFromXP(st.xpTotal);
-      const afterLevel = calc.level;
-
-      if (afterLevel > beforeLevel) {
-        const gained = afterLevel - beforeLevel;
-        st.playerLevel = afterLevel;
-        st.tokens += gained;
-        saveState(st);
-      }
-      return ensureStateDefaults();
-    }
-    function addXP(xp) {
-      const st = ensureStateDefaults();
-      st.xpTotal += Math.max(0, Math.round(xp || 0));
-      saveState(st);
-      return syncLevelAndTokensAfterXP();
-    }
-    function getUnlockedSet() {
-      const st = ensureStateDefaults();
-      return new Set(st.unlocked || []);
-    }
-    function unlockOne(id) {
-      const st = ensureStateDefaults();
-      if (st.tokens <= 0) return { ok:false, reason:"Sem desbloqueios disponíveis." };
-      const set = new Set(st.unlocked || []);
-      if (set.has(id)) return { ok:false, reason:"Já desbloqueado." };
-      set.add(id);
-      st.unlocked = Array.from(set);
-      st.tokens -= 1;
-      saveState(st);
-      return { ok:true };
-    }
-    function getPackLevel(packKey) {
-      const st = ensureStateDefaults();
-      const lvl = st.packs?.[packKey]?.level || 1;
-      return Math.max(1, Math.min(4, lvl));
-    }
-    function setPackLevel(packKey, lvl) {
-      const st = ensureStateDefaults();
-      st.packs = st.packs || {};
-      st.packs[packKey] = st.packs[packKey] || {};
-      st.packs[packKey].level = Math.max(1, Math.min(4, lvl));
-      saveState(st);
-    }
 
     // -----------------------------
     // Utilitários
     // -----------------------------
     function normalize(s) {
       return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-    function slugify(name) {
-      let s = normalize(name);
-      s = s.replace(/[ \t\-\/]+/g, "_");
-      s = s.replace(/[^a-z0-9_]/g, "");
-      s = s.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
-      return s;
     }
     function pickProp(props, keys) {
       for (const k of keys) {
@@ -814,60 +424,23 @@
     function getMunicipalityName(props) {
       return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
     }
-    function getParishName(props) {
-      return pickProp(props, ["Freguesia","FREGUESIA","NM_FREG","parish","NAME_3","NAME3","NAME"]);
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
     }
 
-    function assertGeoJSONLooksLikeLonLat(fc, sampleN = 3) {
-      const coords = [];
-      function walkGeom(g) {
-        if (!g) return;
-        const t = g.type;
-        const c = g.coordinates;
-        if (!t || !c) return;
-        if (t === "Point") coords.push(c);
-        else if (t === "MultiPoint" || t === "LineString") c.forEach(p => coords.push(p));
-        else if (t === "MultiLineString") c.flat().forEach(p => coords.push(p));
-        else if (t === "Polygon") c.flat().forEach(p => coords.push(p));
-        else if (t === "MultiPolygon") c.flat(2).forEach(p => coords.push(p));
-        else if (t === "GeometryCollection" && Array.isArray(g.geometries)) g.geometries.forEach(walkGeom);
+    function sampleDistinct(arr, n, forbidSet) {
+      const pool = [];
+      for (const x of arr) {
+        if (forbidSet && forbidSet.has(x)) continue;
+        pool.push(x);
       }
-      for (const f of (fc.features || [])) {
-        walkGeom(f.geometry);
-        if (coords.length >= sampleN) break;
-      }
-      if (coords.length === 0) return { ok: false, reason: "GeoJSON sem coordenadas." };
-      const [lon, lat] = coords[0] || [];
-      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return { ok: false, reason: "Coordenadas inválidas (NaN/null)." };
-      const inLonLatRange = (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
-      if (!inLonLatRange) return { ok: false, reason: `CRS errado? Ex: [${lon}, ${lat}]` };
-      return { ok: true, reason: "ok" };
-    }
-
-    function coordPairOk(pair) {
-      if (!Array.isArray(pair) || pair.length < 2) return false;
-      const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
-      const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
-      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
-      if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
-      return true;
-    }
-    function geometryHasOnlyValidCoords(geom) {
-      if (!geom) return false;
-      const t = geom.type;
-      const c = geom.coordinates;
-      if (t === "Point") return coordPairOk(c);
-      if (t === "MultiPoint" || t === "LineString") return Array.isArray(c) && c.every(coordPairOk);
-      if (t === "MultiLineString" || t === "Polygon") return Array.isArray(c) && c.every(line => Array.isArray(line) && line.every(coordPairOk));
-      if (t === "MultiPolygon") return Array.isArray(c) && c.every(poly => Array.isArray(poly) && poly.every(ring => Array.isArray(ring) && ring.every(coordPairOk)));
-      if (t === "GeometryCollection") return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
-      return false;
-    }
-    function sanitizeFeatureCollection(fc) {
-      const features = Array.isArray(fc?.features) ? fc.features : [];
-      const kept = [];
-      for (const f of features) if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
-      return { cleaned: { ...fc, features: kept } };
+      return shuffle(pool).slice(0, Math.min(n, pool.length));
     }
 
     // Cache downloads
@@ -887,295 +460,75 @@
     // -----------------------------
     // Screens
     // -----------------------------
-    const screenLogin = document.getElementById("screenLogin");
-    const screenProfile = document.getElementById("screenProfile");
     const screenMenu = document.getElementById("screenMenu");
-    const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
-
-    const loadingText = document.getElementById("loadingText");
-    const loadingBar = document.getElementById("loadingBar");
-    const loadingPct = document.getElementById("loadingPct");
-
     function showScreen(el) {
-      for (const s of [screenLogin, screenProfile, screenMenu, screenLoading, screenGame]) s.classList.remove("active");
+      for (const s of [screenMenu, screenGame]) s.classList.remove("active");
       el.classList.add("active");
     }
-    function setLoading(step, pct) {
-      loadingText.textContent = step;
-      loadingBar.style.width = `${pct}%`;
-      loadingPct.textContent = `${pct}%`;
-    }
 
     // -----------------------------
-    // Login UI
+    // Menu
     // -----------------------------
-    const profileNameInput = document.getElementById("profileName");
-    const btnCreateProfile = document.getElementById("btnCreateProfile");
-    const profilesList = document.getElementById("profilesList");
-    const noProfilesHint = document.getElementById("noProfilesHint");
+    const btnMenuPlay = document.getElementById("btnMenuPlay");
+    const btnMenuExit = document.getElementById("btnMenuExit");
 
-    const btnSwitchProfile = document.getElementById("btnSwitchProfile");
-    const btnOpenProfile = document.getElementById("btnOpenProfile");
+    btnMenuPlay.addEventListener("click", async () => {
+      await startGameFlow();
+    });
 
-    function renderProfilesList() {
-      const profiles = loadProfiles();
-      profilesList.innerHTML = "";
-      noProfilesHint.style.display = (profiles.length === 0) ? "" : "none";
-
-      for (const p of profiles) {
-        const b = document.createElement("button");
-        b.textContent = p.name;
-        b.addEventListener("click", () => {
-          setActiveProfile(p.id);
-          ensureStateDefaults();
-          syncLevelAndTokensAfterXP();
-          refreshMenuProgressUI();
-          setMenuType("estudar");
-          applyMenuLocking();
-          showScreen(screenMenu);
-        });
-        profilesList.appendChild(b);
-      }
-    }
-
-    function showLogin() {
-      renderProfilesList();
-      showScreen(screenLogin);
-      profileNameInput.focus();
-    }
-
-    btnCreateProfile.addEventListener("click", () => {
-      const name = (profileNameInput.value || "").trim();
-      if (!name) return;
-
-      const profiles = loadProfiles();
-      const id = makeProfileId();
-      profiles.push({ id, name });
-      saveProfiles(profiles);
-      setActiveProfile(id);
-
-      profileNameInput.value = "";
-
-      ensureStateDefaults();
-      syncLevelAndTokensAfterXP();
-      refreshMenuProgressUI();
-      setMenuType("estudar");
-      applyMenuLocking();
-
-      showScreen(screenMenu);
+    btnMenuExit.addEventListener("click", () => {
+      // Browser/PWA não permite "fechar" de forma garantida. Tentamos e, se falhar, avisamos.
+      try { window.close(); } catch {}
+      // fallback suave
+      alert("Para sair, fecha o separador / a app (PWA).");
     });
 
     // -----------------------------
-    // Profile UI
+    // Game UI refs
     // -----------------------------
-    const profileNameLabel = document.getElementById("profileNameLabel");
-    const btnSwitchProfileProfile = document.getElementById("btnSwitchProfileProfile");
-    const btnResetProfile = document.getElementById("btnResetProfile");
-    const btnBackFromProfile = document.getElementById("btnBackFromProfile");
-
-    function refreshProfileUI() {
-      const p = getActiveProfile();
-      profileNameLabel.textContent = p ? p.name : "—";
-    }
-
-    // -----------------------------
-    // Menu UI
-    // -----------------------------
-    const menuTypeStudy = document.getElementById("menuTypeStudy");
-    const menuTypePlay = document.getElementById("menuTypePlay");
-    const menuTypeHint = document.getElementById("menuTypeHint");
-
-    const playStatsMenu = document.getElementById("playStatsMenu");
-    const mLevel = document.getElementById("mLevel");
-    const mXP = document.getElementById("mXP");
-    const mTokens = document.getElementById("mTokens");
-    const mUnlockedCount = document.getElementById("mUnlockedCount");
-    const btnUnlock = document.getElementById("btnUnlock");
-    const btnResetProgress = document.getElementById("btnResetProgress");
-
-    const startPT = document.getElementById("startPT");
-    const startAZ = document.getElementById("startAZ");
-    const startMD = document.getElementById("startMD");
-
-    let menuPlayType = "estudar";
-
-    function setMenuType(type) {
-      menuPlayType = type;
-
-      menuTypeStudy.classList.toggle("active", type === "estudar");
-      menuTypePlay.classList.toggle("active", type === "jogar");
-
-      if (type === "estudar") {
-        menuTypeHint.textContent = "Estudar: podes escolher qualquer área livremente.";
-        playStatsMenu.style.display = "none";
-        startPT.disabled = false;
-        startAZ.disabled = false;
-        startMD.disabled = false;
-      } else {
-        menuTypeHint.textContent = "Jogar: só podes entrar em áreas desbloqueadas (1 desbloqueio por nível).";
-        playStatsMenu.style.display = "";
-        refreshMenuProgressUI();
-        applyMenuLocking();
-      }
-    }
-
-    function refreshMenuProgressUI() {
-      const st = syncLevelAndTokensAfterXP();
-      const unlocked = new Set(st.unlocked || []);
-      mLevel.textContent = String(st.playerLevel || 1);
-      mXP.textContent = String(st.xpTotal || 0);
-      mTokens.textContent = String(st.tokens || 0);
-      mUnlockedCount.textContent = String(unlocked.size);
-
-      btnUnlock.style.display = (st.tokens > 0 || unlocked.size === 0) ? "" : "none";
-      btnResetProgress.style.display = "";
-    }
-
-    function applyMenuLocking() {
-      const st = ensureStateDefaults();
-      const unlocked = new Set(st.unlocked || []);
-      const hasAnyPT = Array.from(unlocked).some(x => x.startsWith("pt:"));
-      startPT.disabled = !hasAnyPT;
-      startAZ.disabled = !unlocked.has("az");
-      startMD.disabled = !unlocked.has("md");
-    }
-
-    function ensureStarterUnlockIfNeeded() {
-      const st = ensureStateDefaults();
-      const unlocked = new Set(st.unlocked || []);
-      if (menuPlayType !== "jogar") return true;
-      if (unlocked.size > 0) return true;
-
-      st.tokens = Math.max(st.tokens || 0, 1);
-      saveState(st);
-
-      refreshMenuProgressUI();
-      openUnlockPicker(true);
-      return false;
-    }
-
-    function openUnlockPicker(isStarter = false) {
-      const st = ensureStateDefaults();
-      if (st.tokens <= 0) return;
-
-      const unlocked = new Set(st.unlocked || []);
-      const all = getAllUnlockables().filter(x => !unlocked.has(x.id));
-      if (all.length === 0) { alert("Já está tudo desbloqueado."); return; }
-
-      const lines = all.map((x, i) => `${i+1}. ${x.label}`).join("\n");
-      const promptText = (isStarter
-        ? "Escolhe a tua primeira área para desbloquear (escreve o número):\n\n"
-        : "Tens 1 desbloqueio. Escolhe a próxima área (escreve o número):\n\n"
-      ) + lines;
-
-      const ans = window.prompt(promptText, "1");
-      if (!ans) return;
-
-      const idx = Number(ans) - 1;
-      if (!Number.isFinite(idx) || idx < 0 || idx >= all.length) {
-        alert("Número inválido.");
-        return;
-      }
-
-      const picked = all[idx];
-      const res = unlockOne(picked.id);
-      if (!res.ok) { alert(res.reason || "Não foi possível desbloquear."); return; }
-
-      refreshMenuProgressUI();
-      applyMenuLocking();
-    }
-
-    // -----------------------------
-    // Game UI
-    // -----------------------------
-    const playTypeSel = document.getElementById("playType");
-    const gameModeSel = document.getElementById("gameMode");
-    const viewModeSel = document.getElementById("viewMode");
-    const labelViewMode = document.getElementById("labelViewMode");
-    const labelDistrict = document.getElementById("labelDistrict");
-    const districtSel = document.getElementById("district");
-    const labelMunicipality = document.getElementById("labelMunicipality");
-    const municipalitySel = document.getElementById("municipality");
-
-    const guessInput = document.getElementById("guess");
-    const titleLine = document.getElementById("titleLine");
-    const subTitleLine = document.getElementById("subTitleLine");
-    const questionLine = document.getElementById("questionLine");
-    const hintLine = document.getElementById("hintLine");
-    const msgEl = document.getElementById("msg");
-
-    const studyButtons = document.getElementById("studyButtons");
-    const btnShowMissing = document.getElementById("btnShowMissing");
-    const btnHideMissing = document.getElementById("btnHideMissing");
-    const btnRevealAll = document.getElementById("btnRevealAll");
-    const missingBlock = document.getElementById("missingBlock");
-    const missingList = document.getElementById("missingList");
-    const dataHint = document.getElementById("dataHint");
-
-    const playKpis = document.getElementById("playKpis");
+    const btnExit = document.getElementById("btnExit");
     const timeLine = document.getElementById("timeLine");
     const sessionLine = document.getElementById("sessionLine");
-    const correctLine = document.getElementById("correctLine");
-    const wrongLine = document.getElementById("wrongLine");
-    const xpSessionLine = document.getElementById("xpSessionLine");
-    const xpTotalLine = document.getElementById("xpTotalLine");
-    const playerLevelLine = document.getElementById("playerLevelLine");
-    const tokensLine = document.getElementById("tokensLine");
-    const packLevelLine = document.getElementById("packLevelLine");
-
-    const timerBar = document.getElementById("timerBar");
     const btnHint = document.getElementById("btnHint");
-    const btnSkip = document.getElementById("btnSkip");
-    const choicesBlock = document.getElementById("choicesBlock");
+    const timerBar = document.getElementById("timerBar");
+    const msgEl = document.getElementById("msg");
+    const tapHint = document.getElementById("tapHint");
     const choicesEl = document.getElementById("choices");
-    const textBlock = document.getElementById("textBlock");
-    const textAnswer = document.getElementById("textAnswer");
-    const suggestionsEl = document.getElementById("suggestions");
-    const btnUnlockFromGame = document.getElementById("btnUnlockFromGame");
 
-    const resetPlayBtn = document.getElementById("resetPlayBtn");
-    const backToMenu2 = document.getElementById("backToMenu2");
+    const finalOverlay = document.getElementById("finalOverlay");
+    const finalCorrect = document.getElementById("finalCorrect");
+    const finalXP = document.getElementById("finalXP");
 
-    function setMsg(text, type="neutral") {
-      msgEl.className = "msg " + type;
-      msgEl.textContent = text || "";
-    }
-
-    function applyPlayLocks() {
-      const isPlay = (playTypeSel.value === "jogar");
-
-      if (isPlay) {
-        if (!FEATURES.playFreguesiasEnabled) {
-          gameModeSel.value = "municipios";
-          gameModeSel.disabled = true;
-        } else {
-          gameModeSel.disabled = false;
-        }
-
-        viewModeSel.value = "jogo";
-        viewModeSel.disabled = true;
-        labelMunicipality.style.display = "none";
-      } else {
-        gameModeSel.disabled = false;
-        viewModeSel.disabled = false;
-      }
-    }
+    function setMsg(t) { msgEl.textContent = t || ""; }
 
     // -----------------------------
-    // Leaflet map (lazy)
+    // Leaflet map
     // -----------------------------
     let map = null;
+    let fillLayer = null;
+
+    let byKey = new Map();         // key(normalized name) -> leaflet layer
+    let keyToOfficial = new Map(); // key -> original label
 
     function ensureMapReady() {
       if (map) return;
+
       map = L.map("map", {
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: false,
         zoomAnimation: false,
         fadeAnimation: false,
-        markerZoomAnimation: false
+        markerZoomAnimation: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        touchZoom: false
       });
+
+      // Sem tiles/base layer. Só vetores.
       map.setView([39.5, -8.0], 7);
     }
 
@@ -1189,169 +542,59 @@
       });
     }
 
-    // NOVO: tornar o mapa estático em Jogar
-    function setMapInteractive(enabled) {
-      if (!map) return;
-      const m = map;
-      if (enabled) {
-        m.dragging.enable();
-        m.touchZoom.enable();
-        m.doubleClickZoom.enable();
-        m.scrollWheelZoom.enable();
-        m.boxZoom.enable();
-        m.keyboard.enable();
-        if (m.tap) m.tap.enable();
-      } else {
-        m.dragging.disable();
-        m.touchZoom.disable();
-        m.doubleClickZoom.disable();
-        m.scrollWheelZoom.disable();
-        m.boxZoom.disable();
-        m.keyboard.disable();
-        if (m.tap) m.tap.disable();
-      }
+    function clearLayer() {
+      if (fillLayer) fillLayer.remove();
+      fillLayer = null;
+      byKey.clear();
+      keyToOfficial.clear();
     }
 
-    // -----------------------------
-    // Layers / state
-    // -----------------------------
-    let fillLayer = null;
-    let byKey = new Map();
-    let keyToOfficial = new Map();
-    let solved = new Set();
-    let total = 0;
-
-    // Jogar: round state
-    let playActive = false;
-    let playPackKey = "";
-    let playPackLevel = 1;
+    // Estado de jogo (quiz)
     let playPoolKeys = [];
     let playRemainingKeys = [];
     let currentTargetKey = "";
     let currentTargetOfficial = "";
     let currentChoicesKeys = [];
     let hintUsedThisRound = false;
-    let roundStartedAt = 0;
-    let timerHandle = null;
 
-    let sessionIndex = 0;
+    let sessionIndex = 0;     // 0..9 (interno)
     let sessionCorrect = 0;
-    let sessionWrong = 0;
     let sessionXP = 0;
 
-    function clearPlaySession() {
-      playActive = false;
-      playPoolKeys = [];
-      playRemainingKeys = [];
-      currentTargetKey = "";
-      currentTargetOfficial = "";
-      currentChoicesKeys = [];
-      hintUsedThisRound = false;
-      roundStartedAt = 0;
+    let timerHandle = null;
+    let roundStartedAt = 0;
 
-      sessionIndex = 0;
-      sessionCorrect = 0;
-      sessionWrong = 0;
-      sessionXP = 0;
-
-      stopTimer();
-      renderPlayUI();
-    }
+    let awaitingAdvance = false; // depois de responder/timeout
+    let sessionEnded = false;
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
       timerHandle = null;
     }
 
-    // Região corrente
-    let currentRegion = "pt";
-    let lastConcelhosKey = "";
-
-    function getRegionLabel() {
-      return (currentRegion === "pt") ? "Portugal Continental"
-        : (currentRegion === "az") ? "Açores"
-        : "Madeira";
-    }
-
-    function getContextLabel() {
-      if (gameModeSel.value === "municipios") {
-        if (currentRegion === "pt") {
-          const dName = districtSel.options[districtSel.selectedIndex]?.textContent || "—";
-          return `Distrito: ${dName}`;
-        }
-        return (currentRegion === "az") ? "Região: Açores" : "Região: Madeira";
-      } else {
-        const mName = municipalitySel.options[municipalitySel.selectedIndex]?.textContent || "—";
-        return `Município: ${mName}`;
-      }
-    }
-
     function styleFill(feature) {
       const props = feature.properties || {};
-      const mode = gameModeSel.value;
-      const raw = (mode === "municipios") ? getMunicipalityName(props) : getParishName(props);
+      const raw = getMunicipalityName(props);
       const key = normalize(raw);
 
-      if (playActive) {
-        const isTarget = (key && key === currentTargetKey);
+      const isTarget = (key && key === currentTargetKey);
+
+      // “imagem do município”: no jogo só desenhamos o target
+      if (!isTarget) {
         return {
           color: "#000",
-          weight: isTarget ? 2.0 : 1.1,
-          fillColor: isTarget ? "#c00" : "#fff",
-          fillOpacity: 1
+          weight: 0,
+          fillColor: "#000",
+          fillOpacity: 0
         };
       }
 
-      const ok = solved.has(key);
       return {
-        color: "#000",
-        weight: 1.1,
-        fillColor: ok ? "#111" : "#fff",
+        color: "#111",
+        weight: 2.2,
+        fillColor: "#cfcfcf",
         fillOpacity: 1
       };
-    }
-
-    function clearLayer() {
-      if (fillLayer) fillLayer.remove();
-      fillLayer = null;
-      byKey.clear();
-      keyToOfficial.clear();
-      solved.clear();
-      total = 0;
-      setMsg("");
-      missingBlock.style.display = "none";
-    }
-
-    function buildLayer(fc) {
-      ensureMapReady();
-      clearLayer();
-
-      const { cleaned } = sanitizeFeatureCollection(fc);
-      if (!cleaned.features || cleaned.features.length === 0) throw new Error("GeoJSON sem features válidas.");
-
-      fillLayer = L.geoJSON(cleaned, {
-        style: styleFill,
-        onEachFeature: (feature, lyr) => {
-          const p = feature.properties || {};
-          const mode = gameModeSel.value;
-          const raw = (mode === "municipios") ? getMunicipalityName(p) : getParishName(p);
-          const key = normalize(raw);
-          if (key) { byKey.set(key, lyr); keyToOfficial.set(key, raw); }
-
-          if (!playActive && viewModeSel.value === "treino" && raw) {
-            lyr.bindTooltip(raw, { sticky: true, opacity: 0.85 });
-          }
-        }
-      }).addTo(map);
-
-      total = byKey.size;
-
-      invalidateMapSizeHard();
-      try {
-        const b = fillLayer.getBounds();
-        if (b && b.isValid && b.isValid()) map.fitBounds(b, { padding: [12,12], animate: false });
-      } catch {}
-      updateUI();
     }
 
     function refreshStyles() {
@@ -1359,337 +602,120 @@
       fillLayer.setStyle(styleFill);
     }
 
-    // -----------------------------
-    // Estudar: faltas
-    // -----------------------------
-    function renderMissingList() {
-      const missing = [];
-      for (const [key, official] of keyToOfficial.entries()) if (!solved.has(key)) missing.push(official);
-      missing.sort((a,b)=>a.localeCompare(b,"pt"));
-
-      missingList.innerHTML = "";
-      for (const name of missing) {
-        const li = document.createElement("li");
-        li.textContent = name;
-        missingList.appendChild(li);
-      }
-    }
-
-    // -----------------------------
-    // UI update
-    // -----------------------------
-    function updateUI() {
-      applyPlayLocks();
-
-      const isPlay = (playTypeSel.value === "jogar");
-
-      // CRÍTICO: classe que ativa o modo "app"
-      document.body.classList.toggle("playing", isPlay);
-
-      // CRÍTICO: mapa estático em Jogar
-      setMapInteractive(!isPlay);
-
-      const regionLabel = getRegionLabel();
-      const ctx = getContextLabel();
-
-      titleLine.textContent = `${regionLabel} — ${gameModeSel.value === "municipios" ? "Municípios" : "Freguesias"}`;
-      subTitleLine.textContent = ctx;
-
-      if (currentRegion === "pt") dataHint.innerHTML = `concelhos_${districtSel.value}.geojson | freguesias_&lt;municipio&gt;.geojson`;
-      else if (currentRegion === "az") dataHint.innerHTML = `concelhos_acores.geojson | freguesias_&lt;municipio&gt;.geojson`;
-      else dataHint.innerHTML = `concelhos_madeira.geojson | freguesias_&lt;municipio&gt;.geojson`;
-
-      if (!isPlay) {
-        labelViewMode.style.display = "";
-        studyButtons.style.display = "";
-        playKpis.style.display = "none";
-        questionLine.style.display = "none";
-        guessInput.style.display = "";
-        guessInput.disabled = false;
-        btnUnlockFromGame.style.display = "none";
-
-        timerBar.style.width = "100%";
-
-        if (viewModeSel.value === "jogo") {
-          hintLine.textContent = "Estudar: escreve nomes; vai ficando a escuro.";
-          btnShowMissing.style.display = "none";
-          btnHideMissing.style.display = "none";
-          btnRevealAll.style.display = "none";
-          missingBlock.style.display = "none";
-        } else {
-          hintLine.textContent = "Estudar (Treino): podes ver faltas e revelar tudo.";
-          btnShowMissing.style.display = (missingBlock.style.display === "none") ? "inline-block" : "none";
-          btnHideMissing.style.display = (missingBlock.style.display === "none") ? "none" : "inline-block";
-          btnRevealAll.style.display = "inline-block";
-          if (missingBlock.style.display !== "none") renderMissingList();
-        }
-      } else {
-        labelViewMode.style.display = "none";
-        studyButtons.style.display = "none";
-        missingBlock.style.display = "none";
-        playKpis.style.display = "";
-        questionLine.style.display = "";
-        guessInput.style.display = "none";
-
-        const st = syncLevelAndTokensAfterXP();
-        xpTotalLine.textContent = String(st.xpTotal || 0);
-        playerLevelLine.textContent = String(st.playerLevel || 1);
-        tokensLine.textContent = String(st.tokens || 0);
-        btnUnlockFromGame.style.display = (st.tokens > 0) ? "" : "none";
-
-        hintLine.textContent = "Jogar: 60s por pergunta. XP depende do tempo e da dificuldade; dica reduz XP.";
-        renderPlayUI();
-      }
-    }
-
-    function renderPlayUI() {
-      packLevelLine.textContent = String(playPackLevel);
-      sessionLine.textContent = `${sessionIndex} / ${PLAY.QUESTIONS_PER_SESSION}`;
-      correctLine.textContent = String(sessionCorrect);
-      wrongLine.textContent = String(sessionWrong);
-      xpSessionLine.textContent = String(sessionXP);
-
-      if (playActive && currentTargetKey) {
-        const q = (gameModeSel.value === "municipios") ? "Que município é este?" : "Que freguesia é esta?";
-        questionLine.innerHTML = `<strong>${q}</strong>`;
-      } else {
-        questionLine.innerHTML = `<strong>—</strong>`;
-      }
-
-      btnHint.disabled = !playActive || hintUsedThisRound;
-
-      const isTextLevel = (playPackLevel >= 4);
-      const showChoicesInTextLevel = (isTextLevel && hintUsedThisRound);
-
-      if (!isTextLevel || showChoicesInTextLevel) {
-        choicesBlock.style.display = "";
-        textBlock.style.display = "none";
-      } else {
-        choicesBlock.style.display = "none";
-        textBlock.style.display = "";
-      }
-
-      suggestionsEl.style.display = "none";
-      suggestionsEl.innerHTML = "";
-      textAnswer.value = "";
-
-      choicesEl.innerHTML = "";
-      if (choicesBlock.style.display !== "none") {
-        if (playActive && currentChoicesKeys.length) {
-          for (const k of currentChoicesKeys) {
-            const b = document.createElement("button");
-            b.className = "choiceBtn";
-            b.textContent = keyToOfficial.get(k) || k;
-            b.addEventListener("click", () => submitAnswerChoice(k));
-            choicesEl.appendChild(b);
-          }
-        } else {
-          const small = document.createElement("div");
-          small.className = "small";
-          small.textContent = (playActive ? "A preparar opções…" : "Inicia para começar.");
-          choicesEl.appendChild(small);
-        }
-      }
-    }
-
-    // -----------------------------
-    // Carregamento datasets
-    // -----------------------------
-    async function loadConcelhosFC() {
-      setLoading("A carregar concelhos…", 35);
-
-      if (currentRegion === "pt") {
-        const url = FILES.concelhosPT(districtSel.value);
-        const fc = await loadJSON(url);
-        const check = assertGeoJSONLooksLikeLonLat(fc);
-        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-        return fc;
-      }
-
-      const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
-      const fc = await loadJSON(url);
-      const check = assertGeoJSONLooksLikeLonLat(fc);
-      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-      return fc;
-    }
-
-    function municipalitiesFromConcelhos(fc) {
-      const set = new Set();
-      for (const f of (fc.features || [])) {
-        const n = getMunicipalityName(f.properties || {});
-        if (n) set.add(n);
-      }
-      return Array.from(set).sort((a,b)=>a.localeCompare(b,"pt"));
-    }
-
-    async function populateMunicipalitySelector(concelhosFC) {
-      const munis = municipalitiesFromConcelhos(concelhosFC);
-      const prev = municipalitySel.value;
-      municipalitySel.innerHTML = "";
-      for (const m of munis) municipalitySel.appendChild(new Option(m, slugify(m)));
-      if (prev && Array.from(municipalitySel.options).some(o => o.value === prev)) municipalitySel.value = prev;
-    }
-
-    async function loadFreguesiasFC() {
-      setLoading("A carregar freguesias…", 45);
-      const muniSlug = municipalitySel.value;
-      const url = FILES.freguesias(currentRegion, muniSlug);
-      const fc = await loadJSON(url);
-      const check = assertGeoJSONLooksLikeLonLat(fc);
-      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-      return fc;
-    }
-
-    function getPackKey() {
-      const region = currentRegion;
-      const mode = gameModeSel.value;
-
-      if (mode === "municipios") {
-        if (region === "pt") return `${region}|${mode}|${districtSel.value}`;
-        if (region === "az") return `${region}|${mode}|acores`;
-        return `${region}|${mode}|madeira`;
-      } else {
-        return `${region}|${mode}|${municipalitySel.value || "?"}`;
-      }
-    }
-
-    // -----------------------------
-    // Fluxo: load + build
-    // -----------------------------
-    function applyRegionToUI() {
-      labelDistrict.style.display = (currentRegion === "pt") ? "" : "none";
-    }
-
-    async function applyModeToUIAndLoad() {
-      clearPlaySession();
-      showScreen(screenLoading);
+    function focusTarget() {
+      if (!map || !currentTargetKey) return;
+      const lyr = byKey.get(currentTargetKey);
+      if (!lyr) return;
 
       try {
-        let fcToDraw = null;
+        const b = lyr.getBounds();
+        if (b && b.isValid && b.isValid()) {
+          map.fitBounds(b, { padding: [18, 18], animate: false });
+        }
+      } catch {}
+    }
 
-        if (gameModeSel.value === "municipios") {
-          labelMunicipality.style.display = "none";
-          setLoading("A preparar…", 10);
-          fcToDraw = await loadConcelhosFC();
+    function buildLayer(fc) {
+      ensureMapReady();
+      clearLayer();
 
-          setLoading("Pronto a desenhar…", 75);
-          showScreen(screenGame);
-          ensureMapReady();
-          invalidateMapSizeHard();
+      fillLayer = L.geoJSON(fc, {
+        style: styleFill,
+        onEachFeature: (feature, lyr) => {
+          const p = feature.properties || {};
+          const raw = getMunicipalityName(p);
+          const key = normalize(raw);
+          if (key) { byKey.set(key, lyr); keyToOfficial.set(key, raw); }
+        }
+      }).addTo(map);
 
-          setLoading("A desenhar…", 90);
-          buildLayer(fcToDraw);
-        } else {
-          labelMunicipality.style.display = "";
-          setLoading("A carregar concelhos (para lista)…", 15);
+      invalidateMapSizeHard();
+    }
 
-          const concelhosFC = await loadConcelhosFC();
-          const ctxKey = (currentRegion === "pt") ? `pt:${districtSel.value}` : `${currentRegion}:all`;
+    // -----------------------------
+    // Quiz mechanics
+    // -----------------------------
+    function computeXPForCorrect(elapsedSec, usedHint) {
+      const t = Math.max(0, Math.min(GAME.TIME_LIMIT_SEC, elapsedSec));
+      const timeFactor = (GAME.TIME_LIMIT_SEC - t) / GAME.TIME_LIMIT_SEC; // 0..1
+      const bonus = Math.round(GAME.XP_TIME_BONUS_MAX * timeFactor);
+      let xp = GAME.XP_BASE + bonus;
+      if (usedHint) xp = Math.floor(xp * GAME.XP_HINT_MULT);
+      return Math.max(0, xp);
+    }
 
-          const needRebuildList = (ctxKey !== lastConcelhosKey);
-          lastConcelhosKey = ctxKey;
+    function pickNewTargetKey() {
+      if (playRemainingKeys.length === 0) playRemainingKeys = shuffle(playPoolKeys);
+      return playRemainingKeys.pop() || "";
+    }
 
-          if (needRebuildList) {
-            setLoading("A preparar lista de municípios…", 35);
-            await populateMunicipalitySelector(concelhosFC);
-          }
+    function prepareChoicesForRound() {
+      const n = GAME.OPTIONS_COUNT;
+      const forbid = new Set([currentTargetKey]);
+      const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+      currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
+    }
 
-          fcToDraw = await loadFreguesiasFC();
+    function renderHUD() {
+      sessionLine.textContent = `${Math.min(sessionIndex + 1, GAME.QUESTIONS_PER_SESSION)}/${GAME.QUESTIONS_PER_SESSION}`;
+      btnHint.disabled = !(!awaitingAdvance && !sessionEnded) && true;
+      btnHint.disabled = awaitingAdvance || sessionEnded || hintUsedThisRound;
+    }
 
-          setLoading("Pronto a desenhar…", 75);
-          showScreen(screenGame);
-          ensureMapReady();
-          invalidateMapSizeHard();
+    function renderChoices() {
+      choicesEl.innerHTML = "";
 
-          setLoading("A desenhar…", 90);
-          buildLayer(fcToDraw);
+      for (const k of currentChoicesKeys) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choiceBtn";
+        b.textContent = keyToOfficial.get(k) || k;
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          submitAnswerChoice(k);
+        });
+        choicesEl.appendChild(b);
+      }
+    }
+
+    function setTapHint(show) {
+      tapHint.classList.toggle("show", !!show);
+    }
+
+    function lockChoices(locked) {
+      const btns = choicesEl.querySelectorAll("button.choiceBtn");
+      btns.forEach(b => b.disabled = !!locked);
+    }
+
+    function markAnswerUI(chosenKey, isTimeout=false) {
+      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+      const correctKey = currentTargetKey;
+
+      for (const b of btns) {
+        const label = b.textContent;
+        // map texto -> key (porque text pode repetir? aqui é seguro)
+        let btnKey = "";
+        for (const k of currentChoicesKeys) {
+          if ((keyToOfficial.get(k) || k) === label) { btnKey = k; break; }
         }
 
-        showScreen(screenGame);
-        updateUI();
-        setLoading("Concluído", 100);
-
-        // CRÍTICO: garantir layout/Leaflet certo em mobile
-        invalidateMapSizeHard();
-        setTimeout(invalidateMapSizeHard, 250);
-
-        if (playTypeSel.value === "estudar") {
-          guessInput.placeholder = (gameModeSel.value === "municipios") ? "Escreve um município…" : "Escreve uma freguesia…";
-          guessInput.focus();
-        } else {
-          beginPlaySession();
-        }
-      } catch (e) {
-        console.error(e);
-        showScreen(screenGame);
-        ensureMapReady();
-        invalidateMapSizeHard();
-        setMsg(`Erro: ${e.message}`, "bad");
+        if (btnKey === correctKey) b.classList.add("correct");
+        if (!isTimeout && btnKey === chosenKey && chosenKey !== correctKey) b.classList.add("wrong");
       }
-    }
-
-    // -----------------------------
-    // Estudar: adivinhação
-    // -----------------------------
-    function resolveTypedToKey(typedNorm) {
-      if (byKey.has(typedNorm)) return typedNorm;
-      const simplified = typedNorm
-        .replace(/^vila nova de /, "")
-        .replace(/^santa maria da /, "")
-        .replace(/^sao /,"")
-        .replace(/^são /,"")
-        .trim();
-      if (byKey.has(simplified)) return simplified;
-      return "";
-    }
-
-    function handleStudyGuess(rawInput) {
-      const typed = normalize(rawInput);
-      if (!typed) return;
-
-      const key = resolveTypedToKey(typed);
-      if (!key) { setMsg(`Não encontrado: "${rawInput}"`, "bad"); return; }
-      if (solved.has(key)) { setMsg(`Já estava: ${keyToOfficial.get(key) || rawInput}`, "neutral"); return; }
-
-      solved.add(key);
-      refreshStyles();
-      setMsg(`Certo: ${keyToOfficial.get(key) || rawInput}`, "good");
-      updateUI();
-      if (solved.size === total && total > 0) setMsg("Concluído. Acertaste tudo.", "good");
-    }
-
-    // -----------------------------
-    // Jogar: quiz
-    // -----------------------------
-    function shuffle(arr) {
-      const a = arr.slice();
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-    function sampleDistinct(arr, n, forbidSet) {
-      const pool = [];
-      for (const x of arr) {
-        if (forbidSet && forbidSet.has(x)) continue;
-        pool.push(x);
-      }
-      const s = shuffle(pool);
-      return s.slice(0, Math.min(n, s.length));
     }
 
     function startTimer() {
       stopTimer();
       roundStartedAt = Date.now();
+
       timerHandle = setInterval(() => {
-        if (!playActive) return;
+        if (awaitingAdvance || sessionEnded) return;
 
         const elapsed = (Date.now() - roundStartedAt) / 1000;
-        const remain = Math.max(0, PLAY.TIME_LIMIT_SEC - elapsed);
+        const remain = Math.max(0, GAME.TIME_LIMIT_SEC - elapsed);
 
         timeLine.textContent = String(Math.ceil(remain));
-        const pct = (remain / PLAY.TIME_LIMIT_SEC) * 100;
+        const pct = (remain / GAME.TIME_LIMIT_SEC) * 100;
         timerBar.style.width = `${pct}%`;
 
         if (remain <= 0) {
@@ -1700,503 +726,207 @@
     }
 
     function onTimeout() {
-      if (!playActive) return;
-      sessionWrong++;
-      sessionIndex++;
-      setMsg(`Tempo! Era: ${currentTargetOfficial}`, "bad");
-      nextRoundOrEnd();
+      if (awaitingAdvance || sessionEnded) return;
+
+      awaitingAdvance = true;
+      lockChoices(true);
+
+      setMsg(`Tempo! Era: ${currentTargetOfficial}`);
+      markAnswerUI("__timeout__", true);
+      setTapHint(true);
+      renderHUD();
+
+      // armar avanço por tap (evitar tap imediato)
+      setTimeout(() => { /* noop */ }, 0);
     }
 
-    function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
-      const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
-      const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC;
-      const base = 10;
-      const bonus = Math.round(40 * timeFactor);
-      let xp = base + bonus;
+    function submitAnswerChoice(chosenKey) {
+      if (awaitingAdvance || sessionEnded) return;
 
-      xp = xp * PLAY.difficultyMultByPackLevel(packLevel);
-      if (usedHint) xp = xp * PLAY.hintMult;
+      stopTimer();
+      awaitingAdvance = true;
+      lockChoices(true);
 
-      return Math.max(0, Math.floor(xp));
+      const elapsed = (Date.now() - roundStartedAt) / 1000;
+
+      if (chosenKey === currentTargetKey) {
+        sessionCorrect++;
+        const xp = computeXPForCorrect(elapsed, hintUsedThisRound);
+        sessionXP += xp;
+        setMsg(`Certo! +${xp} XP`);
+      } else {
+        setMsg(`Errado. Era: ${currentTargetOfficial}`);
+      }
+
+      markAnswerUI(chosenKey, false);
+      setTapHint(true);
+      renderHUD();
     }
 
-    function pickNewTargetKey() {
-      if (playRemainingKeys.length === 0) playRemainingKeys = shuffle(playPoolKeys);
-      return playRemainingKeys.pop() || "";
+    function useHintRemoveTwo() {
+      if (awaitingAdvance || sessionEnded) return;
+      if (hintUsedThisRound) return;
+
+      hintUsedThisRound = true;
+
+      // Remover 2 erradas: esconder 2 botões errados
+      const wrongKeys = currentChoicesKeys.filter(k => k !== currentTargetKey);
+      const toHide = sampleDistinct(wrongKeys, 2);
+
+      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+      for (const b of btns) {
+        const label = b.textContent;
+        let btnKey = "";
+        for (const k of currentChoicesKeys) {
+          if ((keyToOfficial.get(k) || k) === label) { btnKey = k; break; }
+        }
+        if (toHide.includes(btnKey)) {
+          b.classList.add("hidden");
+          b.disabled = true;
+        }
+      }
+
+      setMsg("Ajuda: removidas 2 opções (XP desta pergunta reduzido).");
+      renderHUD();
     }
 
-    function prepareChoicesForRound() {
-      const isTextLevel = (playPackLevel >= 4);
-      const forcedChoices = (isTextLevel && hintUsedThisRound);
-
-      if (isTextLevel && !forcedChoices) { currentChoicesKeys = []; return; }
-
-      const n = (!isTextLevel) ? (playPackLevel === 1 ? 4 : playPackLevel === 2 ? 6 : 8) : 8;
-      const forbid = new Set([currentTargetKey]);
-      const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
-      currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
-    }
-
-    function showSuggestions(prefixNorm) {
-      if (!prefixNorm) {
-        suggestionsEl.style.display = "none";
-        suggestionsEl.innerHTML = "";
+    function nextQuestionOrEnd() {
+      if (sessionIndex >= GAME.QUESTIONS_PER_SESSION) {
+        endSession();
         return;
       }
-      const matches = [];
-      for (const k of playPoolKeys) {
-        const off = keyToOfficial.get(k) || "";
-        const norm = normalize(off);
-        if (norm.startsWith(prefixNorm)) matches.push(k);
-      }
-      const top = matches.slice(0, 10);
-      suggestionsEl.innerHTML = "";
-      if (top.length === 0) { suggestionsEl.style.display = "none"; return; }
-
-      for (const k of top) {
-        const b = document.createElement("button");
-        b.textContent = keyToOfficial.get(k) || k;
-        b.addEventListener("click", () => submitAnswerText(k));
-        suggestionsEl.appendChild(b);
-      }
-      suggestionsEl.style.display = "";
-    }
-
-    function beginPlaySession() {
-      if (!byKey.size) { setMsg("Sem dados carregados.", "bad"); return; }
-      clearPlaySession();
-      playActive = true;
-
-      playPackKey = getPackKey();
-      playPackLevel = getPackLevel(playPackKey);
-
-      playPoolKeys = Array.from(byKey.keys());
-      playRemainingKeys = shuffle(playPoolKeys);
-
       nextRound();
     }
 
     function nextRound() {
-      stopTimer();
+      awaitingAdvance = false;
       hintUsedThisRound = false;
+      setTapHint(false);
+      setMsg("");
 
       currentTargetKey = pickNewTargetKey();
       currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
 
       prepareChoicesForRound();
+      renderHUD();
+      renderChoices();
+      lockChoices(false);
+
+      // Atualiza mapa para mostrar só o município alvo e fazer fit
       refreshStyles();
+      focusTarget();
 
-      setMsg("", "neutral");
-      timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+      timeLine.textContent = String(GAME.TIME_LIMIT_SEC);
       timerBar.style.width = "100%";
-
-      renderPlayUI();
-
-      if (playPackLevel >= 4 && !hintUsedThisRound) {
-        textAnswer.value = "";
-        showSuggestions("");
-        textAnswer.focus();
-      }
 
       startTimer();
     }
 
     function endSession() {
       stopTimer();
-      playActive = false;
-      refreshStyles();
+      sessionEnded = true;
+      awaitingAdvance = false;
+      setTapHint(false);
 
-      const acc = (sessionIndex > 0) ? (sessionCorrect / sessionIndex) : 0;
-      let promoted = false;
-
-      if (acc >= PLAY.promoteThreshold && playPackLevel < 4 && sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
-        playPackLevel++;
-        setPackLevel(playPackKey, playPackLevel);
-        promoted = true;
-      }
-
-      const extra = promoted ? ` Subiste para o nível ${playPackLevel} deste pack.` : "";
-      setMsg(`Fim da sessão. Certos: ${sessionCorrect}/${sessionIndex}. XP ganho: ${sessionXP}.${extra}`, promoted ? "good" : "neutral");
-
-      updateUI();
-      renderPlayUI();
+      finalCorrect.textContent = `Corretas: ${sessionCorrect}/${GAME.QUESTIONS_PER_SESSION}`;
+      finalXP.textContent = `XP ganho: ${sessionXP}`;
+      finalOverlay.classList.add("show");
     }
 
-    function nextRoundOrEnd() {
-      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) { endSession(); return; }
-      setTimeout(() => {
-        if (playTypeSel.value !== "jogar") return;
-        if (!byKey.size) return;
-        playActive = true;
-        nextRound();
-      }, 450);
-    }
-
-    function submitAnswerChoice(chosenKey) {
-      if (!playActive) return;
+    function resetSessionState() {
       stopTimer();
-      const elapsed = (Date.now() - roundStartedAt) / 1000;
+      awaitingAdvance = false;
+      sessionEnded = false;
 
-      if (chosenKey === currentTargetKey) {
-        sessionCorrect++;
-        sessionIndex++;
+      sessionIndex = 0;
+      sessionCorrect = 0;
+      sessionXP = 0;
 
-        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
-        sessionXP += xp;
-        addXP(xp);
-        setMsg(`Certo (+${xp} XP)`, "good");
-      } else {
-        sessionWrong++;
-        sessionIndex++;
-        setMsg(`Errado. Era: ${currentTargetOfficial}`, "bad");
-      }
+      hintUsedThisRound = false;
+      currentTargetKey = "";
+      currentTargetOfficial = "";
+      currentChoicesKeys = [];
 
-      nextRoundOrEnd();
+      setTapHint(false);
+      setMsg("");
+      timeLine.textContent = String(GAME.TIME_LIMIT_SEC);
+      timerBar.style.width = "100%";
+      finalOverlay.classList.remove("show");
     }
 
-    function submitAnswerText(chosenKey) {
-      if (!playActive) return;
-      stopTimer();
-      const elapsed = (Date.now() - roundStartedAt) / 1000;
-
-      if (chosenKey === currentTargetKey) {
-        sessionCorrect++;
-        sessionIndex++;
-
-        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
-        sessionXP += xp;
-        addXP(xp);
-        setMsg(`Certo (+${xp} XP)`, "good");
-      } else {
-        sessionWrong++;
-        sessionIndex++;
-        setMsg(`Errado. Era: ${currentTargetOfficial}`, "bad");
-      }
-
-      suggestionsEl.style.display = "none";
-      suggestionsEl.innerHTML = "";
-      nextRoundOrEnd();
-    }
-
-    function useHint() {
-      if (!playActive || hintUsedThisRound) return;
-      hintUsedThisRound = true;
-
-      if (playPackLevel >= 4) {
-        prepareChoicesForRound();
-        renderPlayUI();
-        setMsg("Dica: mostradas 8 opções (XP desta pergunta reduzido).", "neutral");
+    // Tap-to-continue: 1 toque avança após responder/timeout
+    document.getElementById("gameShell").addEventListener("click", () => {
+      if (finalOverlay.classList.contains("show")) {
+        // no overlay: volta ao menu
+        backToMenu();
         return;
       }
+      if (!awaitingAdvance || sessionEnded) return;
 
-      const n = (playPackLevel === 1 ? 4 : playPackLevel === 2 ? 6 : 8);
-      const keep = Math.ceil(n / 2);
-      const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
-      const keepWrongCount = Math.max(1, keep - 1);
-      const keptWrong = sampleDistinct(wrong, keepWrongCount);
-
-      currentChoicesKeys = shuffle([currentTargetKey, ...keptWrong]);
-      renderPlayUI();
-      setMsg("Dica: removidas opções (XP desta pergunta reduzido).", "neutral");
-    }
-
-    function skipQuestion() {
-      if (!playActive) return;
-      stopTimer();
-      sessionWrong++;
       sessionIndex++;
-      setMsg(`Passaste. Era: ${currentTargetOfficial}`, "neutral");
-      nextRoundOrEnd();
+      nextQuestionOrEnd();
+    });
+
+    // -----------------------------
+    // Start flow
+    // -----------------------------
+    async function loadDefaultDataset() {
+      // Por agora: PT + 1 distrito default
+      const url = FILES.concelhosPT(GAME.DEFAULT_DISTRICT);
+      return await loadJSON(url);
     }
 
-    // -----------------------------
-    // Região / modo / loads
-    // -----------------------------
-    async function enterArea(region) {
-      currentRegion = region;
-      showScreen(screenLoading);
-      setLoading("A iniciar…", 5);
+    async function startGameFlow() {
+      document.body.classList.add("playing");
+      showScreen(screenGame);
 
-      applyRegionToUI();
-      applyPlayLocks();
+      ensureMapReady();
+      invalidateMapSizeHard();
 
-      if (currentRegion === "pt") {
-        districtSel.innerHTML = "";
+      resetSessionState();
 
-        if (playTypeSel.value === "jogar") {
-          const unlocked = getUnlockedSet();
-          const unlockedDistricts = DISTRICTS_PT.filter(([,slug]) => unlocked.has(`pt:${slug}`));
+      try {
+        const fc = await loadDefaultDataset();
+        buildLayer(fc);
 
-          for (const [name, slug] of unlockedDistricts) districtSel.appendChild(new Option(name, slug));
-
-          if (unlockedDistricts.length === 0) throw new Error("Sem distritos desbloqueados no Continente.");
-          districtSel.value = unlockedDistricts[0][1];
-        } else {
-          for (const [name, slug] of DISTRICTS_PT) districtSel.appendChild(new Option(name, slug));
-          districtSel.value = DISTRICTS_PT[0][1];
+        playPoolKeys = Array.from(byKey.keys());
+        if (playPoolKeys.length < GAME.OPTIONS_COUNT) {
+          throw new Error(`Poucas opções no dataset (${playPoolKeys.length}). Precisas de pelo menos ${GAME.OPTIONS_COUNT}.`);
         }
+        playRemainingKeys = shuffle(playPoolKeys);
+
+        // primeira pergunta
+        nextRound();
+      } catch (e) {
+        console.error(e);
+        setMsg("Erro a carregar dados. Confirma os GeoJSON em /data e o distrito default.");
       }
-
-      gameModeSel.value = "municipios";
-      viewModeSel.value = "jogo";
-
-      await applyModeToUIAndLoad();
     }
 
     // -----------------------------
-    // Eventos
+    // Back / Exit
     // -----------------------------
-    document.getElementById("backToMenu").addEventListener("click", () => {
-      clearPlaySession();
-      clearLayer();
-      showScreen(screenMenu);
-      refreshMenuProgressUI();
-      applyMenuLocking();
+    function backToMenu() {
+      resetSessionState();
       document.body.classList.remove("playing");
-      setMapInteractive(true);
-    });
-
-    backToMenu2.addEventListener("click", () => {
-      clearPlaySession();
-      clearLayer();
       showScreen(screenMenu);
-      refreshMenuProgressUI();
-      applyMenuLocking();
-      document.body.classList.remove("playing");
-      setMapInteractive(true);
+    }
+
+    btnExit.addEventListener("click", (e) => {
+      e.stopPropagation();
+      backToMenu();
     });
 
-    // NOVO: botão ⟵ faz o mesmo que “Menu”
-    document.getElementById("btnExit").addEventListener("click", () => {
-      backToMenu2.click();
+    btnHint.addEventListener("click", (e) => {
+      e.stopPropagation();
+      useHintRemoveTwo();
     });
 
-    resetPlayBtn.addEventListener("click", () => {
-      if (playTypeSel.value === "jogar") beginPlaySession();
-      else {
-        solved.clear();
-        refreshStyles();
-        missingBlock.style.display = "none";
-        setMsg("");
-        updateUI();
-        guessInput.focus();
-      }
+    // Tap no overlay -> menu
+    finalOverlay.addEventListener("click", (e) => {
+      e.stopPropagation();
+      backToMenu();
     });
-
-    // Menu: abrir perfil
-    btnOpenProfile.addEventListener("click", () => {
-      refreshProfileUI();
-      showScreen(screenProfile);
-    });
-
-    // Menu: trocar perfil (logout)
-    btnSwitchProfile.addEventListener("click", () => {
-      localStorage.removeItem(ACTIVE_PROFILE_KEY);
-      showLogin();
-    });
-
-    // Profile: voltar
-    btnBackFromProfile.addEventListener("click", () => {
-      showScreen(screenMenu);
-      refreshMenuProgressUI();
-      applyMenuLocking();
-    });
-
-    // Profile: trocar utilizador
-    btnSwitchProfileProfile.addEventListener("click", () => {
-      localStorage.removeItem(ACTIVE_PROFILE_KEY);
-      showLogin();
-    });
-
-    // Profile: reset progresso deste perfil
-    btnResetProfile.addEventListener("click", () => {
-      if (!confirm("Queres apagar todo o progresso deste perfil?")) return;
-      localStorage.removeItem(STORAGE_KEY());
-      ensureStateDefaults();
-      refreshMenuProgressUI();
-      alert("Progresso apagado.");
-      refreshProfileUI();
-    });
-
-    menuTypeStudy.addEventListener("click", () => {
-      setMenuType("estudar");
-      playTypeSel.value = "estudar";
-      applyPlayLocks();
-    });
-
-    menuTypePlay.addEventListener("click", () => {
-      setMenuType("jogar");
-      playTypeSel.value = "jogar";
-      applyPlayLocks();
-      ensureStarterUnlockIfNeeded();
-      applyMenuLocking();
-    });
-
-    btnUnlock.addEventListener("click", () => {
-      openUnlockPicker(false);
-      applyMenuLocking();
-    });
-
-    btnResetProgress.addEventListener("click", () => {
-      if (!confirm("Reset progresso deste perfil?")) return;
-      localStorage.removeItem(STORAGE_KEY());
-      ensureStateDefaults();
-      refreshMenuProgressUI();
-      applyMenuLocking();
-      alert("Ok.");
-    });
-
-    startPT.addEventListener("click", async () => {
-      if (menuPlayType === "jogar") {
-        ensureStarterUnlockIfNeeded();
-        applyMenuLocking();
-        if (startPT.disabled) return;
-      }
-      await enterArea("pt");
-    });
-
-    startAZ.addEventListener("click", async () => {
-      if (menuPlayType === "jogar") {
-        ensureStarterUnlockIfNeeded();
-        applyMenuLocking();
-        if (startAZ.disabled) return;
-      }
-      await enterArea("az");
-    });
-
-    startMD.addEventListener("click", async () => {
-      if (menuPlayType === "jogar") {
-        ensureStarterUnlockIfNeeded();
-        applyMenuLocking();
-        if (startMD.disabled) return;
-      }
-      await enterArea("md");
-    });
-
-    playTypeSel.addEventListener("change", async () => {
-      clearPlaySession();
-      refreshStyles();
-      applyPlayLocks();
-      updateUI();
-      if (playTypeSel.value === "jogar") beginPlaySession();
-      else { guessInput.style.display = ""; guessInput.focus(); }
-    });
-
-    gameModeSel.addEventListener("change", async () => {
-      if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) {
-        gameModeSel.value = "municipios";
-        return;
-      }
-      await applyModeToUIAndLoad();
-    });
-
-    viewModeSel.addEventListener("change", async () => {
-      if (playTypeSel.value !== "estudar") return;
-      await applyModeToUIAndLoad();
-    });
-
-    districtSel.addEventListener("change", async () => {
-      if (currentRegion !== "pt") return;
-      await applyModeToUIAndLoad();
-    });
-
-    municipalitySel.addEventListener("change", async () => {
-      if (gameModeSel.value !== "freguesias") return;
-      if (playTypeSel.value === "jogar" && !FEATURES.playFreguesiasEnabled) return;
-      await applyModeToUIAndLoad();
-    });
-
-    guessInput.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      if (playTypeSel.value !== "estudar") return;
-      const raw = guessInput.value;
-      guessInput.value = "";
-      handleStudyGuess(raw);
-      guessInput.focus();
-    });
-
-    document.getElementById("reset").addEventListener("click", () => {
-      if (playTypeSel.value === "estudar") {
-        solved.clear();
-        refreshStyles();
-        missingBlock.style.display = "none";
-        setMsg("");
-        updateUI();
-        guessInput.focus();
-      } else {
-        beginPlaySession();
-      }
-    });
-
-    btnShowMissing.addEventListener("click", () => {
-      missingBlock.style.display = "block";
-      renderMissingList();
-      updateUI();
-    });
-    btnHideMissing.addEventListener("click", () => {
-      missingBlock.style.display = "none";
-      updateUI();
-    });
-    btnRevealAll.addEventListener("click", () => {
-      if (viewModeSel.value !== "treino") return;
-      for (const key of byKey.keys()) solved.add(key);
-      refreshStyles();
-      setMsg("Revelado (modo treino).", "neutral");
-      updateUI();
-      guessInput.focus();
-    });
-
-    btnHint.addEventListener("click", () => useHint());
-    btnSkip.addEventListener("click", () => skipQuestion());
-
-    btnUnlockFromGame.addEventListener("click", () => {
-      openUnlockPicker(false);
-      updateUI();
-    });
-
-    textAnswer.addEventListener("input", () => {
-      if (!playActive) return;
-      const prefix = normalize(textAnswer.value);
-      showSuggestions(prefix);
-    });
-    textAnswer.addEventListener("keydown", (e) => {
-      if (!playActive) return;
-      if (e.key !== "Enter") return;
-
-      const typed = normalize(textAnswer.value);
-      if (!typed) return;
-
-      if (typed === normalize(currentTargetOfficial)) {
-        submitAnswerText(currentTargetKey);
-        return;
-      }
-
-      let matchedKey = "";
-      for (const k of playPoolKeys) {
-        const off = keyToOfficial.get(k) || "";
-        if (normalize(off) === typed) { matchedKey = k; break; }
-      }
-
-      if (!matchedKey) submitAnswerText("__nope__");
-      else submitAnswerText(matchedKey);
-    });
-
-    // -----------------------------
-    // Init (LOGIN OBRIGATÓRIO)
-    // -----------------------------
-    (function init() {
-      const active = getActiveProfileId();
-      if (!active) {
-        showLogin();
-        return;
-      }
-      ensureStateDefaults();
-      syncLevelAndTokensAfterXP();
-      refreshMenuProgressUI();
-      setMenuType("estudar");
-      applyMenuLocking();
-      showScreen(screenMenu);
-    })();
   </script>
 </body>
 </html>
