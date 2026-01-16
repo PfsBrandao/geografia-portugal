@@ -95,21 +95,21 @@
       overflow: hidden; /* nunca haver scroll do body */
     }
 
-    /* Layout: garantir que as 8 opções cabem sem scroll
-       -> bottom tem uma altura "clamp" e o mapa ocupa o resto (1fr) */
+    /* Menos gap geral para não “empurrar” opções para baixo */
     .gameShell {
       height: 100dvh;
       display: grid;
-      gap: 10px;
+      gap: 6px; /* era 10 */
       padding: 10px;
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
 
+      /* Bottom mais baixo para caber 8 opções sem cortar */
       grid-template-rows:
         40px
         1fr
-        70px
-        clamp(250px, 36dvh, 360px);
+        64px
+        clamp(200px, 28dvh, 280px);
     }
 
     .gameTop { display:flex; align-items:center; justify-content:flex-start; }
@@ -128,7 +128,7 @@
     .gameHUD {
       display: grid;
       grid-template-columns: 1fr 1fr 1.2fr;
-      gap: 10px;
+      gap: 6px; /* era 10 */
       align-items: stretch;
     }
     .hudBox {
@@ -145,12 +145,12 @@
       user-select: none;
     }
     .hudBox .k { font-size: 12px; color: #222; opacity: .75; }
-    .hudBox .v { font-size: 24px; font-weight: 900; color: #111; }
+    .hudBox .v { font-size: 22px; font-weight: 900; color: #111; }
 
     .hudBtn {
       border-radius: 14px;
       border: 2px solid #cfcfcf;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 900;
       cursor: pointer;
       background: linear-gradient(#33b5ff, #0c79d6);
@@ -165,7 +165,7 @@
       border: 3px solid var(--panelBorder);
       overflow: hidden;
       position: relative;
-      min-height: 220px; /* evita mapa ficar demasiado baixo */
+      min-height: 240px;
     }
     #map { height: 100%; width: 100%; background: #fff; }
 
@@ -177,14 +177,14 @@
     body.playing .leaflet-control-zoom,
     body.playing .leaflet-control-attribution { display: none !important; }
 
-    /* Bottom SEM scroll: tudo tem de caber */
+    /* Bottom SEM scroll */
     .gameBottom {
       background: rgba(16,16,24,.95);
       border-radius: 18px;
-      padding: 12px;
+      padding: 8px; /* era 12 */
       box-sizing: border-box;
       color: #f2f2f2;
-      overflow: hidden; /* <- remove a scrollbar */
+      overflow: hidden; /* remove scrollbar */
     }
 
     /* Remover barra de tempo (fica só o número no HUD) */
@@ -192,22 +192,23 @@
 
     .choices {
       display: grid;
-      gap: 10px;
+      gap: 8px;               /* era 10 */
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 10px;
+      margin-top: 6px;        /* era 10 */
     }
     .choiceBtn {
-      min-height: 50px; /* mais compacto para caber 4 linhas */
+      min-height: 44px;       /* mais compacto */
       border-radius: 16px;
       border: 2px solid #cfcfcf;
-      font-size: 16px;
+      font-size: 14px;        /* mais compacto para caber */
       font-weight: 900;
       background: linear-gradient(#33b5ff, #0c79d6);
       color: #071018;
       white-space: normal;
-      line-height: 1.1;
+      line-height: 1.08;
       cursor:pointer;
       user-select:none;
+      padding: 10px 8px;
     }
     .choiceBtn:active { transform: translateY(1px); }
     .choiceBtn:disabled { opacity: 0.65; cursor: not-allowed; }
@@ -224,34 +225,8 @@
       color: #071018 !important;
     }
 
-    .timerWrap {
-      margin-top: 10px;
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: 999px;
-      overflow: hidden;
-      height: 12px;
-      background: rgba(255,255,255,.18);
-    }
-    .timerBar {
-      height: 100%;
-      width: 100%;
-      background: #ffffff;
-      transition: width 90ms linear;
-    }
-
-    .msg {
-      margin-top: 10px;
-      min-height: 20px;
-      font-size: 14px;
-      color: rgba(255,255,255,.92);
-    }
-    .tapHint {
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(255,255,255,.78);
-      display:none;
-    }
-    .tapHint.show { display:block; }
+    /* Mensagens removidas (não ocupam espaço) */
+    .msg, .tapHint { display:none !important; }
 
     /* Overlay final */
     .overlay {
@@ -281,18 +256,18 @@
 
     @media (max-width: 420px) {
       .gameShell {
+        gap: 6px;
         grid-template-rows:
           40px
           1fr
           60px
-          clamp(260px, 40dvh, 380px);
+          clamp(210px, 30dvh, 290px);
       }
-      .gameHUD { gap: 8px; }
-      .hudBox { border-radius: 12px; }
-      .hudBox .k { font-size: 11px; }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
-      .choiceBtn { min-height: 48px; font-size: 15px; }
+      .choiceBtn { min-height: 42px; font-size: 13px; }
+      .gameBottom { padding: 8px; }
+      .choices { gap: 8px; margin-top: 6px; }
     }
 
     @media (min-width: 900px) {
@@ -302,8 +277,8 @@
         grid-template-rows:
           40px
           1fr
-          70px
-          clamp(260px, 32dvh, 360px);
+          64px
+          clamp(210px, 24dvh, 280px);
       }
     }
   </style>
@@ -378,11 +353,10 @@
 
       <div class="gameBottom">
         <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
-
         <div class="msg" id="msg"></div>
         <div class="tapHint" id="tapHint">Toca no ecrã para continuar…</div>
 
-        <div id="choicesBlock" style="margin-top:10px;">
+        <div id="choicesBlock">
           <div class="choices" id="choices"></div>
         </div>
       </div>
@@ -537,15 +511,10 @@
     const sessionLine = document.getElementById("sessionLine");
     const btnHint = document.getElementById("btnHint");
     const timerBar = document.getElementById("timerBar");
-    const msgEl = document.getElementById("msg");
-    const tapHint = document.getElementById("tapHint");
     const choicesEl = document.getElementById("choices");
     const finalOverlay = document.getElementById("finalOverlay");
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
-
-    function setMsg(text) { msgEl.textContent = text || ""; }
-    function setTapHint(show) { tapHint.classList.toggle("show", !!show); }
 
     let map = null;
     let fillLayer = null;
@@ -671,7 +640,12 @@
       invalidateMapSizeHard();
       try {
         const b = fillLayer.getBounds();
-        if (b && b.isValid && b.isValid()) map.fitBounds(b, { padding: [12,12], animate: false });
+        if (b && b.isValid && b.isValid()) {
+          // Menos padding + +1 zoom => distrito aparece maior no quadrado
+          map.fitBounds(b, { padding: [2,2], animate: false });
+          const z = map.getZoom();
+          map.setZoom(Math.min(z + 1, 11));
+        }
       } catch {}
     }
 
@@ -709,10 +683,9 @@
       awaitingTap = true;
       tapGuardUntil = Date.now() + 250;
 
-      setMsg(`Tempo! Era: ${currentTargetOfficial}`);
+      // Sem texto extra: só pinta correto e espera toque
       revealCorrectAndWrong("__timeout__");
       lockChoices(true);
-      setTapHint(true);
 
       renderHUD();
     }
@@ -756,7 +729,7 @@
         b.textContent = keyToOfficial.get(k) || k;
 
         b.addEventListener("click", (e) => {
-          e.stopPropagation(); // não avançar imediatamente ao clicar na opção
+          e.stopPropagation();
           submitAnswerChoice(k);
         });
 
@@ -777,8 +750,6 @@
       stopTimer();
       awaitingTap = false;
       hintUsedThisRound = false;
-      setTapHint(false);
-      setMsg("");
 
       currentTargetKey = pickNewTargetKey();
       currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
@@ -800,7 +771,6 @@
       stopTimer();
       playActive = false;
       awaitingTap = false;
-      setTapHint(false);
 
       finalCorrect.textContent = `Corretas: ${sessionCorrect}/${PLAY.QUESTIONS_PER_SESSION}`;
       finalXP.textContent = `XP ganho: ${sessionXP}`;
@@ -819,10 +789,8 @@
         sessionCorrect++;
         const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
         sessionXP += xp;
-        setMsg(`Certo (+${xp} XP)`);
       } else {
         sessionWrong++;
-        setMsg(`Errado. Era: ${currentTargetOfficial}`);
       }
 
       awaitingTap = true;
@@ -830,7 +798,6 @@
 
       revealCorrectAndWrong(chosenKey);
       lockChoices(true);
-      setTapHint(true);
 
       renderHUD();
     }
@@ -853,20 +820,15 @@
         }
       }
 
-      setMsg("Ajuda: removidas 2 opções (XP desta pergunta reduzido).");
       renderHUD();
     }
 
-    // CRÍTICO: avançar quando tocares em QUALQUER parte do ecrã
-    // (capturing = true para apanhar mesmo quando Leaflet mexe nos eventos)
+    // Avançar em qualquer parte do ecrã (capturing = true)
     document.addEventListener("pointerdown", (e) => {
-      // se não estamos no ecrã do jogo, ignora
       if (!screenGame.classList.contains("active")) return;
 
-      // não avançar se carregares nos botões de controlo
       if (e.target.closest("#btnExit, #btnHint")) return;
 
-      // overlay final: tocar fecha e volta ao menu
       if (finalOverlay.classList.contains("show")) {
         backToMenu();
         return;
@@ -928,8 +890,6 @@
       currentTargetOfficial = "";
       currentChoicesKeys = [];
 
-      setMsg("");
-      setTapHint(false);
       finalOverlay.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
@@ -977,7 +937,7 @@
         showScreen(screenGame);
         ensureMapReady();
         invalidateMapSizeHard();
-        setMsg(`Erro: ${e.message}`);
+        // sem UI de erro aqui (mantém o layout limpo)
       }
     }
 
@@ -1009,6 +969,7 @@
   </script>
 </body>
 </html>
+
 
 
 
