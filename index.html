@@ -24,9 +24,6 @@
     .screen { display: none; height: 100vh; }
     .screen.active { display: block; }
 
-    /* =========================================================
-       MENU (Penpot-like)
-       ========================================================= */
     .menuWrap {
       min-height: 100dvh;
       background: #e8e9ea;
@@ -78,9 +75,6 @@
     .menuBtn.disabled { opacity: .55; cursor: not-allowed; }
     .menuBtn.small { font-size: 26px; }
 
-    /* =========================================================
-       GAME SHELL
-       ========================================================= */
     :root {
       --bg: #0b0b0f;
       --panel: #efefef;
@@ -92,7 +86,7 @@
     body.playing {
       background: var(--bg);
       height: 100dvh;
-      overflow: hidden; /* nunca haver scroll do body */
+      overflow: hidden;
     }
 
     .gameShell {
@@ -181,11 +175,11 @@
       padding: 8px;
       box-sizing: border-box;
       color: #f2f2f2;
-      overflow: hidden; /* sem scrollbar */
+      overflow: hidden;
     }
 
-    /* Remover barra de tempo (fica só o número no HUD) */
     body.playing .timerWrap { display:none !important; }
+    .msg, .tapHint { display:none !important; }
 
     .choices {
       display: grid;
@@ -206,6 +200,7 @@
       cursor:pointer;
       user-select:none;
       padding: 10px 8px;
+      -webkit-tap-highlight-color: transparent;
     }
     .choiceBtn:active { transform: translateY(1px); }
     .choiceBtn:disabled { opacity: 0.65; cursor: not-allowed; }
@@ -222,10 +217,6 @@
       color: #071018 !important;
     }
 
-    /* Mensagens removidas (não ocupam espaço) */
-    .msg, .tapHint { display:none !important; }
-
-    /* Overlay final */
     .overlay {
       position: absolute;
       inset: 0;
@@ -253,7 +244,6 @@
 
     @media (max-width: 420px) {
       .gameShell {
-        gap: 6px;
         grid-template-rows:
           40px
           1fr
@@ -263,8 +253,6 @@
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
       .choiceBtn { min-height: 42px; font-size: 13px; }
-      .gameBottom { padding: 8px; }
-      .choices { gap: 8px; margin-top: 6px; }
     }
 
     @media (min-width: 900px) {
@@ -282,14 +270,12 @@
 </head>
 
 <body>
-  <!-- SCREEN: MENU -->
   <div id="screenMenu" class="screen active">
     <div class="menuWrap">
       <div class="menuPhone">
         <div class="menuLogo" aria-label="Geo-PT">
           <img alt="Geo-PT" src="/geografia-portugal/icons/icon-192.png" onerror="this.style.display='none'">
         </div>
-
         <div class="menuBtns">
           <button id="btnMenuPlay" class="menuBtn">Jogar</button>
           <button class="menuBtn disabled" disabled>Estudar</button>
@@ -300,7 +286,6 @@
     </div>
   </div>
 
-  <!-- SCREEN: LOADING -->
   <div id="screenLoading" class="screen">
     <div class="menuWrap">
       <div class="menuPhone" style="background:#fff;">
@@ -314,7 +299,6 @@
     </div>
   </div>
 
-  <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
     <div class="gameShell" id="gameShell">
       <div class="gameTop">
@@ -349,10 +333,6 @@
       </div>
 
       <div class="gameBottom">
-        <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
-        <div class="msg" id="msg"></div>
-        <div class="tapHint" id="tapHint">Toca no ecrã para continuar…</div>
-
         <div id="choicesBlock">
           <div class="choices" id="choices"></div>
         </div>
@@ -506,7 +486,6 @@
     const timeLine = document.getElementById("timeLine");
     const sessionLine = document.getElementById("sessionLine");
     const btnHint = document.getElementById("btnHint");
-    const timerBar = document.getElementById("timerBar");
     const choicesEl = document.getElementById("choices");
     const finalOverlay = document.getElementById("finalOverlay");
     const finalCorrect = document.getElementById("finalCorrect");
@@ -590,7 +569,7 @@
     let sessionXP = 0;
 
     let awaitingTap = false;
-    let tapGuardUntil = 0;
+    let inputBlockedUntil = 0;  // <-- NOVO: bloqueia input após avançar/gerar
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
@@ -626,10 +605,10 @@
 
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
-        onEachFeature: (feature, lyr) => {
+        onEachFeature: (feature) => {
           const raw = getMunicipalityName(feature.properties || {});
           const key = normalize(raw);
-          if (key) { byKey.set(key, lyr); keyToOfficial.set(key, raw); }
+          if (key) { byKey.set(key, true); keyToOfficial.set(key, raw); }
         }
       }).addTo(map);
 
@@ -637,7 +616,6 @@
       try {
         const b = fillLayer.getBounds();
         if (b && b.isValid && b.isValid()) {
-          // Distrito o maior possível, MAS sempre 100% visível (sem zoom extra manual).
           map.fitBounds(b, { padding: [8, 8], animate: false });
         }
       } catch {}
@@ -656,11 +634,6 @@
 
         timeLine.textContent = String(Math.ceil(remain));
 
-        if (timerBar) {
-          const pct = (remain / PLAY.TIME_LIMIT_SEC) * 100;
-          timerBar.style.width = `${pct}%`;
-        }
-
         if (remain <= 0) {
           stopTimer();
           onTimeout();
@@ -675,11 +648,10 @@
       sessionIndex++;
 
       awaitingTap = true;
-      tapGuardUntil = Date.now() + 250;
+      inputBlockedUntil = Date.now() + 250;
 
       revealCorrectAndWrong("__timeout__");
       lockChoices(true);
-
       renderHUD();
     }
 
@@ -723,6 +695,7 @@
 
         b.addEventListener("click", (e) => {
           e.stopPropagation();
+          if (Date.now() < inputBlockedUntil) return;   // <-- NOVO
           submitAnswerChoice(k);
         });
 
@@ -744,6 +717,9 @@
       awaitingTap = false;
       hintUsedThisRound = false;
 
+      // bloqueia input um instante após render da nova pergunta
+      inputBlockedUntil = Date.now() + 220;
+
       currentTargetKey = pickNewTargetKey();
       currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
 
@@ -755,8 +731,6 @@
       refreshStyles();
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
-      if (timerBar) timerBar.style.width = "100%";
-
       startTimer();
     }
 
@@ -764,6 +738,7 @@
       stopTimer();
       playActive = false;
       awaitingTap = false;
+      inputBlockedUntil = Date.now() + 250;
 
       finalCorrect.textContent = `Corretas: ${sessionCorrect}/${PLAY.QUESTIONS_PER_SESSION}`;
       finalXP.textContent = `XP ganho: ${sessionXP}`;
@@ -772,6 +747,7 @@
 
     function submitAnswerChoice(chosenKey) {
       if (!playActive || awaitingTap) return;
+      if (Date.now() < inputBlockedUntil) return;
 
       stopTimer();
       const elapsed = (Date.now() - roundStartedAt) / 1000;
@@ -787,16 +763,16 @@
       }
 
       awaitingTap = true;
-      tapGuardUntil = Date.now() + 250;
+      inputBlockedUntil = Date.now() + 250;
 
       revealCorrectAndWrong(chosenKey);
       lockChoices(true);
-
       renderHUD();
     }
 
     function useHint() {
       if (!playActive || awaitingTap || hintUsedThisRound) return;
+      if (Date.now() < inputBlockedUntil) return;
 
       hintUsedThisRound = true;
 
@@ -812,13 +788,12 @@
           b.disabled = true;
         }
       }
-
       renderHUD();
     }
 
-    document.addEventListener("pointerdown", (e) => {
+    // MUDANÇA: avançar em pointerup (não em pointerdown) e bloquear input após avançar
+    document.addEventListener("pointerup", (e) => {
       if (!screenGame.classList.contains("active")) return;
-
       if (e.target.closest("#btnExit, #btnHint")) return;
 
       if (finalOverlay.classList.contains("show")) {
@@ -827,7 +802,7 @@
       }
 
       if (!awaitingTap) return;
-      if (Date.now() < tapGuardUntil) return;
+      if (Date.now() < inputBlockedUntil) return;
 
       if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
         endSessionOverlay();
@@ -843,7 +818,7 @@
     });
 
     let currentRegion = "pt";
-    let currentDistrict = "porto"; // default
+    let currentDistrict = "porto";
 
     async function loadConcelhosFC() {
       setLoading("A carregar concelhos…", 35);
@@ -866,7 +841,7 @@
     function resetSession() {
       stopTimer();
       awaitingTap = false;
-      tapGuardUntil = 0;
+      inputBlockedUntil = Date.now() + 200;
       hintUsedThisRound = false;
 
       sessionIndex = 0;
@@ -882,8 +857,6 @@
       finalOverlay.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
-      if (timerBar) timerBar.style.width = "100%";
-
       renderHUD();
       choicesEl.innerHTML = "";
     }
@@ -914,7 +887,7 @@
         setTimeout(invalidateMapSizeHard, 200);
 
         playPackLevel = PLAY.CURRENT_PACK_LEVEL;
-        playPoolKeys = Array.from(byKey.keys());
+        playPoolKeys = Array.from(keyToOfficial.keys());
         playRemainingKeys = shuffle(playPoolKeys);
 
         playActive = true;
@@ -951,12 +924,11 @@
       useHint();
     });
 
-    (function init() {
-      showScreen(screenMenu);
-    })();
+    (function init() { showScreen(screenMenu); })();
   </script>
 </body>
 </html>
+
 
 
 
