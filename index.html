@@ -147,7 +147,7 @@
     .suggestions button:last-child { border-bottom: none; }
 
     /* =========================================================
-       MOBILE GAME SHELL (HUD + MAP + BOTTOM)
+       MOBILE GAME SHELL (TOP + MAP + HUD + OPTIONS)
        ========================================================= */
     :root {
       --bg: #0b0b0f;
@@ -163,26 +163,44 @@
       overflow: hidden;
     }
 
-    /* CRÍTICO: em Jogar, esconder tudo no topo (header legacy) */
+    /* Em Jogar, esconder o header legacy */
     body.playing #legacyHeader,
     body.playing header {
       display: none !important;
     }
 
-    /* Shell full-screen */
-    .gameShell {
+    /* NOVO layout (Penpot): topbar + mapa + HUD + opções */
+    .gameShell{
       height: 100dvh;
       display: grid;
-      grid-template-rows: 70px 1fr auto;
+      grid-template-rows: 44px 1fr 70px auto; /* top, map, hud, options */
       gap: 10px;
       padding: 10px;
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
     }
 
+    .gameTop{
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+    }
+    .exitBtn{
+      width: 48px;
+      height: 36px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+    }
+    .exitBtn:active { transform: translateY(1px); }
+
     .gameHUD {
       display: grid;
-      grid-template-columns: 1fr 1.2fr 1fr;
+      grid-template-columns: 1fr 1fr 1.1fr;
       gap: 10px;
       align-items: stretch;
     }
@@ -219,11 +237,11 @@
       border-radius: 18px;
       border: 3px solid var(--panelBorder);
       overflow: hidden;
-      min-height: 38dvh;
+      min-height: 42dvh;
     }
     #map { height: 100%; width: 100%; background: #fff; }
 
-    /* Em Jogar: impedir gestos no mapa (extra) */
+    /* Em Jogar: impedir gestos no mapa */
     body.playing #map {
       touch-action: none;
       -webkit-user-select: none;
@@ -238,14 +256,10 @@
       box-sizing: border-box;
       color: #f2f2f2;
 
-      /* CRÍTICO: scroll interno para nunca cortar opções */
       overflow: auto;
-      max-height: 46dvh;
+      max-height: 42dvh;
       -webkit-overflow-scrolling: touch;
     }
-    .gameBottom .small { color: rgba(255,255,255,.8); }
-    .gameBottom code { color: rgba(255,255,255,.9); }
-    .gameMeta strong { color: #fff; }
 
     body.playing .timerWrap {
       border: 1px solid rgba(255,255,255,.2);
@@ -270,10 +284,8 @@
     }
     body.playing .choiceBtn:active { transform: translateY(1px); }
 
-    /* Se houver muitas opções, scroll nesta zona */
     #choicesBlock {
       overflow: auto;
-      max-height: 30dvh;
       -webkit-overflow-scrolling: touch;
     }
 
@@ -308,30 +320,35 @@
       padding: 12px 12px;
     }
 
+    /* Mantém a meta/debug disponível mas invisível no modo Jogar */
+    body.playing .gameMeta,
+    body.playing #studyButtons,
+    body.playing #missingBlock,
+    body.playing #dataHintWrap {
+      display: none !important;
+    }
+
     /* Inputs para evitar zoom iOS em Estudar também */
     #guess { font-size: 16px; }
 
-    /* HUD mais compacto em ecrãs pequenos */
     @media (max-width: 420px) {
-      .gameShell { grid-template-rows: 60px 1fr auto; }
+      .gameShell { grid-template-rows: 42px 1fr 62px auto; }
       .gameHUD { gap: 8px; }
       .hudBox { border-radius: 12px; }
       .hudBox .k { font-size: 11px; }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
-      .gameBottom { max-height: 52dvh; }
-      #choicesBlock { max-height: 34dvh; }
+      .gameBottom { max-height: 50dvh; }
     }
 
-    /* Desktop: centra e dá mais espaço ao bottom se necessário */
     @media (min-width: 900px) {
       .gameShell {
         max-width: 1100px;
         margin: 0 auto;
-        grid-template-rows: 70px 0.9fr 1.1fr;
+        grid-template-rows: 44px 0.95fr 70px 1.05fr;
       }
       .gameBottom { max-height: none; }
-      #choicesBlock { max-height: none; overflow: visible; }
+      #choicesBlock { overflow: visible; }
     }
   </style>
 </head>
@@ -457,7 +474,7 @@
 
   <!-- SCREEN: GAME -->
   <div id="screenGame" class="screen">
-    <!-- Header legacy (só para Estudar / debug). Em Jogar fica escondido pelo CSS -->
+    <!-- Header legacy (Estudar / debug). Em Jogar fica escondido pelo CSS -->
     <header id="legacyHeader">
       <button id="backToMenu">Voltar ao menu</button>
 
@@ -503,19 +520,9 @@
     </header>
 
     <div class="gameShell">
-      <!-- HUD -->
-      <div class="gameHUD">
-        <div class="hudBox">
-          <div class="k">Tempo</div>
-          <div class="v"><span id="timeLine">60</span></div>
-        </div>
-
-        <button class="hudBtn" id="btnHint">Dica</button>
-
-        <div class="hudBox">
-          <div class="k">Questão</div>
-          <div class="v"><span id="sessionLine">0 / 12</span></div>
-        </div>
+      <!-- Top bar -->
+      <div class="gameTop">
+        <button id="btnExit" class="exitBtn" type="button">⟵</button>
       </div>
 
       <!-- Stage -->
@@ -523,12 +530,27 @@
         <div id="map"></div>
       </div>
 
-      <!-- Bottom panel -->
+      <!-- HUD (abaixo do mapa) -->
+      <div class="gameHUD">
+        <div class="hudBox">
+          <div class="k">Tempo</div>
+          <div class="v"><span id="timeLine">60</span></div>
+        </div>
+
+        <div class="hudBox">
+          <div class="k">Questão</div>
+          <div class="v"><span id="sessionLine">0 / 12</span></div>
+        </div>
+
+        <button class="hudBtn" id="btnHint" type="button">Dica</button>
+      </div>
+
+      <!-- Bottom / opções -->
       <div class="gameBottom">
+        <!-- Mantido para Estudar/Debug, mas escondido em Jogar via CSS -->
         <div class="gameMeta">
           <div><strong id="titleLine">—</strong></div>
           <div id="subTitleLine" class="small">—</div>
-
           <div id="questionLine" style="display:none; margin-top:8px;"><strong>—</strong></div>
 
           <div id="playKpis" class="small" style="margin-top:8px; display:none;">
@@ -544,26 +566,25 @@
           <div class="small" id="hintLine" style="margin-top:8px;">—</div>
         </div>
 
-        <div class="timerWrap"><div id="timerBar" class="timerBar"></div></div>
-
-        <div class="msg neutral" id="msg" style="margin-top:10px;"></div>
-
-        <div class="btnRow" id="playActions" style="margin-top:10px;">
-          <button id="btnSkip">Passar</button>
-          <button id="btnUnlockFromGame" style="display:none;">Desbloquear 1 área</button>
-          <button id="resetPlayBtn" type="button">Recomeçar</button>
-          <button id="backToMenu2" type="button">Menu</button>
-        </div>
+        <div class="msg neutral" id="msg"></div>
 
         <div id="choicesBlock" style="display:none; margin-top:10px;">
           <div class="choices" id="choices"></div>
         </div>
 
         <div id="textBlock" style="display:none; margin-top:10px;">
-          <div class="small">Escreve a resposta (com sugestões):</div>
           <input id="textAnswer" type="text" placeholder="Começa a escrever…" autocomplete="off" />
           <div id="suggestions" class="suggestions" style="display:none;"></div>
         </div>
+
+        <div class="btnRow" id="playActions" style="margin-top:10px;">
+          <button id="btnSkip" type="button">Passar</button>
+          <button id="btnUnlockFromGame" style="display:none;" type="button">Desbloquear 1 área</button>
+          <button id="resetPlayBtn" type="button">Recomeçar</button>
+          <button id="backToMenu2" type="button">Menu</button>
+        </div>
+
+        <div class="timerWrap" style="margin-top:10px;"><div id="timerBar" class="timerBar"></div></div>
 
         <!-- Estudar: botões -->
         <div id="studyButtons" class="btnRow" style="margin-top:10px;">
@@ -577,7 +598,7 @@
           <ul id="missingList"></ul>
         </div>
 
-        <div class="small" style="margin-top:12px;">
+        <div id="dataHintWrap" class="small" style="margin-top:12px;">
           Dados em <code>/data</code>: <span id="dataHint"></span>
         </div>
       </div>
@@ -1154,7 +1175,6 @@
       });
     }
 
-    // NOVO: tornar o mapa estático em Jogar
     function setMapInteractive(enabled) {
       if (!map) return;
       const m = map;
@@ -1348,10 +1368,8 @@
 
       const isPlay = (playTypeSel.value === "jogar");
 
-      // CRÍTICO: classe que ativa o modo "app"
       document.body.classList.toggle("playing", isPlay);
 
-      // CRÍTICO: mapa estático em Jogar
       setMapInteractive(!isPlay);
 
       const regionLabel = getRegionLabel();
@@ -1574,7 +1592,6 @@
         updateUI();
         setLoading("Concluído", 100);
 
-        // CRÍTICO: garantir layout/Leaflet certo em mobile
         invalidateMapSizeHard();
         setTimeout(invalidateMapSizeHard, 250);
 
@@ -1931,6 +1948,11 @@
       setMapInteractive(true);
     });
 
+    // NOVO: botão de sair no topo (Penpot)
+    document.getElementById("btnExit").addEventListener("click", () => {
+      backToMenu2.click();
+    });
+
     resetPlayBtn.addEventListener("click", () => {
       if (playTypeSel.value === "jogar") beginPlaySession();
       else {
@@ -2160,5 +2182,4 @@
   </script>
 </body>
 </html>
-
 
