@@ -242,34 +242,163 @@
     .overlayCard .p { font-size: 18px; font-weight: 800; color: #111; margin: 8px 0; }
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
+    /* =========================
+       OPTIONS SCREEN (table style)
+       ========================= */
+    .optWrap {
+      min-height: 100dvh;
+      background: #e8e9ea;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+    .optPhone {
+      width: min(520px, 94vw);
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 14px;
+      box-sizing: border-box;
+      border: 2px solid rgba(0,0,0,.12);
+    }
+    .optHeader {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 6px 4px 10px;
+      box-sizing:border-box;
+    }
+    .optTitle {
+      font-weight: 900;
+      font-size: 18px;
+      color:#111;
+    }
+    .optMeta {
+      font-size: 12px;
+      color:#444;
+    }
+    .optHint {
+      font-size: 12px;
+      color:#444;
+      margin: 0 4px 10px;
+      line-height: 1.35;
+    }
+    .optTable {
+      border: 1px solid #d6d6d6;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .optRow {
+      display:grid;
+      grid-template-columns: 1.6fr repeat(4, 0.45fr);
+      align-items:center;
+      gap: 0;
+      border-bottom: 1px solid #e7e7e7;
+      min-height: 46px;
+    }
+    .optRow:last-child { border-bottom: none; }
+
+    .optHead {
+      background: #f3f3f3;
+      font-weight: 900;
+      color:#111;
+      font-size: 12px;
+      min-height: 44px;
+    }
+    .optCell {
+      padding: 8px 10px;
+      box-sizing:border-box;
+      border-right: 1px solid #e7e7e7;
+      height: 100%;
+      display:flex;
+      align-items:center;
+    }
+    .optRow .optCell:last-child { border-right: none; }
+
+    .optName {
+      font-weight: 800;
+      font-size: 13px;
+      color:#111;
+      line-height: 1.15;
+    }
+    .optBadge {
+      margin-left: 8px;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #eee;
+      color:#333;
+      border: 1px solid #ddd;
+    }
+
+    .dotCell { justify-content:center; padding: 8px; }
+    .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid #999;
+      background: #f6f6f6;
+      cursor: pointer;
+      display:inline-block;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    .dot.on {
+      border-color: #2e7d32;
+      background: #2ee66a;
+      box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
+    }
+    .dot.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .optFooter {
+      display:flex;
+      gap: 10px;
+      justify-content:center;
+      margin-top: 12px;
+    }
+    .optBtn {
+      min-height: 52px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 2px solid #cfcfcf;
+      background: #b1b2b5;
+      font-weight: 900;
+      font-size: 18px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .optBtn.primary {
+      background: linear-gradient(#33b5ff, #0c79d6);
+      border-color: #cfcfcf;
+      color:#071018;
+    }
+
     @media (max-width: 420px) {
-      .gameShell {
-        grid-template-rows:
-          40px
-          1fr
-          60px
-          clamp(210px, 30dvh, 290px);
-      }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
       .choiceBtn { min-height: 42px; font-size: 13px; }
+      .optPhone { padding: 12px; }
+      .optRow { grid-template-columns: 1.7fr repeat(4, 0.42fr); }
+      .dot { width: 16px; height: 16px; }
     }
 
     @media (min-width: 900px) {
       .gameShell {
         max-width: 1100px;
         margin: 0 auto;
-        grid-template-rows:
-          40px
-          1fr
-          64px
-          clamp(210px, 24dvh, 280px);
       }
     }
   </style>
 </head>
 
 <body>
+  <!-- MENU -->
   <div id="screenMenu" class="screen active">
     <div class="menuWrap">
       <div class="menuPhone">
@@ -280,12 +409,43 @@
           <button id="btnMenuPlay" class="menuBtn">Jogar</button>
           <button class="menuBtn disabled" disabled>Estudar</button>
           <button class="menuBtn disabled" disabled>Perfil</button>
+          <button id="btnMenuOptions" class="menuBtn">Opções</button>
           <button id="btnMenuExit" class="menuBtn small">Sair</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- OPTIONS -->
+  <div id="screenOptions" class="screen">
+    <div class="optWrap">
+      <div class="optPhone">
+        <div class="optHeader">
+          <div>
+            <div class="optTitle">Opções</div>
+            <div class="optMeta" id="optSelectedCount">Selecionados: 0</div>
+          </div>
+          <button id="btnOptBackTop" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+        </div>
+
+        <div class="optHint">
+          Escolhe onde queres jogar e a dificuldade por zona.
+          Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
+          Nível 4 (texto) fica disponível para escolher, mas ainda não está implementado no jogo.
+        </div>
+
+        <div class="optTable" id="optTable"></div>
+
+        <div class="optFooter">
+          <button id="btnOptReset" class="optBtn" type="button">Reset</button>
+          <button id="btnOptSave" class="optBtn primary" type="button">Guardar</button>
+          <button id="btnOptBack" class="optBtn" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
   <div id="screenLoading" class="screen">
     <div class="menuWrap">
       <div class="menuPhone" style="background:#fff;">
@@ -299,6 +459,7 @@
     </div>
   </div>
 
+  <!-- GAME -->
   <div id="screenGame" class="screen">
     <div class="gameShell" id="gameShell">
       <div class="gameTop">
@@ -352,13 +513,28 @@
       concelhosMD: `${BASE}data/concelhos_madeira.geojson`,
     };
 
+    const DISTRICTS_PT = [
+      ["Aveiro","aveiro"], ["Beja","beja"], ["Braga","braga"], ["Bragança","braganca"],
+      ["Castelo Branco","castelo_branco"], ["Coimbra","coimbra"], ["Évora","evora"],
+      ["Faro","faro"], ["Guarda","guarda"], ["Leiria","leiria"], ["Lisboa","lisboa"],
+      ["Portalegre","portalegre"], ["Porto","porto"], ["Santarém","santarem"],
+      ["Setúbal","setubal"], ["Viana do Castelo","viana_do_castelo"],
+      ["Vila Real","vila_real"], ["Viseu","viseu"]
+    ];
+
+    function getAllPacks() {
+      const arr = DISTRICTS_PT.map(([name, slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${name}`, region:"pt", slug }));
+      arr.push({ id:"az", label:"Região — Açores", region:"az", slug:"acores" });
+      arr.push({ id:"md", label:"Região — Madeira", region:"md", slug:"madeira" });
+      return arr;
+    }
+
     const PLAY = {
       QUESTIONS_PER_SESSION: 10,
       TIME_LIMIT_SEC: 60,
       optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
       difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
       hintMult: 0.60,
-      CURRENT_PACK_LEVEL: 3,
     };
 
     function normalize(s) {
@@ -458,6 +634,7 @@
     }
 
     const screenMenu = document.getElementById("screenMenu");
+    const screenOptions = document.getElementById("screenOptions");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -466,7 +643,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      for (const s of [screenMenu, screenLoading, screenGame]) s.classList.remove("active");
+      for (const s of [screenMenu, screenOptions, screenLoading, screenGame]) s.classList.remove("active");
       el.classList.add("active");
     }
     function setLoading(step, pct) {
@@ -476,6 +653,7 @@
     }
 
     const btnMenuPlay = document.getElementById("btnMenuPlay");
+    const btnMenuOptions = document.getElementById("btnMenuOptions");
     const btnMenuExit = document.getElementById("btnMenuExit");
     btnMenuExit.addEventListener("click", () => {
       try { window.close(); } catch {}
@@ -491,6 +669,150 @@
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
 
+    /* =========================
+       OPTIONS STATE
+       ========================= */
+    const OPT_KEY = "geoPT_options_v1";
+
+    function defaultOptions() {
+      // default: Porto nível 3 (igual ao comportamento atual)
+      return {
+        levels: { "pt:porto": 3 },
+      };
+    }
+
+    function loadOptions() {
+      try {
+        const raw = localStorage.getItem(OPT_KEY);
+        if (!raw) return defaultOptions();
+        const o = JSON.parse(raw);
+        if (!o || typeof o !== "object") return defaultOptions();
+        if (!o.levels || typeof o.levels !== "object") o.levels = {};
+        return o;
+      } catch {
+        return defaultOptions();
+      }
+    }
+
+    function saveOptions(o) {
+      localStorage.setItem(OPT_KEY, JSON.stringify(o));
+    }
+
+    function getSelectedPacksFromOptions(o) {
+      const packs = getAllPacks();
+      const selected = [];
+      for (const p of packs) {
+        const lvl = Number(o.levels?.[p.id] || 0);
+        if (lvl >= 1 && lvl <= 4) selected.push({ ...p, level: lvl });
+      }
+      return selected;
+    }
+
+    const optTable = document.getElementById("optTable");
+    const optSelectedCount = document.getElementById("optSelectedCount");
+    const btnOptBack = document.getElementById("btnOptBack");
+    const btnOptBackTop = document.getElementById("btnOptBackTop");
+    const btnOptSave = document.getElementById("btnOptSave");
+    const btnOptReset = document.getElementById("btnOptReset");
+
+    let optionsDraft = loadOptions();
+
+    function updateOptSelectedCount() {
+      const selected = getSelectedPacksFromOptions(optionsDraft);
+      optSelectedCount.textContent = `Selecionados: ${selected.length}`;
+    }
+
+    function renderOptionsTable() {
+      optTable.innerHTML = "";
+
+      const head = document.createElement("div");
+      head.className = "optRow optHead";
+      head.innerHTML = `
+        <div class="optCell">Zona</div>
+        <div class="optCell dotCell">1</div>
+        <div class="optCell dotCell">2</div>
+        <div class="optCell dotCell">3</div>
+        <div class="optCell dotCell">4</div>
+      `;
+      optTable.appendChild(head);
+
+      const packs = getAllPacks();
+
+      for (const p of packs) {
+        const row = document.createElement("div");
+        row.className = "optRow";
+        row.dataset.id = p.id;
+
+        const nameCell = document.createElement("div");
+        nameCell.className = "optCell";
+        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
+        const badge = (lvl === 4) ? `<span class="optBadge">em breve</span>` : "";
+        nameCell.innerHTML = `<div class="optName">${p.label}${badge}</div>`;
+        row.appendChild(nameCell);
+
+        for (let L = 1; L <= 4; L++) {
+          const cell = document.createElement("div");
+          cell.className = "optCell dotCell";
+
+          const dot = document.createElement("span");
+          dot.className = "dot" + (lvl === L ? " on" : "");
+          dot.title = `Nível ${L}`;
+
+          dot.addEventListener("click", () => {
+            const cur = Number(optionsDraft.levels?.[p.id] || 0);
+            if (cur === L) {
+              // tocar no mesmo nível -> desativa a zona
+              delete optionsDraft.levels[p.id];
+            } else {
+              optionsDraft.levels[p.id] = L;
+            }
+            renderOptionsTable();
+            updateOptSelectedCount();
+          });
+
+          cell.appendChild(dot);
+          row.appendChild(cell);
+        }
+
+        optTable.appendChild(row);
+      }
+
+      updateOptSelectedCount();
+    }
+
+    function openOptionsScreen() {
+      optionsDraft = loadOptions();
+      renderOptionsTable();
+      showScreen(screenOptions);
+    }
+
+    function closeOptionsToMenu() {
+      showScreen(screenMenu);
+    }
+
+    btnMenuOptions.addEventListener("click", () => openOptionsScreen());
+    btnOptBack.addEventListener("click", () => closeOptionsToMenu());
+    btnOptBackTop.addEventListener("click", () => closeOptionsToMenu());
+
+    btnOptReset.addEventListener("click", () => {
+      optionsDraft = defaultOptions();
+      renderOptionsTable();
+      updateOptSelectedCount();
+    });
+
+    btnOptSave.addEventListener("click", () => {
+      const selected = getSelectedPacksFromOptions(optionsDraft);
+      if (selected.length === 0) {
+        alert("Seleciona pelo menos 1 distrito/região para jogar.");
+        return;
+      }
+      saveOptions(optionsDraft);
+      closeOptionsToMenu();
+    });
+
+    /* =========================
+       LEAFLET
+       ========================= */
     let map = null;
     let fillLayer = null;
 
@@ -550,13 +872,20 @@
       keyToOfficial.clear();
     }
 
+    /* =========================
+       GAME STATE
+       ========================= */
     let playActive = false;
-    let playPackLevel = PLAY.CURRENT_PACK_LEVEL;
 
+    // pool de packs selecionados (zona + nível)
+    let selectedPacks = [];
+    let currentPack = null; // {id, region, slug, label, level}
+
+    // pool de respostas (do pack atual)
+    let playPackLevel = 3;
     let playPoolKeys = [];
     let playRemainingKeys = [];
     let currentTargetKey = "";
-    let currentTargetOfficial = "";
     let currentChoicesKeys = [];
     let hintUsedThisRound = false;
 
@@ -569,7 +898,8 @@
     let sessionXP = 0;
 
     let awaitingTap = false;
-    let inputBlockedUntil = 0;  // <-- NOVO: bloqueia input após avançar/gerar
+    let inputBlockedUntil = 0;
+    let transitioning = false;
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
@@ -621,6 +951,24 @@
       } catch {}
     }
 
+    async function loadConcelhosFCForPack(pack) {
+      setLoading(`A carregar: ${pack.label}`, 55);
+
+      if (pack.region === "pt") {
+        const url = FILES.concelhosPT(pack.slug);
+        const fc = await loadJSON(url);
+        const check = assertGeoJSONLooksLikeLonLat(fc);
+        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+        return fc;
+      }
+
+      const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
+      const fc = await loadJSON(url);
+      const check = assertGeoJSONLooksLikeLonLat(fc);
+      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+      return fc;
+    }
+
     function startTimer() {
       stopTimer();
       roundStartedAt = Date.now();
@@ -628,6 +976,7 @@
       timerHandle = setInterval(() => {
         if (!playActive) return;
         if (awaitingTap) return;
+        if (transitioning) return;
 
         const elapsed = (Date.now() - roundStartedAt) / 1000;
         const remain = Math.max(0, PLAY.TIME_LIMIT_SEC - elapsed);
@@ -642,7 +991,7 @@
     }
 
     function onTimeout() {
-      if (!playActive || awaitingTap) return;
+      if (!playActive || awaitingTap || transitioning) return;
 
       sessionWrong++;
       sessionIndex++;
@@ -666,13 +1015,22 @@
       return Math.max(0, Math.floor(xp));
     }
 
+    function pickPackForRound() {
+      // simples: escolher ao acaso entre os selecionados
+      // (mais tarde podes fazer “quota” por distrito, etc.)
+      const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
+      return p;
+    }
+
     function pickNewTargetKey() {
       if (playRemainingKeys.length === 0) playRemainingKeys = shuffle(playPoolKeys);
       return playRemainingKeys.pop() || "";
     }
 
     function prepareChoicesForRound() {
-      const n = PLAY.optionsByPackLevel(playPackLevel);
+      // nível 4 ainda não implementado (texto). Por agora comporta-se como nível 3.
+      const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
+      const n = PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
       const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
       currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
@@ -681,7 +1039,7 @@
     function renderHUD() {
       const shown = Math.min(sessionIndex + 1, PLAY.QUESTIONS_PER_SESSION);
       sessionLine.textContent = `${shown}/${PLAY.QUESTIONS_PER_SESSION}`;
-      btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound;
+      btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound || transitioning;
     }
 
     function renderChoices() {
@@ -695,7 +1053,8 @@
 
         b.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (Date.now() < inputBlockedUntil) return;   // <-- NOVO
+          if (Date.now() < inputBlockedUntil) return;
+          if (transitioning) return;
           submitAnswerChoice(k);
         });
 
@@ -712,18 +1071,49 @@
       }
     }
 
-    function nextRound() {
+    async function ensurePackLoaded(pack) {
+      if (currentPack && currentPack.id === pack.id) {
+        // só ajustar nível
+        playPackLevel = pack.level;
+        return;
+      }
+
+      transitioning = true;
+      lockChoices(true);
+      stopTimer();
+
+      currentPack = pack;
+      playPackLevel = pack.level;
+
+      setLoading(`A preparar: ${pack.label}`, 65);
+      const fc = await loadConcelhosFCForPack(pack);
+
+      setLoading("A desenhar…", 85);
+      buildLayer(fc);
+
+      invalidateMapSizeHard();
+      setTimeout(invalidateMapSizeHard, 200);
+
+      // atualizar pool do pack atual
+      playPoolKeys = Array.from(keyToOfficial.keys());
+      playRemainingKeys = shuffle(playPoolKeys);
+
+      transitioning = false;
+    }
+
+    async function nextRound() {
       stopTimer();
       awaitingTap = false;
       hintUsedThisRound = false;
-
-      // bloqueia input um instante após render da nova pergunta
       inputBlockedUntil = Date.now() + 220;
 
-      currentTargetKey = pickNewTargetKey();
-      currentTargetOfficial = keyToOfficial.get(currentTargetKey) || currentTargetKey;
+      // escolher pack e garantir que está carregado
+      const pack = pickPackForRound();
+      await ensurePackLoaded(pack);
 
+      currentTargetKey = pickNewTargetKey();
       prepareChoicesForRound();
+
       renderHUD();
       renderChoices();
       lockChoices(false);
@@ -746,7 +1136,7 @@
     }
 
     function submitAnswerChoice(chosenKey) {
-      if (!playActive || awaitingTap) return;
+      if (!playActive || awaitingTap || transitioning) return;
       if (Date.now() < inputBlockedUntil) return;
 
       stopTimer();
@@ -756,7 +1146,7 @@
 
       if (chosenKey === currentTargetKey) {
         sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
+        const xp = computeXPForCorrect(elapsed, (playPackLevel === 4 ? 3 : playPackLevel), hintUsedThisRound);
         sessionXP += xp;
       } else {
         sessionWrong++;
@@ -771,7 +1161,7 @@
     }
 
     function useHint() {
-      if (!playActive || awaitingTap || hintUsedThisRound) return;
+      if (!playActive || awaitingTap || hintUsedThisRound || transitioning) return;
       if (Date.now() < inputBlockedUntil) return;
 
       hintUsedThisRound = true;
@@ -791,16 +1181,8 @@
       renderHUD();
     }
 
-    // MUDANÇA: avançar em pointerup (não em pointerdown) e bloquear input após avançar
-    document.addEventListener("pointerup", (e) => {
-      if (!screenGame.classList.contains("active")) return;
-      if (e.target.closest("#btnExit, #btnHint")) return;
-
-      if (finalOverlay.classList.contains("show")) {
-        backToMenu();
-        return;
-      }
-
+    async function goNextIfReady() {
+      if (transitioning) return;
       if (!awaitingTap) return;
       if (Date.now() < inputBlockedUntil) return;
 
@@ -809,7 +1191,24 @@
         return;
       }
 
-      nextRound();
+      transitioning = true;
+      try {
+        await nextRound();
+      } finally {
+        transitioning = false;
+      }
+    }
+
+    document.addEventListener("pointerup", async (e) => {
+      if (!screenGame.classList.contains("active")) return;
+      if (e.target.closest("#btnExit, #btnHint")) return;
+
+      if (finalOverlay.classList.contains("show")) {
+        backToMenu();
+        return;
+      }
+
+      await goNextIfReady();
     }, true);
 
     finalOverlay.addEventListener("click", (e) => {
@@ -817,30 +1216,10 @@
       backToMenu();
     });
 
-    let currentRegion = "pt";
-    let currentDistrict = "porto";
-
-    async function loadConcelhosFC() {
-      setLoading("A carregar concelhos…", 35);
-
-      if (currentRegion === "pt") {
-        const url = FILES.concelhosPT(currentDistrict);
-        const fc = await loadJSON(url);
-        const check = assertGeoJSONLooksLikeLonLat(fc);
-        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-        return fc;
-      }
-
-      const url = (currentRegion === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
-      const fc = await loadJSON(url);
-      const check = assertGeoJSONLooksLikeLonLat(fc);
-      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-      return fc;
-    }
-
     function resetSession() {
       stopTimer();
       awaitingTap = false;
+      transitioning = false;
       inputBlockedUntil = Date.now() + 200;
       hintUsedThisRound = false;
 
@@ -851,13 +1230,12 @@
 
       playActive = false;
       currentTargetKey = "";
-      currentTargetOfficial = "";
       currentChoicesKeys = [];
 
       finalOverlay.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
-      renderHUD();
+      sessionLine.textContent = `1/${PLAY.QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
     }
 
@@ -867,6 +1245,13 @@
       setLoading("A iniciar…", 10);
 
       try {
+        // carregar opções
+        const opts = loadOptions();
+        selectedPacks = getSelectedPacksFromOptions(opts);
+        if (selectedPacks.length === 0) {
+          selectedPacks = getSelectedPacksFromOptions(defaultOptions());
+        }
+
         resetSession();
         setLoading("A preparar ecrã…", 25);
 
@@ -877,34 +1262,25 @@
         setMapInteractive(false);
         invalidateMapSizeHard();
 
-        setLoading("A carregar mapa…", 55);
-        const fc = await loadConcelhosFC();
-
-        setLoading("A desenhar…", 85);
-        buildLayer(fc);
-
-        invalidateMapSizeHard();
-        setTimeout(invalidateMapSizeHard, 200);
-
-        playPackLevel = PLAY.CURRENT_PACK_LEVEL;
-        playPoolKeys = Array.from(keyToOfficial.keys());
-        playRemainingKeys = shuffle(playPoolKeys);
-
         playActive = true;
         setLoading("Concluído", 100);
 
-        nextRound();
+        // primeira pergunta
+        transitioning = true;
+        await nextRound();
+        transitioning = false;
       } catch (e) {
         console.error(e);
-        showScreen(screenGame);
-        ensureMapReady();
-        invalidateMapSizeHard();
+        showScreen(screenMenu);
+        document.body.classList.remove("playing");
+        alert("Erro a iniciar o jogo. Vê a consola para detalhes.");
       }
     }
 
     function backToMenu() {
       resetSession();
       clearLayer();
+      currentPack = null;
 
       document.body.classList.remove("playing");
       showScreen(screenMenu);
@@ -924,7 +1300,9 @@
       useHint();
     });
 
-    (function init() { showScreen(screenMenu); })();
+    (function init() {
+      showScreen(screenMenu);
+    })();
   </script>
 </body>
 </html>
