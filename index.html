@@ -618,7 +618,7 @@
     }
 
     /* =========================
-       OUTLIER REMOVAL (AZ/MD) — improved
+       OUTLIER REMOVAL (AZ/MD)
        ========================= */
     function iterCoords(geom, cb) {
       if (!geom) return;
@@ -635,8 +635,9 @@
       }
     }
 
-    function featureCenterLonLat(feature, MAX_PTS = 250) {
-      let sumLon = 0, sumLat = 0, take = 0;
+    // (ALTERAÇÃO) centro por bbox (mais robusto do que média de pontos)
+    function featureCenterLonLat(feature, MAX_PTS_UNUSED = 0) {
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
       let seen = 0;
 
       iterCoords(feature?.geometry, (p) => {
@@ -646,15 +647,14 @@
         if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
 
         seen++;
-        if (take < MAX_PTS) {
-          sumLon += lon;
-          sumLat += lat;
-          take++;
-        }
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
       });
 
-      if (take === 0) return null;
-      return { lon: sumLon / take, lat: sumLat / take };
+      if (!seen || !Number.isFinite(minLon) || !Number.isFinite(minLat) || !Number.isFinite(maxLon) || !Number.isFinite(maxLat)) return null;
+      return { lon: (minLon + maxLon) / 2, lat: (minLat + maxLat) / 2 };
     }
 
     function median(nums) {
@@ -682,7 +682,7 @@
       const absDev = dists.map(d => Math.abs(d - medD));
       const mad = median(absDev) || 0.000001;
 
-      const targetKeepRatio = 0.95; // não perder municípios válidos
+      const targetKeepRatio = 0.95;
       const maxK = 40;
       let k = 8;
 
@@ -699,6 +699,72 @@
 
       if (!kept.length) return fc;
       return { ...fc, features: kept };
+    }
+
+    /* =========================
+       (NOVA) BOUNDS ROBUSTO PARA EVITAR ZOOM-OUT
+       - Ignora outliers de coordenadas (mesmo dentro de features válidas).
+       - Usa quantis 1%–99% (adaptativo).
+       ========================= */
+    function quantileSorted(sorted, q) {
+      if (!sorted.length) return 0;
+      const pos = (sorted.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (sorted[base + 1] == null) return sorted[base];
+      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    }
+
+    function robustBoundsFromFC(fc, opts = {}) {
+      const MAX_POINTS = opts.maxPoints ?? 8000;
+      const MIN_POINTS = opts.minPoints ?? 200;
+
+      const lons = [];
+      const lats = [];
+
+      const feats = Array.isArray(fc?.features) ? fc.features : [];
+      for (const f of feats) {
+        iterCoords(f?.geometry, (p) => {
+          if (lons.length >= MAX_POINTS) return;
+          if (!Array.isArray(p) || p.length < 2) return;
+          const lon = Number(p[0]), lat = Number(p[1]);
+          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+          if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
+          lons.push(lon);
+          lats.push(lat);
+        });
+        if (lons.length >= MAX_POINTS) break;
+      }
+
+      if (lons.length < 8) return null;
+
+      const lonS = lons.slice().sort((a,b)=>a-b);
+      const latS = lats.slice().sort((a,b)=>a-b);
+
+      // Com poucos pontos, não recorta (para não cortar ilhas pequenas).
+      const qLo = (lonS.length >= MIN_POINTS) ? 0.01 : 0.0;
+      const qHi = (lonS.length >= MIN_POINTS) ? 0.99 : 1.0;
+
+      const minLon = quantileSorted(lonS, qLo);
+      const maxLon = quantileSorted(lonS, qHi);
+      const minLat = quantileSorted(latS, qLo);
+      const maxLat = quantileSorted(latS, qHi);
+
+      if (![minLon,maxLon,minLat,maxLat].every(Number.isFinite)) return null;
+      if (maxLon <= minLon || maxLat <= minLat) return null;
+
+      // margem ligeira para não “colar” ao ecrã
+      const padLon = (maxLon - minLon) * 0.06;
+      const padLat = (maxLat - minLat) * 0.06;
+
+      return {
+        minLon: minLon - padLon,
+        maxLon: maxLon + padLon,
+        minLat: minLat - padLat,
+        maxLat: maxLat + padLat,
+        pointsUsed: lonS.length,
+        qLo, qHi
+      };
     }
 
     const cache = new Map();
@@ -981,7 +1047,8 @@
 
     function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
 
-    function buildLayer(fc) {
+    // (ALTERAÇÃO) buildLayer recebe boundsOverride opcional
+    function buildLayer(fc, boundsOverride) {
       ensureMapReady();
       clearLayer();
 
@@ -1000,35 +1067,54 @@
       }).addTo(map);
 
       invalidateMapSizeHard();
+
       try {
-        const b = fillLayer.getBounds();
-        if (b && b.isValid && b.isValid()) {
-          map.fitBounds(b, { padding: [8, 8], animate: false });
+        if (boundsOverride && boundsOverride.isValid && boundsOverride.isValid()) {
+          map.fitBounds(boundsOverride, { padding: [8, 8], animate: false });
+        } else {
+          const b = fillLayer.getBounds();
+          if (b && b.isValid && b.isValid()) {
+            map.fitBounds(b, { padding: [8, 8], animate: false });
+          }
         }
       } catch {}
     }
 
+    // (ALTERAÇÃO) agora devolve { fc, boundsOverride }
     async function loadConcelhosFCForPack(pack) {
       setLoading(`A carregar: ${pack.label}`, 55);
 
       let fc;
+      let boundsOverride = null;
 
       if (pack.region === "pt") {
         const url = FILES.concelhosPT(pack.slug);
         fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+        // PT: fit normal
       } else {
         const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
         fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
-        // remover outliers que causam zoom-out absurdo
+        // remover outliers por feature (defesa adicional)
         fc = removeFarOutliers(fc);
+
+        // (NOVA) bounds robusto (evita zoom-out por coordenadas perdidas)
+        const rb = robustBoundsFromFC(fc, { maxPoints: 8000, minPoints: 200 });
+        if (rb) {
+          boundsOverride = L.latLngBounds(
+            [rb.minLat, rb.minLon],
+            [rb.maxLat, rb.maxLon]
+          );
+          // debug opcional:
+          // console.warn(`[bounds robusto] ${pack.id} pts=${rb.pointsUsed} q=${rb.qLo}-${rb.qHi}`, rb);
+        }
       }
 
-      return fc;
+      return { fc, boundsOverride };
     }
 
     function startTimer() {
@@ -1129,6 +1215,7 @@
       }
     }
 
+    // (ALTERAÇÃO) recebe boundsOverride e passa ao buildLayer
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
         playPackLevel = pack.level;
@@ -1143,10 +1230,10 @@
       playPackLevel = pack.level;
 
       setLoading(`A preparar: ${pack.label}`, 65);
-      const fc = await loadConcelhosFCForPack(pack);
+      const loaded = await loadConcelhosFCForPack(pack);
 
       setLoading("A desenhar…", 85);
-      buildLayer(fc);
+      buildLayer(loaded.fc, loaded.boundsOverride);
 
       invalidateMapSizeHard();
       setTimeout(invalidateMapSizeHard, 200);
