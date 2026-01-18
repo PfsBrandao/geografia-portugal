@@ -242,9 +242,7 @@
     .overlayCard .p { font-size: 18px; font-weight: 800; color: #111; margin: 8px 0; }
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
-    /* =========================
-       OPTIONS SCREEN (table style)
-       ========================= */
+    /* OPTIONS */
     .optWrap {
       min-height: 100dvh;
       background: #e8e9ea;
@@ -618,7 +616,47 @@
     }
 
     /* =========================
-       OUTLIER / BOUNDS HELPERS (AZ/MD)
+       AZ/MD: fallback bounds fixo + sanity-check do fitBounds
+       ========================= */
+    const PACK_FALLBACK_BOUNDS = {
+      // Açores (Flores/Corvo até Santa Maria)
+      az: { minLat: 36.7, maxLat: 39.9, minLon: -31.7, maxLon: -24.6 },
+      // Madeira + Porto Santo
+      md: { minLat: 32.55, maxLat: 33.25, minLon: -17.35, maxLon: -16.2 },
+    };
+
+    function boundsSpanDeg(b) {
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      return { dLat: Math.abs(ne.lat - sw.lat), dLon: Math.abs(ne.lng - sw.lng) };
+    }
+
+    function isBoundsSuspicious(pack, b) {
+      if (!b || !b.isValid || !b.isValid()) return true;
+      const { dLat, dLon } = boundsSpanDeg(b);
+
+      // Heurísticas simples:
+      // - bounds enorme => outlier lá longe
+      // - bounds minúsculo => cálculo “apertado”/bug => over-zoom e ficas a ver “um ponto”
+      if (pack.region === "az") {
+        if (dLat > 12 || dLon > 20) return true;     // absurdo para Açores
+        if (dLat < 0.4 || dLon < 0.6) return true;   // demasiado apertado
+      }
+      if (pack.region === "md") {
+        if (dLat > 5 || dLon > 8) return true;       // absurdo para Madeira
+        if (dLat < 0.15 || dLon < 0.2) return true;  // demasiado apertado
+      }
+      return false;
+    }
+
+    function makeFallbackLatLngBounds(pack) {
+      const fb = PACK_FALLBACK_BOUNDS[pack.region];
+      if (!fb) return null;
+      return L.latLngBounds([fb.minLat, fb.minLon], [fb.maxLat, fb.maxLon]);
+    }
+
+    /* =========================
+       OUTLIER REMOVAL (mantém o teu, mas não depende disto)
        ========================= */
     function iterCoords(geom, cb) {
       if (!geom) return;
@@ -635,7 +673,6 @@
       }
     }
 
-    // centro por bbox (robusto)
     function featureCenterLonLat(feature) {
       let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
       let seen = 0;
@@ -653,7 +690,7 @@
         if (lat > maxLat) maxLat = lat;
       });
 
-      if (!seen || !Number.isFinite(minLon) || !Number.isFinite(minLat) || !Number.isFinite(maxLon) || !Number.isFinite(maxLat)) return null;
+      if (!seen) return null;
       return { lon: (minLon + maxLon) / 2, lat: (minLat + maxLat) / 2 };
     }
 
@@ -663,7 +700,6 @@
       return a.length ? (a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2) : 0;
     }
 
-    // defesa adicional: remove features absurdamente afastadas (raríssimo mas acontece)
     function removeFarOutliers(fc) {
       const feats = Array.isArray(fc?.features) ? fc.features : [];
       if (feats.length < 5) return fc;
@@ -694,74 +730,11 @@
 
         const ratio = kept.length / feats.length;
         if (ratio >= targetKeepRatio) break;
-
         k += 4;
       }
 
       if (!kept.length) return fc;
       return { ...fc, features: kept };
-    }
-
-    function quantileSorted(sorted, q) {
-      if (!sorted.length) return 0;
-      const pos = (sorted.length - 1) * q;
-      const base = Math.floor(pos);
-      const rest = pos - base;
-      if (sorted[base + 1] == null) return sorted[base];
-      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-    }
-
-    // bounds robusto para arquipélagos: usa CENTROS das features e percentil de distâncias
-    function robustBoundsFromCentersFC(fc, opts = {}) {
-      const feats = Array.isArray(fc?.features) ? fc.features : [];
-      if (feats.length < 2) return null;
-
-      const centers = [];
-      for (const f of feats) {
-        const c = featureCenterLonLat(f);
-        if (c && Number.isFinite(c.lon) && Number.isFinite(c.lat)) centers.push(c);
-      }
-      if (centers.length < 2) return null;
-
-      const lonS = centers.map(c => c.lon).sort((a,b)=>a-b);
-      const latS = centers.map(c => c.lat).sort((a,b)=>a-b);
-      const medLon = quantileSorted(lonS, 0.5);
-      const medLat = quantileSorted(latS, 0.5);
-
-      const dists = centers.map(c => Math.hypot(c.lon - medLon, c.lat - medLat));
-      const dS = dists.slice().sort((a,b)=>a-b);
-
-      const q = opts.q ?? 0.99;
-      let thr = quantileSorted(dS, q);
-      if (!Number.isFinite(thr) || thr <= 0) thr = dS[dS.length - 1] || 0.5;
-      thr = thr * (opts.mult ?? 1.15);
-
-      const kept = centers.filter((c, i) => dists[i] <= thr);
-      const use = kept.length >= 2 ? kept : centers;
-
-      let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-      for (const c of use) {
-        if (c.lon < minLon) minLon = c.lon;
-        if (c.lon > maxLon) maxLon = c.lon;
-        if (c.lat < minLat) minLat = c.lat;
-        if (c.lat > maxLat) maxLat = c.lat;
-      }
-
-      if (![minLon,maxLon,minLat,maxLat].every(Number.isFinite)) return null;
-      if (maxLon <= minLon || maxLat <= minLat) return null;
-
-      const padLon = Math.max((maxLon - minLon) * 0.12, 0.08);
-      const padLat = Math.max((maxLat - minLat) * 0.12, 0.08);
-
-      return {
-        minLon: minLon - padLon,
-        maxLon: maxLon + padLon,
-        minLat: minLat - padLat,
-        maxLat: maxLat + padLat,
-        kept: use.length,
-        total: centers.length,
-        thr
-      };
     }
 
     const cache = new Map();
@@ -1044,7 +1017,28 @@
 
     function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
 
-    function buildLayer(fc, boundsOverride) {
+    function fitMapForPack(pack) {
+      if (!map || !fillLayer) return;
+
+      const layerBounds = fillLayer.getBounds();
+      const fb = (pack.region === "az" || pack.region === "md") ? makeFallbackLatLngBounds(pack) : null;
+
+      let useBounds = layerBounds;
+
+      if (pack.region === "az" || pack.region === "md") {
+        if (isBoundsSuspicious(pack, layerBounds)) {
+          if (fb) useBounds = fb;
+        }
+      }
+
+      try {
+        if (useBounds && useBounds.isValid && useBounds.isValid()) {
+          map.fitBounds(useBounds, { padding: [10, 10], animate: false, maxZoom: 9 });
+        }
+      } catch {}
+    }
+
+    function buildLayer(fc, pack) {
       ensureMapReady();
       clearLayer();
 
@@ -1064,23 +1058,14 @@
 
       invalidateMapSizeHard();
 
-      try {
-        if (boundsOverride && boundsOverride.isValid && boundsOverride.isValid()) {
-          map.fitBounds(boundsOverride, { padding: [8, 8], animate: false, maxZoom: 10 });
-        } else {
-          const b = fillLayer.getBounds();
-          if (b && b.isValid && b.isValid()) {
-            map.fitBounds(b, { padding: [8, 8], animate: false, maxZoom: 10 });
-          }
-        }
-      } catch {}
+      // (CRÍTICO) fit com sanity-check + fallback para AZ/MD
+      fitMapForPack(pack);
     }
 
     async function loadConcelhosFCForPack(pack) {
       setLoading(`A carregar: ${pack.label}`, 55);
 
       let fc;
-      let boundsOverride = null;
 
       if (pack.region === "pt") {
         const url = FILES.concelhosPT(pack.slug);
@@ -1093,20 +1078,11 @@
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
-        // defesa adicional (features absurdamente afastadas)
+        // defesa adicional (não resolve tudo, mas ajuda)
         fc = removeFarOutliers(fc);
-
-        // bounds robusto (centros + percentil) para não haver zoom-out nem over-zoom
-        const rb = robustBoundsFromCentersFC(fc, { q: 0.99, mult: 1.15 });
-        if (rb) {
-          boundsOverride = L.latLngBounds(
-            [rb.minLat, rb.minLon],
-            [rb.maxLat, rb.maxLon]
-          );
-        }
       }
 
-      return { fc, boundsOverride };
+      return fc;
     }
 
     function startTimer() {
@@ -1210,6 +1186,8 @@
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
         playPackLevel = pack.level;
+        // re-fit ao voltar a pack (opcional, mas ajuda quando se roda ecrã)
+        fitMapForPack(pack);
         return;
       }
 
@@ -1221,13 +1199,17 @@
       playPackLevel = pack.level;
 
       setLoading(`A preparar: ${pack.label}`, 65);
-      const loaded = await loadConcelhosFCForPack(pack);
+      const fc = await loadConcelhosFCForPack(pack);
 
       setLoading("A desenhar…", 85);
-      buildLayer(loaded.fc, loaded.boundsOverride);
+      buildLayer(fc, pack);
 
       invalidateMapSizeHard();
-      setTimeout(invalidateMapSizeHard, 200);
+      setTimeout(() => {
+        invalidateMapSizeHard();
+        // re-fit depois de invalidate (ajuda no mobile)
+        fitMapForPack(pack);
+      }, 200);
 
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
@@ -1437,8 +1419,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 
