@@ -351,10 +351,6 @@
       background: #2ee66a;
       box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
     }
-    .dot.disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
 
     .optFooter {
       display:flex;
@@ -381,13 +377,6 @@
     }
 
     @media (max-width: 420px) {
-      .gameShell {
-        grid-template-rows:
-          40px
-          1fr
-          60px
-          clamp(210px, 30dvh, 290px);
-      }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
       .choiceBtn { min-height: 42px; font-size: 13px; }
@@ -629,7 +618,7 @@
     }
 
     /* =========================
-       OUTLIER REMOVAL (AZ/MD)
+       OUTLIER REMOVAL (AZ/MD) — improved
        ========================= */
     function iterCoords(geom, cb) {
       if (!geom) return;
@@ -641,23 +630,29 @@
       if (t === "MultiPoint" || t === "LineString") return c.forEach(cb);
       if (t === "MultiLineString" || t === "Polygon") return c.flat().forEach(cb);
       if (t === "MultiPolygon") return c.flat(2).forEach(cb);
-      if (t === "GeometryCollection" && Array.isArray(geom.geometries)) return geom.geometries.forEach(g => iterCoords(g, cb));
+      if (t === "GeometryCollection" && Array.isArray(geom.geometries)) {
+        return geom.geometries.forEach(g => iterCoords(g, cb));
+      }
     }
 
-    function featureCentroidLonLat(feature) {
-      let sumLon = 0, sumLat = 0, take = 0, seen = 0;
+    function featureCenterLonLat(feature, MAX_PTS = 250) {
+      let sumLon = 0, sumLat = 0, take = 0;
+      let seen = 0;
+
       iterCoords(feature?.geometry, (p) => {
         if (!Array.isArray(p) || p.length < 2) return;
         const lon = Number(p[0]), lat = Number(p[1]);
         if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
         if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
+
         seen++;
-        // amostragem para ser leve
-        if (seen % 40 !== 0) return;
-        sumLon += lon;
-        sumLat += lat;
-        take++;
+        if (take < MAX_PTS) {
+          sumLon += lon;
+          sumLat += lat;
+          take++;
+        }
       });
+
       if (take === 0) return null;
       return { lon: sumLon / take, lat: sumLat / take };
     }
@@ -670,11 +665,12 @@
 
     function removeFarOutliers(fc) {
       const feats = Array.isArray(fc?.features) ? fc.features : [];
-      const pts = [];
+      if (feats.length < 5) return fc;
 
+      const pts = [];
       for (const f of feats) {
-        const c = featureCentroidLonLat(f);
-        if (c) pts.push({ f, ...c });
+        const c = featureCenterLonLat(f);
+        if (c) pts.push({ f, lon: c.lon, lat: c.lat });
       }
       if (pts.length < 5) return fc;
 
@@ -684,12 +680,24 @@
       const dists = pts.map(p => Math.hypot(p.lon - medLon, p.lat - medLat));
       const medD = median(dists);
       const absDev = dists.map(d => Math.abs(d - medD));
-      const mad = median(absDev) || 0.0001;
+      const mad = median(absDev) || 0.000001;
 
-      const thr = medD + 8 * mad;
-      const kept = pts.filter((p, i) => dists[i] <= thr).map(p => p.f);
-      if (kept.length === 0) return fc;
+      const targetKeepRatio = 0.95; // não perder municípios válidos
+      const maxK = 40;
+      let k = 8;
 
+      let kept = [];
+      while (k <= maxK) {
+        const thr = medD + k * mad;
+        kept = pts.filter((p, i) => dists[i] <= thr).map(p => p.f);
+
+        const ratio = kept.length / feats.length;
+        if (ratio >= targetKeepRatio) break;
+
+        k += 4;
+      }
+
+      if (!kept.length) return fc;
       return { ...fc, features: kept };
     }
 
@@ -748,12 +756,8 @@
     const OPT_KEY = "geoPT_options_v1";
 
     function defaultOptions() {
-      // default: Porto nível 3 (igual ao comportamento atual)
-      return {
-        levels: { "pt:porto": 3 },
-      };
+      return { levels: { "pt:porto": 3 } };
     }
-
     function loadOptions() {
       try {
         const raw = localStorage.getItem(OPT_KEY);
@@ -766,11 +770,7 @@
         return defaultOptions();
       }
     }
-
-    function saveOptions(o) {
-      localStorage.setItem(OPT_KEY, JSON.stringify(o));
-    }
-
+    function saveOptions(o) { localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
     function getSelectedPacksFromOptions(o) {
       const packs = getAllPacks();
       const selected = [];
@@ -810,7 +810,6 @@
       optTable.appendChild(head);
 
       const packs = getAllPacks();
-
       for (const p of packs) {
         const row = document.createElement("div");
         row.className = "optRow";
@@ -826,22 +825,16 @@
         for (let L = 1; L <= 4; L++) {
           const cell = document.createElement("div");
           cell.className = "optCell dotCell";
-
           const dot = document.createElement("span");
           dot.className = "dot" + (lvl === L ? " on" : "");
           dot.title = `Nível ${L}`;
-
           dot.addEventListener("click", () => {
             const cur = Number(optionsDraft.levels?.[p.id] || 0);
-            if (cur === L) {
-              delete optionsDraft.levels[p.id];
-            } else {
-              optionsDraft.levels[p.id] = L;
-            }
+            if (cur === L) delete optionsDraft.levels[p.id];
+            else optionsDraft.levels[p.id] = L;
             renderOptionsTable();
             updateOptSelectedCount();
           });
-
           cell.appendChild(dot);
           row.appendChild(cell);
         }
@@ -857,10 +850,7 @@
       renderOptionsTable();
       showScreen(screenOptions);
     }
-
-    function closeOptionsToMenu() {
-      showScreen(screenMenu);
-    }
+    function closeOptionsToMenu() { showScreen(screenMenu); }
 
     btnMenuOptions.addEventListener("click", () => openOptionsScreen());
     btnOptBack.addEventListener("click", () => closeOptionsToMenu());
@@ -874,10 +864,7 @@
 
     btnOptSave.addEventListener("click", () => {
       const selected = getSelectedPacksFromOptions(optionsDraft);
-      if (selected.length === 0) {
-        alert("Seleciona pelo menos 1 distrito/região para jogar.");
-        return;
-      }
+      if (selected.length === 0) { alert("Seleciona pelo menos 1 distrito/região para jogar."); return; }
       saveOptions(optionsDraft);
       closeOptionsToMenu();
     });
@@ -950,7 +937,7 @@
     let playActive = false;
 
     let selectedPacks = [];
-    let currentPack = null; // {id, region, slug, label, level}
+    let currentPack = null;
 
     let playPackLevel = 3;
     let playPoolKeys = [];
@@ -1037,7 +1024,7 @@
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
-        // NOVO: remover outliers que provocam zoom-out absurdo em AZ/MD
+        // remover outliers que causam zoom-out absurdo
         fc = removeFarOutliers(fc);
       }
 
@@ -1091,8 +1078,7 @@
     }
 
     function pickPackForRound() {
-      const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
-      return p;
+      return selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
     }
 
     function pickNewTargetKey() {
@@ -1213,9 +1199,11 @@
 
       sessionIndex++;
 
+      const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
+
       if (chosenKey === currentTargetKey) {
         sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, (playPackLevel === 4 ? 3 : playPackLevel), hintUsedThisRound);
+        const xp = computeXPForCorrect(elapsed, effectiveLevel, hintUsedThisRound);
         sessionXP += xp;
       } else {
         sessionWrong++;
@@ -1269,7 +1257,7 @@
     }
 
     document.addEventListener("pointerup", async (e) => {
-      if (!screenGame.classList.contains("active")) return;
+      if (!document.getElementById("screenGame").classList.contains("active")) return;
       if (e.target.closest("#btnExit, #btnHint")) return;
 
       if (finalOverlay.classList.contains("show")) {
@@ -1371,7 +1359,6 @@
   </script>
 </body>
 </html>
-
 
 
 
