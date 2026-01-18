@@ -361,6 +361,7 @@
       gap: 10px;
       justify-content:center;
       margin-top: 12px;
+      flex-wrap: wrap;
     }
     .optBtn {
       min-height: 52px;
@@ -380,6 +381,13 @@
     }
 
     @media (max-width: 420px) {
+      .gameShell {
+        grid-template-rows:
+          40px
+          1fr
+          60px
+          clamp(210px, 30dvh, 290px);
+      }
       .hudBox .v { font-size: 18px; }
       .hudBtn { font-size: 16px; }
       .choiceBtn { min-height: 42px; font-size: 13px; }
@@ -620,6 +628,71 @@
       return { cleaned: { ...fc, features: kept } };
     }
 
+    /* =========================
+       OUTLIER REMOVAL (AZ/MD)
+       ========================= */
+    function iterCoords(geom, cb) {
+      if (!geom) return;
+      const t = geom.type;
+      const c = geom.coordinates;
+      if (!t || !c) return;
+
+      if (t === "Point") return cb(c);
+      if (t === "MultiPoint" || t === "LineString") return c.forEach(cb);
+      if (t === "MultiLineString" || t === "Polygon") return c.flat().forEach(cb);
+      if (t === "MultiPolygon") return c.flat(2).forEach(cb);
+      if (t === "GeometryCollection" && Array.isArray(geom.geometries)) return geom.geometries.forEach(g => iterCoords(g, cb));
+    }
+
+    function featureCentroidLonLat(feature) {
+      let sumLon = 0, sumLat = 0, take = 0, seen = 0;
+      iterCoords(feature?.geometry, (p) => {
+        if (!Array.isArray(p) || p.length < 2) return;
+        const lon = Number(p[0]), lat = Number(p[1]);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+        if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
+        seen++;
+        // amostragem para ser leve
+        if (seen % 40 !== 0) return;
+        sumLon += lon;
+        sumLat += lat;
+        take++;
+      });
+      if (take === 0) return null;
+      return { lon: sumLon / take, lat: sumLat / take };
+    }
+
+    function median(nums) {
+      const a = nums.slice().sort((x,y)=>x-y);
+      const m = Math.floor(a.length / 2);
+      return a.length ? (a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2) : 0;
+    }
+
+    function removeFarOutliers(fc) {
+      const feats = Array.isArray(fc?.features) ? fc.features : [];
+      const pts = [];
+
+      for (const f of feats) {
+        const c = featureCentroidLonLat(f);
+        if (c) pts.push({ f, ...c });
+      }
+      if (pts.length < 5) return fc;
+
+      const medLon = median(pts.map(p => p.lon));
+      const medLat = median(pts.map(p => p.lat));
+
+      const dists = pts.map(p => Math.hypot(p.lon - medLon, p.lat - medLat));
+      const medD = median(dists);
+      const absDev = dists.map(d => Math.abs(d - medD));
+      const mad = median(absDev) || 0.0001;
+
+      const thr = medD + 8 * mad;
+      const kept = pts.filter((p, i) => dists[i] <= thr).map(p => p.f);
+      if (kept.length === 0) return fc;
+
+      return { ...fc, features: kept };
+    }
+
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -761,7 +834,6 @@
           dot.addEventListener("click", () => {
             const cur = Number(optionsDraft.levels?.[p.id] || 0);
             if (cur === L) {
-              // tocar no mesmo nível -> desativa a zona
               delete optionsDraft.levels[p.id];
             } else {
               optionsDraft.levels[p.id] = L;
@@ -877,11 +949,9 @@
        ========================= */
     let playActive = false;
 
-    // pool de packs selecionados (zona + nível)
     let selectedPacks = [];
     let currentPack = null; // {id, region, slug, label, level}
 
-    // pool de respostas (do pack atual)
     let playPackLevel = 3;
     let playPoolKeys = [];
     let playRemainingKeys = [];
@@ -954,18 +1024,23 @@
     async function loadConcelhosFCForPack(pack) {
       setLoading(`A carregar: ${pack.label}`, 55);
 
+      let fc;
+
       if (pack.region === "pt") {
         const url = FILES.concelhosPT(pack.slug);
-        const fc = await loadJSON(url);
+        fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-        return fc;
+      } else {
+        const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
+        fc = await loadJSON(url);
+        const check = assertGeoJSONLooksLikeLonLat(fc);
+        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
+
+        // NOVO: remover outliers que provocam zoom-out absurdo em AZ/MD
+        fc = removeFarOutliers(fc);
       }
 
-      const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
-      const fc = await loadJSON(url);
-      const check = assertGeoJSONLooksLikeLonLat(fc);
-      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
       return fc;
     }
 
@@ -1016,8 +1091,6 @@
     }
 
     function pickPackForRound() {
-      // simples: escolher ao acaso entre os selecionados
-      // (mais tarde podes fazer “quota” por distrito, etc.)
       const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
       return p;
     }
@@ -1028,7 +1101,6 @@
     }
 
     function prepareChoicesForRound() {
-      // nível 4 ainda não implementado (texto). Por agora comporta-se como nível 3.
       const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
       const n = PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
@@ -1073,7 +1145,6 @@
 
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
-        // só ajustar nível
         playPackLevel = pack.level;
         return;
       }
@@ -1094,7 +1165,6 @@
       invalidateMapSizeHard();
       setTimeout(invalidateMapSizeHard, 200);
 
-      // atualizar pool do pack atual
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
@@ -1107,7 +1177,6 @@
       hintUsedThisRound = false;
       inputBlockedUntil = Date.now() + 220;
 
-      // escolher pack e garantir que está carregado
       const pack = pickPackForRound();
       await ensurePackLoaded(pack);
 
@@ -1245,12 +1314,9 @@
       setLoading("A iniciar…", 10);
 
       try {
-        // carregar opções
         const opts = loadOptions();
         selectedPacks = getSelectedPacksFromOptions(opts);
-        if (selectedPacks.length === 0) {
-          selectedPacks = getSelectedPacksFromOptions(defaultOptions());
-        }
+        if (selectedPacks.length === 0) selectedPacks = getSelectedPacksFromOptions(defaultOptions());
 
         resetSession();
         setLoading("A preparar ecrã…", 25);
@@ -1265,7 +1331,6 @@
         playActive = true;
         setLoading("Concluído", 100);
 
-        // primeira pergunta
         transitioning = true;
         await nextRound();
         transitioning = false;
@@ -1306,6 +1371,7 @@
   </script>
 </body>
 </html>
+
 
 
 
