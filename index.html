@@ -618,7 +618,7 @@
     }
 
     /* =========================
-       OUTLIER REMOVAL (AZ/MD)
+       OUTLIER / BOUNDS HELPERS (AZ/MD)
        ========================= */
     function iterCoords(geom, cb) {
       if (!geom) return;
@@ -635,8 +635,8 @@
       }
     }
 
-    // (ALTERAÇÃO) centro por bbox (mais robusto do que média de pontos)
-    function featureCenterLonLat(feature, MAX_PTS_UNUSED = 0) {
+    // centro por bbox (robusto)
+    function featureCenterLonLat(feature) {
       let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
       let seen = 0;
 
@@ -663,6 +663,7 @@
       return a.length ? (a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2) : 0;
     }
 
+    // defesa adicional: remove features absurdamente afastadas (raríssimo mas acontece)
     function removeFarOutliers(fc) {
       const feats = Array.isArray(fc?.features) ? fc.features : [];
       if (feats.length < 5) return fc;
@@ -701,11 +702,6 @@
       return { ...fc, features: kept };
     }
 
-    /* =========================
-       (NOVA) BOUNDS ROBUSTO PARA EVITAR ZOOM-OUT
-       - Ignora outliers de coordenadas (mesmo dentro de features válidas).
-       - Usa quantis 1%–99% (adaptativo).
-       ========================= */
     function quantileSorted(sorted, q) {
       if (!sorted.length) return 0;
       const pos = (sorted.length - 1) * q;
@@ -715,55 +711,56 @@
       return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
     }
 
-    function robustBoundsFromFC(fc, opts = {}) {
-      const MAX_POINTS = opts.maxPoints ?? 8000;
-      const MIN_POINTS = opts.minPoints ?? 200;
-
-      const lons = [];
-      const lats = [];
-
+    // bounds robusto para arquipélagos: usa CENTROS das features e percentil de distâncias
+    function robustBoundsFromCentersFC(fc, opts = {}) {
       const feats = Array.isArray(fc?.features) ? fc.features : [];
+      if (feats.length < 2) return null;
+
+      const centers = [];
       for (const f of feats) {
-        iterCoords(f?.geometry, (p) => {
-          if (lons.length >= MAX_POINTS) return;
-          if (!Array.isArray(p) || p.length < 2) return;
-          const lon = Number(p[0]), lat = Number(p[1]);
-          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
-          if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
-          lons.push(lon);
-          lats.push(lat);
-        });
-        if (lons.length >= MAX_POINTS) break;
+        const c = featureCenterLonLat(f);
+        if (c && Number.isFinite(c.lon) && Number.isFinite(c.lat)) centers.push(c);
       }
+      if (centers.length < 2) return null;
 
-      if (lons.length < 8) return null;
+      const lonS = centers.map(c => c.lon).sort((a,b)=>a-b);
+      const latS = centers.map(c => c.lat).sort((a,b)=>a-b);
+      const medLon = quantileSorted(lonS, 0.5);
+      const medLat = quantileSorted(latS, 0.5);
 
-      const lonS = lons.slice().sort((a,b)=>a-b);
-      const latS = lats.slice().sort((a,b)=>a-b);
+      const dists = centers.map(c => Math.hypot(c.lon - medLon, c.lat - medLat));
+      const dS = dists.slice().sort((a,b)=>a-b);
 
-      // Com poucos pontos, não recorta (para não cortar ilhas pequenas).
-      const qLo = (lonS.length >= MIN_POINTS) ? 0.01 : 0.0;
-      const qHi = (lonS.length >= MIN_POINTS) ? 0.99 : 1.0;
+      const q = opts.q ?? 0.99;
+      let thr = quantileSorted(dS, q);
+      if (!Number.isFinite(thr) || thr <= 0) thr = dS[dS.length - 1] || 0.5;
+      thr = thr * (opts.mult ?? 1.15);
 
-      const minLon = quantileSorted(lonS, qLo);
-      const maxLon = quantileSorted(lonS, qHi);
-      const minLat = quantileSorted(latS, qLo);
-      const maxLat = quantileSorted(latS, qHi);
+      const kept = centers.filter((c, i) => dists[i] <= thr);
+      const use = kept.length >= 2 ? kept : centers;
+
+      let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      for (const c of use) {
+        if (c.lon < minLon) minLon = c.lon;
+        if (c.lon > maxLon) maxLon = c.lon;
+        if (c.lat < minLat) minLat = c.lat;
+        if (c.lat > maxLat) maxLat = c.lat;
+      }
 
       if (![minLon,maxLon,minLat,maxLat].every(Number.isFinite)) return null;
       if (maxLon <= minLon || maxLat <= minLat) return null;
 
-      // margem ligeira para não “colar” ao ecrã
-      const padLon = (maxLon - minLon) * 0.06;
-      const padLat = (maxLat - minLat) * 0.06;
+      const padLon = Math.max((maxLon - minLon) * 0.12, 0.08);
+      const padLat = Math.max((maxLat - minLat) * 0.12, 0.08);
 
       return {
         minLon: minLon - padLon,
         maxLon: maxLon + padLon,
         minLat: minLat - padLat,
         maxLat: maxLat + padLat,
-        pointsUsed: lonS.length,
-        qLo, qHi
+        kept: use.length,
+        total: centers.length,
+        thr
       };
     }
 
@@ -1047,7 +1044,6 @@
 
     function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
 
-    // (ALTERAÇÃO) buildLayer recebe boundsOverride opcional
     function buildLayer(fc, boundsOverride) {
       ensureMapReady();
       clearLayer();
@@ -1070,17 +1066,16 @@
 
       try {
         if (boundsOverride && boundsOverride.isValid && boundsOverride.isValid()) {
-          map.fitBounds(boundsOverride, { padding: [8, 8], animate: false });
+          map.fitBounds(boundsOverride, { padding: [8, 8], animate: false, maxZoom: 10 });
         } else {
           const b = fillLayer.getBounds();
           if (b && b.isValid && b.isValid()) {
-            map.fitBounds(b, { padding: [8, 8], animate: false });
+            map.fitBounds(b, { padding: [8, 8], animate: false, maxZoom: 10 });
           }
         }
       } catch {}
     }
 
-    // (ALTERAÇÃO) agora devolve { fc, boundsOverride }
     async function loadConcelhosFCForPack(pack) {
       setLoading(`A carregar: ${pack.label}`, 55);
 
@@ -1092,25 +1087,22 @@
         fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-        // PT: fit normal
       } else {
         const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
         fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
 
-        // remover outliers por feature (defesa adicional)
+        // defesa adicional (features absurdamente afastadas)
         fc = removeFarOutliers(fc);
 
-        // (NOVA) bounds robusto (evita zoom-out por coordenadas perdidas)
-        const rb = robustBoundsFromFC(fc, { maxPoints: 8000, minPoints: 200 });
+        // bounds robusto (centros + percentil) para não haver zoom-out nem over-zoom
+        const rb = robustBoundsFromCentersFC(fc, { q: 0.99, mult: 1.15 });
         if (rb) {
           boundsOverride = L.latLngBounds(
             [rb.minLat, rb.minLon],
             [rb.maxLat, rb.maxLon]
           );
-          // debug opcional:
-          // console.warn(`[bounds robusto] ${pack.id} pts=${rb.pointsUsed} q=${rb.qLo}-${rb.qHi}`, rb);
         }
       }
 
@@ -1215,7 +1207,6 @@
       }
     }
 
-    // (ALTERAÇÃO) recebe boundsOverride e passa ao buildLayer
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
         playPackLevel = pack.level;
@@ -1446,6 +1437,7 @@
   </script>
 </body>
 </html>
+
 
 
 
