@@ -869,13 +869,20 @@
     let keyToLayer = new Map();
     let boundsByAzGroup = { ocidental: null, central: null, oriental: null };
 
+    function extendBounds(dst, add) {
+      if (!add) return dst;
+      if (!dst) return add;
+      try { dst.extend(add); } catch {}
+      return dst;
+    }
+
     function clearLayer() {
       if (fillLayer) fillLayer.remove();
       fillLayer = null;
+
       byKey.clear();
       keyToOfficial.clear();
 
-      // novo
       keyToLayer.clear();
       boundsByAzGroup = { ocidental: null, central: null, oriental: null };
     }
@@ -934,13 +941,15 @@
 
     // ====== NOVO: agrupamento Açores por longitude (fallback) ======
     function groupFromLon(lon) {
-      // thresholds aproximados (ajustáveis)
-      if (lon < -28.8) return "ocidental"; // Flores/Corvo
-      if (lon < -25.8) return "central";   // Faial/Pico/SJorge/Graciosa/Terceira
-      return "oriental";                    // São Miguel/Santa Maria
+      const OCIDENTAL_MAX = -28.8; // Flores/Corvo
+      const CENTRAL_MAX   = -25.8; // Terceira... até antes de São Miguel
+      if (lon <= OCIDENTAL_MAX) return "ocidental";
+      if (lon <= CENTRAL_MAX) return "central";
+      return "oriental";
     }
 
-    function buildLayer(fc) {
+    // ====== ALTERADO: buildLayer(fc, packRegion) ======
+    function buildLayer(fc, packRegion) {
       ensureMapReady();
       clearLayer();
 
@@ -960,15 +969,12 @@
           keyToOfficial.set(key, raw);
           keyToLayer.set(key, layer);
 
-          // calcular bounds por grupo apenas se estivermos nos Açores
-          // (mesmo que calcule sempre, o custo é baixo; mantemos a condição para clareza)
-          if (currentPack && currentPack.region === "az") {
+          if (packRegion === "az") {
             try {
               const b = layer.getBounds();
               const c = b.getCenter();
               const g = groupFromLon(c.lng);
-              if (!boundsByAzGroup[g]) boundsByAzGroup[g] = b;
-              else boundsByAzGroup[g].extend(b);
+              boundsByAzGroup[g] = extendBounds(boundsByAzGroup[g], b);
             } catch {}
           }
         }
@@ -1048,7 +1054,6 @@
     }
 
     function pickPackForRound() {
-      // simples: escolher ao acaso entre os selecionados
       const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
       return p;
     }
@@ -1059,7 +1064,6 @@
     }
 
     function prepareChoicesForRound() {
-      // nível 4 ainda não implementado (texto). Por agora comporta-se como nível 3.
       const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
       const n = PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
@@ -1104,7 +1108,6 @@
 
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
-        // só ajustar nível
         playPackLevel = pack.level;
         return;
       }
@@ -1120,19 +1123,18 @@
       const fc = await loadConcelhosFCForPack(pack);
 
       setLoading("A desenhar…", 85);
-      buildLayer(fc);
+      buildLayer(fc, pack.region);
 
       invalidateMapSizeHard();
       setTimeout(invalidateMapSizeHard, 200);
 
-      // atualizar pool do pack atual
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
       transitioning = false;
     }
 
-    // ====== NOVO: zoom automático por grupo nos Açores ======
+    // ====== NOVO: zoom automático por grupo nos Açores (com defer + invalidate) ======
     function zoomToAzoresGroupIfNeeded() {
       if (!map) return;
       if (!currentPack || currentPack.region !== "az") return;
@@ -1140,18 +1142,29 @@
       const layer = keyToLayer.get(currentTargetKey);
       if (!layer) return;
 
+      let g = null;
       try {
         const c = layer.getBounds().getCenter();
-        const g = groupFromLon(c.lng);
-        const gb = boundsByAzGroup[g];
-        if (!gb) return;
+        g = groupFromLon(c.lng);
+      } catch {
+        return;
+      }
 
-        map.fitBounds(gb, {
-          padding: [14, 14],
-          maxZoom: 9,     // ajusta aqui (8–11 típico)
-          animate: false
+      const gb = boundsByAzGroup[g];
+      if (!gb || !gb.isValid || !gb.isValid()) return;
+
+      requestAnimationFrame(() => {
+        try { map.invalidateSize(true); } catch {}
+        requestAnimationFrame(() => {
+          try {
+            map.fitBounds(gb, {
+              padding: [18, 18],
+              maxZoom: 10,
+              animate: false
+            });
+          } catch {}
         });
-      } catch {}
+      });
     }
 
     async function nextRound() {
@@ -1160,14 +1173,12 @@
       hintUsedThisRound = false;
       inputBlockedUntil = Date.now() + 220;
 
-      // escolher pack e garantir que está carregado
       const pack = pickPackForRound();
       await ensurePackLoaded(pack);
 
       currentTargetKey = pickNewTargetKey();
       prepareChoicesForRound();
 
-      // novo: se Açores, aproximar no grupo relevante
       zoomToAzoresGroupIfNeeded();
 
       renderHUD();
@@ -1301,7 +1312,6 @@
       setLoading("A iniciar…", 10);
 
       try {
-        // carregar opções
         const opts = loadOptions();
         selectedPacks = getSelectedPacksFromOptions(opts);
         if (selectedPacks.length === 0) {
@@ -1321,7 +1331,6 @@
         playActive = true;
         setLoading("Concluído", 100);
 
-        // primeira pergunta
         transitioning = true;
         await nextRound();
         transitioning = false;
@@ -1362,6 +1371,7 @@
   </script>
 </body>
 </html>
+
 
 
 
