@@ -865,11 +865,19 @@
     let byKey = new Map();
     let keyToOfficial = new Map();
 
+    // ====== NOVO: mapa de layers por concelho e bounds por grupo (Açores) ======
+    let keyToLayer = new Map();
+    let boundsByAzGroup = { ocidental: null, central: null, oriental: null };
+
     function clearLayer() {
       if (fillLayer) fillLayer.remove();
       fillLayer = null;
       byKey.clear();
       keyToOfficial.clear();
+
+      // novo
+      keyToLayer.clear();
+      boundsByAzGroup = { ocidental: null, central: null, oriental: null };
     }
 
     /* =========================
@@ -924,6 +932,14 @@
 
     function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
 
+    // ====== NOVO: agrupamento Açores por longitude (fallback) ======
+    function groupFromLon(lon) {
+      // thresholds aproximados (ajustáveis)
+      if (lon < -28.8) return "ocidental"; // Flores/Corvo
+      if (lon < -25.8) return "central";   // Faial/Pico/SJorge/Graciosa/Terceira
+      return "oriental";                    // São Miguel/Santa Maria
+    }
+
     function buildLayer(fc) {
       ensureMapReady();
       clearLayer();
@@ -935,10 +951,26 @@
 
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
-        onEachFeature: (feature) => {
+        onEachFeature: (feature, layer) => {
           const raw = getMunicipalityName(feature.properties || {});
           const key = normalize(raw);
-          if (key) { byKey.set(key, true); keyToOfficial.set(key, raw); }
+          if (!key) return;
+
+          byKey.set(key, true);
+          keyToOfficial.set(key, raw);
+          keyToLayer.set(key, layer);
+
+          // calcular bounds por grupo apenas se estivermos nos Açores
+          // (mesmo que calcule sempre, o custo é baixo; mantemos a condição para clareza)
+          if (currentPack && currentPack.region === "az") {
+            try {
+              const b = layer.getBounds();
+              const c = b.getCenter();
+              const g = groupFromLon(c.lng);
+              if (!boundsByAzGroup[g]) boundsByAzGroup[g] = b;
+              else boundsByAzGroup[g].extend(b);
+            } catch {}
+          }
         }
       }).addTo(map);
 
@@ -1017,7 +1049,6 @@
 
     function pickPackForRound() {
       // simples: escolher ao acaso entre os selecionados
-      // (mais tarde podes fazer “quota” por distrito, etc.)
       const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
       return p;
     }
@@ -1101,6 +1132,28 @@
       transitioning = false;
     }
 
+    // ====== NOVO: zoom automático por grupo nos Açores ======
+    function zoomToAzoresGroupIfNeeded() {
+      if (!map) return;
+      if (!currentPack || currentPack.region !== "az") return;
+
+      const layer = keyToLayer.get(currentTargetKey);
+      if (!layer) return;
+
+      try {
+        const c = layer.getBounds().getCenter();
+        const g = groupFromLon(c.lng);
+        const gb = boundsByAzGroup[g];
+        if (!gb) return;
+
+        map.fitBounds(gb, {
+          padding: [14, 14],
+          maxZoom: 9,     // ajusta aqui (8–11 típico)
+          animate: false
+        });
+      } catch {}
+    }
+
     async function nextRound() {
       stopTimer();
       awaitingTap = false;
@@ -1113,6 +1166,9 @@
 
       currentTargetKey = pickNewTargetKey();
       prepareChoicesForRound();
+
+      // novo: se Açores, aproximar no grupo relevante
+      zoomToAzoresGroupIfNeeded();
 
       renderHUD();
       renderChoices();
