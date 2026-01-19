@@ -171,8 +171,6 @@
 
     /* ==============
        INSET (AÇORES)
-       - canto inferior esquerdo
-       - ~30% mais pequeno do que a versão inicial
        ============== */
     .insetWrap{
       position:absolute;
@@ -206,9 +204,6 @@
       color: #f2f2f2;
       overflow: hidden;
     }
-
-    body.playing .timerWrap { display:none !important; }
-    .msg, .tapHint { display:none !important; }
 
     .choices {
       display: grid;
@@ -272,7 +267,7 @@
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
     /* =========================
-       OPTIONS SCREEN (table style)
+       OPTIONS SCREEN
        ========================= */
     .optWrap {
       min-height: 100dvh;
@@ -380,10 +375,6 @@
       background: #2ee66a;
       box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
     }
-    .dot.disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
 
     .optFooter {
       display:flex;
@@ -416,7 +407,6 @@
       .optRow { grid-template-columns: 1.7fr repeat(4, 0.42fr); }
       .dot { width: 16px; height: 16px; }
 
-      /* inset um pouco maior em ecrãs muito pequenos para continuar legível */
       .insetWrap{
         width: min(34vw, 160px);
         height: min(34vw, 160px);
@@ -424,10 +414,7 @@
     }
 
     @media (min-width: 900px) {
-      .gameShell {
-        max-width: 1100px;
-        margin: 0 auto;
-      }
+      .gameShell { max-width: 1100px; margin: 0 auto; }
     }
   </style>
 </head>
@@ -674,7 +661,6 @@
       const dLat = Math.abs(ne.lat - sw.lat);
       const dLng = Math.abs(ne.lng - sw.lng);
 
-      // se a caixa for muito pequena (quase um ponto), expande artificialmente
       if (dLat < 0.01 && dLng < 0.01) {
         const c = b.getCenter();
         const expanded = L.latLngBounds(
@@ -876,6 +862,12 @@
     let insetLayer = null;
     let insetRect = null;
 
+    // Cache do último GeoJSON limpo (para poder criar insetLayer mesmo que insetMap seja criado mais tarde)
+    let lastCleanedGeoJSON = null;
+
+    // Arranque a frio: inset priming
+    let insetPrimed = false;
+
     // Indexes
     let byKey = new Map();
     let keyToOfficial = new Map();
@@ -971,6 +963,8 @@
       if (insetRect) insetRect.remove();
       insetRect = null;
 
+      lastCleanedGeoJSON = null;
+
       byKey.clear();
       keyToOfficial.clear();
 
@@ -1034,13 +1028,14 @@
 
     function buildLayer(fc) {
       ensureMapReady();
-      ensureInsetReady();
       clearLayer();
 
       const { cleaned } = sanitizeFeatureCollection(fc);
       if (!cleaned.features || cleaned.features.length === 0) {
         throw new Error("GeoJSON sem features válidas (após limpeza).");
       }
+
+      lastCleanedGeoJSON = cleaned;
 
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
@@ -1052,13 +1047,11 @@
           byKey.set(key, true);
           keyToOfficial.set(key, raw);
 
-          // bounds por concelho (fallback para inset)
           try {
             const bKey = layer.getBounds?.();
             if (bKey && bKey.isValid && bKey.isValid()) keyToBounds.set(key, bKey);
           } catch {}
 
-          // ilha (se existir)
           const ilha = getIslandName(feature.properties || {});
           if (ilha) {
             keyToIsland.set(key, ilha);
@@ -1072,9 +1065,6 @@
           }
         }
       }).addTo(map);
-
-      // inset desenha o mesmo conteúdo (sem interação)
-      insetLayer = L.geoJSON(cleaned, { style: styleFill }).addTo(insetMap);
 
       invalidateMapSizeHard();
 
@@ -1227,6 +1217,11 @@
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
+      // ao trocar de pack, o inset fica "por primar" de novo (porque pode ter estado escondido)
+      insetPrimed = false;
+      if (insetLayer) { insetLayer.remove(); insetLayer = null; }
+      if (insetRect) { insetRect.remove(); insetRect = null; }
+
       transitioning = false;
     }
 
@@ -1239,29 +1234,55 @@
 
       insetWrap.classList.add("show");
 
-      // garantir sizes e só depois fitBounds
+      // IMPORTANT: só criar/primar insetMap quando o wrap já está visível
       afterNextPaint(() => {
+        if (!insetMap) {
+          ensureInsetReady();
+          insetPrimed = false;
+        }
+
+        // se buildLayer correu antes de insetMap existir, cria agora a layer no inset
+        if (!insetLayer && insetMap && lastCleanedGeoJSON) {
+          insetLayer = L.geoJSON(lastCleanedGeoJSON, { style: styleFill }).addTo(insetMap);
+        }
+
+        // 1º invalidate (já visível)
         invalidateInsetSizeHard();
 
-        const ilha = keyToIsland.get(currentTargetKey);
-        const b =
-          (ilha && islandToBounds.get(ilha)) ? islandToBounds.get(ilha)
-          : keyToBounds.get(currentTargetKey);
+        // 2º frame: garante sizes e só depois zoom
+        afterNextPaint(() => {
+          invalidateInsetSizeHard();
 
-        if (b && b.isValid && b.isValid()) {
-          // PAD recomendado para a tua situação atual (bounds em cm): ~28km
-          const usedB = safeZoomToBounds(
-            insetMap,
-            b,
-            { padding: [10, 10], animate: false, maxZoom: 12 },
-            0.25
-          );
+          const runZoom = () => {
+            const ilha = keyToIsland.get(currentTargetKey);
+            const b =
+              (ilha && islandToBounds.get(ilha)) ? islandToBounds.get(ilha)
+              : keyToBounds.get(currentTargetKey);
 
-          if (insetRect) insetRect.remove();
-          if (usedB) insetRect = L.rectangle(usedB, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
-        } else {
-          if (insetRect) { insetRect.remove(); insetRect = null; }
-        }
+            if (b && b.isValid && b.isValid()) {
+              const usedB = safeZoomToBounds(
+                insetMap,
+                b,
+                { padding: [10, 10], animate: false, maxZoom: 12 },
+                0.25
+              );
+
+              if (insetRect) insetRect.remove();
+              if (usedB) insetRect = L.rectangle(usedB, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
+            }
+            insetPrimed = true;
+          };
+
+          // no primeiro arranque “a frio”, dá mais um batimento curto
+          if (!insetPrimed) {
+            setTimeout(() => {
+              invalidateInsetSizeHard();
+              runZoom();
+            }, 60);
+          } else {
+            runZoom();
+          }
+        });
       });
     }
 
@@ -1282,7 +1303,6 @@
       lockChoices(false);
 
       refreshStyles();
-
       updateAzoresInsetForCurrentTarget();
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
@@ -1405,6 +1425,7 @@
 
       insetWrap.classList.remove("show");
       if (insetRect) { insetRect.remove(); insetRect = null; }
+      insetPrimed = false;
     }
 
     async function startGame() {
@@ -1424,11 +1445,11 @@
         await new Promise(resolve => afterNextPaint(resolve));
 
         ensureMapReady();
-        ensureInsetReady();
-
         setMapInteractive(false);
+
+        // IMPORTANT: não criar insetMap aqui (inset ainda pode estar escondido).
+        // O insetMap será criado/primado em updateAzoresInsetForCurrentTarget() quando necessário.
         invalidateMapSizeHard();
-        invalidateInsetSizeHard();
 
         playActive = true;
         setLoading("Concluído", 100);
