@@ -242,7 +242,9 @@
     .overlayCard .p { font-size: 18px; font-weight: 800; color: #111; margin: 8px 0; }
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
-    /* OPTIONS */
+    /* =========================
+       OPTIONS SCREEN (table style)
+       ========================= */
     .optWrap {
       min-height: 100dvh;
       background: #e8e9ea;
@@ -349,13 +351,16 @@
       background: #2ee66a;
       box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.15);
     }
+    .dot.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
 
     .optFooter {
       display:flex;
       gap: 10px;
       justify-content:center;
       margin-top: 12px;
-      flex-wrap: wrap;
     }
     .optBtn {
       min-height: 52px;
@@ -615,128 +620,6 @@
       return { cleaned: { ...fc, features: kept } };
     }
 
-    /* =========================
-       AZ/MD: fallback bounds fixo + sanity-check do fitBounds
-       ========================= */
-    const PACK_FALLBACK_BOUNDS = {
-      // Açores (Flores/Corvo até Santa Maria)
-      az: { minLat: 36.7, maxLat: 39.9, minLon: -31.7, maxLon: -24.6 },
-      // Madeira + Porto Santo
-      md: { minLat: 32.55, maxLat: 33.25, minLon: -17.35, maxLon: -16.2 },
-    };
-
-    function boundsSpanDeg(b) {
-      const sw = b.getSouthWest();
-      const ne = b.getNorthEast();
-      return { dLat: Math.abs(ne.lat - sw.lat), dLon: Math.abs(ne.lng - sw.lng) };
-    }
-
-    function isBoundsSuspicious(pack, b) {
-      if (!b || !b.isValid || !b.isValid()) return true;
-      const { dLat, dLon } = boundsSpanDeg(b);
-
-      // Heurísticas simples:
-      // - bounds enorme => outlier lá longe
-      // - bounds minúsculo => cálculo “apertado”/bug => over-zoom e ficas a ver “um ponto”
-      if (pack.region === "az") {
-        if (dLat > 12 || dLon > 20) return true;     // absurdo para Açores
-        if (dLat < 0.4 || dLon < 0.6) return true;   // demasiado apertado
-      }
-      if (pack.region === "md") {
-        if (dLat > 5 || dLon > 8) return true;       // absurdo para Madeira
-        if (dLat < 0.15 || dLon < 0.2) return true;  // demasiado apertado
-      }
-      return false;
-    }
-
-    function makeFallbackLatLngBounds(pack) {
-      const fb = PACK_FALLBACK_BOUNDS[pack.region];
-      if (!fb) return null;
-      return L.latLngBounds([fb.minLat, fb.minLon], [fb.maxLat, fb.maxLon]);
-    }
-
-    /* =========================
-       OUTLIER REMOVAL (mantém o teu, mas não depende disto)
-       ========================= */
-    function iterCoords(geom, cb) {
-      if (!geom) return;
-      const t = geom.type;
-      const c = geom.coordinates;
-      if (!t || !c) return;
-
-      if (t === "Point") return cb(c);
-      if (t === "MultiPoint" || t === "LineString") return c.forEach(cb);
-      if (t === "MultiLineString" || t === "Polygon") return c.flat().forEach(cb);
-      if (t === "MultiPolygon") return c.flat(2).forEach(cb);
-      if (t === "GeometryCollection" && Array.isArray(geom.geometries)) {
-        return geom.geometries.forEach(g => iterCoords(g, cb));
-      }
-    }
-
-    function featureCenterLonLat(feature) {
-      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
-      let seen = 0;
-
-      iterCoords(feature?.geometry, (p) => {
-        if (!Array.isArray(p) || p.length < 2) return;
-        const lon = Number(p[0]), lat = Number(p[1]);
-        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
-        if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return;
-
-        seen++;
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-      });
-
-      if (!seen) return null;
-      return { lon: (minLon + maxLon) / 2, lat: (minLat + maxLat) / 2 };
-    }
-
-    function median(nums) {
-      const a = nums.slice().sort((x,y)=>x-y);
-      const m = Math.floor(a.length / 2);
-      return a.length ? (a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2) : 0;
-    }
-
-    function removeFarOutliers(fc) {
-      const feats = Array.isArray(fc?.features) ? fc.features : [];
-      if (feats.length < 5) return fc;
-
-      const pts = [];
-      for (const f of feats) {
-        const c = featureCenterLonLat(f);
-        if (c) pts.push({ f, lon: c.lon, lat: c.lat });
-      }
-      if (pts.length < 5) return fc;
-
-      const medLon = median(pts.map(p => p.lon));
-      const medLat = median(pts.map(p => p.lat));
-
-      const dists = pts.map(p => Math.hypot(p.lon - medLon, p.lat - medLat));
-      const medD = median(dists);
-      const absDev = dists.map(d => Math.abs(d - medD));
-      const mad = median(absDev) || 0.000001;
-
-      const targetKeepRatio = 0.95;
-      const maxK = 40;
-      let k = 8;
-
-      let kept = [];
-      while (k <= maxK) {
-        const thr = medD + k * mad;
-        kept = pts.filter((p, i) => dists[i] <= thr).map(p => p.f);
-
-        const ratio = kept.length / feats.length;
-        if (ratio >= targetKeepRatio) break;
-        k += 4;
-      }
-
-      if (!kept.length) return fc;
-      return { ...fc, features: kept };
-    }
-
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -792,8 +675,12 @@
     const OPT_KEY = "geoPT_options_v1";
 
     function defaultOptions() {
-      return { levels: { "pt:porto": 3 } };
+      // default: Porto nível 3 (igual ao comportamento atual)
+      return {
+        levels: { "pt:porto": 3 },
+      };
     }
+
     function loadOptions() {
       try {
         const raw = localStorage.getItem(OPT_KEY);
@@ -806,7 +693,11 @@
         return defaultOptions();
       }
     }
-    function saveOptions(o) { localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
+
+    function saveOptions(o) {
+      localStorage.setItem(OPT_KEY, JSON.stringify(o));
+    }
+
     function getSelectedPacksFromOptions(o) {
       const packs = getAllPacks();
       const selected = [];
@@ -846,6 +737,7 @@
       optTable.appendChild(head);
 
       const packs = getAllPacks();
+
       for (const p of packs) {
         const row = document.createElement("div");
         row.className = "optRow";
@@ -861,16 +753,23 @@
         for (let L = 1; L <= 4; L++) {
           const cell = document.createElement("div");
           cell.className = "optCell dotCell";
+
           const dot = document.createElement("span");
           dot.className = "dot" + (lvl === L ? " on" : "");
           dot.title = `Nível ${L}`;
+
           dot.addEventListener("click", () => {
             const cur = Number(optionsDraft.levels?.[p.id] || 0);
-            if (cur === L) delete optionsDraft.levels[p.id];
-            else optionsDraft.levels[p.id] = L;
+            if (cur === L) {
+              // tocar no mesmo nível -> desativa a zona
+              delete optionsDraft.levels[p.id];
+            } else {
+              optionsDraft.levels[p.id] = L;
+            }
             renderOptionsTable();
             updateOptSelectedCount();
           });
+
           cell.appendChild(dot);
           row.appendChild(cell);
         }
@@ -886,7 +785,10 @@
       renderOptionsTable();
       showScreen(screenOptions);
     }
-    function closeOptionsToMenu() { showScreen(screenMenu); }
+
+    function closeOptionsToMenu() {
+      showScreen(screenMenu);
+    }
 
     btnMenuOptions.addEventListener("click", () => openOptionsScreen());
     btnOptBack.addEventListener("click", () => closeOptionsToMenu());
@@ -900,7 +802,10 @@
 
     btnOptSave.addEventListener("click", () => {
       const selected = getSelectedPacksFromOptions(optionsDraft);
-      if (selected.length === 0) { alert("Seleciona pelo menos 1 distrito/região para jogar."); return; }
+      if (selected.length === 0) {
+        alert("Seleciona pelo menos 1 distrito/região para jogar.");
+        return;
+      }
       saveOptions(optionsDraft);
       closeOptionsToMenu();
     });
@@ -972,9 +877,11 @@
        ========================= */
     let playActive = false;
 
+    // pool de packs selecionados (zona + nível)
     let selectedPacks = [];
-    let currentPack = null;
+    let currentPack = null; // {id, region, slug, label, level}
 
+    // pool de respostas (do pack atual)
     let playPackLevel = 3;
     let playPoolKeys = [];
     let playRemainingKeys = [];
@@ -1017,28 +924,7 @@
 
     function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
 
-    function fitMapForPack(pack) {
-      if (!map || !fillLayer) return;
-
-      const layerBounds = fillLayer.getBounds();
-      const fb = (pack.region === "az" || pack.region === "md") ? makeFallbackLatLngBounds(pack) : null;
-
-      let useBounds = layerBounds;
-
-      if (pack.region === "az" || pack.region === "md") {
-        if (isBoundsSuspicious(pack, layerBounds)) {
-          if (fb) useBounds = fb;
-        }
-      }
-
-      try {
-        if (useBounds && useBounds.isValid && useBounds.isValid()) {
-          map.fitBounds(useBounds, { padding: [10, 10], animate: false, maxZoom: 9 });
-        }
-      } catch {}
-    }
-
-    function buildLayer(fc, pack) {
+    function buildLayer(fc) {
       ensureMapReady();
       clearLayer();
 
@@ -1057,31 +943,29 @@
       }).addTo(map);
 
       invalidateMapSizeHard();
-
-      // (CRÍTICO) fit com sanity-check + fallback para AZ/MD
-      fitMapForPack(pack);
+      try {
+        const b = fillLayer.getBounds();
+        if (b && b.isValid && b.isValid()) {
+          map.fitBounds(b, { padding: [8, 8], animate: false });
+        }
+      } catch {}
     }
 
     async function loadConcelhosFCForPack(pack) {
       setLoading(`A carregar: ${pack.label}`, 55);
 
-      let fc;
-
       if (pack.region === "pt") {
         const url = FILES.concelhosPT(pack.slug);
-        fc = await loadJSON(url);
+        const fc = await loadJSON(url);
         const check = assertGeoJSONLooksLikeLonLat(fc);
         if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-      } else {
-        const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
-        fc = await loadJSON(url);
-        const check = assertGeoJSONLooksLikeLonLat(fc);
-        if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
-
-        // defesa adicional (não resolve tudo, mas ajuda)
-        fc = removeFarOutliers(fc);
+        return fc;
       }
 
+      const url = (pack.region === "az") ? FILES.concelhosAZ : FILES.concelhosMD;
+      const fc = await loadJSON(url);
+      const check = assertGeoJSONLooksLikeLonLat(fc);
+      if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
       return fc;
     }
 
@@ -1132,7 +1016,10 @@
     }
 
     function pickPackForRound() {
-      return selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
+      // simples: escolher ao acaso entre os selecionados
+      // (mais tarde podes fazer “quota” por distrito, etc.)
+      const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
+      return p;
     }
 
     function pickNewTargetKey() {
@@ -1141,6 +1028,7 @@
     }
 
     function prepareChoicesForRound() {
+      // nível 4 ainda não implementado (texto). Por agora comporta-se como nível 3.
       const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
       const n = PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
@@ -1185,9 +1073,8 @@
 
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
+        // só ajustar nível
         playPackLevel = pack.level;
-        // re-fit ao voltar a pack (opcional, mas ajuda quando se roda ecrã)
-        fitMapForPack(pack);
         return;
       }
 
@@ -1202,15 +1089,12 @@
       const fc = await loadConcelhosFCForPack(pack);
 
       setLoading("A desenhar…", 85);
-      buildLayer(fc, pack);
+      buildLayer(fc);
 
       invalidateMapSizeHard();
-      setTimeout(() => {
-        invalidateMapSizeHard();
-        // re-fit depois de invalidate (ajuda no mobile)
-        fitMapForPack(pack);
-      }, 200);
+      setTimeout(invalidateMapSizeHard, 200);
 
+      // atualizar pool do pack atual
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
@@ -1223,6 +1107,7 @@
       hintUsedThisRound = false;
       inputBlockedUntil = Date.now() + 220;
 
+      // escolher pack e garantir que está carregado
       const pack = pickPackForRound();
       await ensurePackLoaded(pack);
 
@@ -1259,11 +1144,9 @@
 
       sessionIndex++;
 
-      const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
-
       if (chosenKey === currentTargetKey) {
         sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, effectiveLevel, hintUsedThisRound);
+        const xp = computeXPForCorrect(elapsed, (playPackLevel === 4 ? 3 : playPackLevel), hintUsedThisRound);
         sessionXP += xp;
       } else {
         sessionWrong++;
@@ -1317,7 +1200,7 @@
     }
 
     document.addEventListener("pointerup", async (e) => {
-      if (!document.getElementById("screenGame").classList.contains("active")) return;
+      if (!screenGame.classList.contains("active")) return;
       if (e.target.closest("#btnExit, #btnHint")) return;
 
       if (finalOverlay.classList.contains("show")) {
@@ -1362,9 +1245,12 @@
       setLoading("A iniciar…", 10);
 
       try {
+        // carregar opções
         const opts = loadOptions();
         selectedPacks = getSelectedPacksFromOptions(opts);
-        if (selectedPacks.length === 0) selectedPacks = getSelectedPacksFromOptions(defaultOptions());
+        if (selectedPacks.length === 0) {
+          selectedPacks = getSelectedPacksFromOptions(defaultOptions());
+        }
 
         resetSession();
         setLoading("A preparar ecrã…", 25);
@@ -1379,6 +1265,7 @@
         playActive = true;
         setLoading("Concluído", 100);
 
+        // primeira pergunta
         transitioning = true;
         await nextRound();
         transitioning = false;
@@ -1419,7 +1306,6 @@
   </script>
 </body>
 </html>
-
 
 
 
