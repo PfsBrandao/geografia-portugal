@@ -72,7 +72,7 @@
       font-weight: 900;
       font-size: 18px;
       text-align: center;
-      display:none; /* só usamos quando queremos texto no "logo" */
+      display:none;
     }
     .menuLogo.hasTitle .menuTitleOverlay{ display:block; }
 
@@ -284,7 +284,7 @@
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
     /* =========================
-       OPTIONS SCREEN
+       OPTIONS TABLE SCREENS
        ========================= */
     .optWrap {
       min-height: 100dvh;
@@ -455,7 +455,7 @@
     </div>
   </div>
 
-  <!-- NEW: SESSION LENGTH MENU (mesmo aspeto do menu inicial) -->
+  <!-- SESSION LENGTH MENU -->
   <div id="screenSessionLen" class="screen">
     <div class="menuWrap">
       <div class="menuPhone">
@@ -474,30 +474,79 @@
     </div>
   </div>
 
-  <!-- OPTIONS -->
-  <div id="screenOptions" class="screen">
+  <!-- OPTIONS: MENU COM CATEGORIAS (mesmo aspeto do menu inicial) -->
+  <div id="screenOptionsMenu" class="screen">
+    <div class="menuWrap">
+      <div class="menuPhone">
+        <div class="menuLogo hasTitle" aria-label="Opções">
+          <img alt="Geo-PT" src="/geografia-portugal/icons/icon-192.png" onerror="this.style.display='none'">
+          <div class="menuTitleOverlay">Opções</div>
+        </div>
+        <div class="menuBtns">
+          <button id="btnOptCatDistricts" class="menuBtn">Distritos</button>
+          <button id="btnOptCatRivers" class="menuBtn disabled" disabled>Rios</button>
+          <button id="btnOptCatRA" class="menuBtn">Regiões Autónomas</button>
+          <button id="btnOptCatMountains" class="menuBtn disabled" disabled>Serras</button>
+          <button id="btnOptCatFlags" class="menuBtn disabled" disabled>Bandeiras</button>
+          <button id="btnOptMenuBack" class="menuBtn small">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTIONS: DISTRITOS (tabela existente, só com distritos) -->
+  <div id="screenOptionsDistricts" class="screen">
     <div class="optWrap">
       <div class="optPhone">
         <div class="optHeader">
           <div>
-            <div class="optTitle">Opções</div>
-            <div class="optMeta" id="optSelectedCount">Selecionados: 0</div>
+            <div class="optTitle">Distritos</div>
+            <div class="optMeta" id="optSelectedCountDistricts">Selecionados: 0</div>
           </div>
-          <button id="btnOptBackTop" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+          <button id="btnOptBackTopDistricts" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
         </div>
 
         <div class="optHint">
-          Escolhe onde queres jogar e a dificuldade por zona.
+          Escolhe a dificuldade por distrito.
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
-          Nível 4 (texto) fica disponível para escolher, mas ainda não está implementado no jogo.
+          Nível 4 fica disponível para escolher, mas ainda não está implementado no jogo.
         </div>
 
-        <div class="optTable" id="optTable"></div>
+        <div class="optTable" id="optTableDistricts"></div>
 
         <div class="optFooter">
-          <button id="btnOptReset" class="optBtn" type="button">Reset</button>
-          <button id="btnOptSave" class="optBtn primary" type="button">Guardar</button>
-          <button id="btnOptBack" class="optBtn" type="button">Voltar</button>
+          <button id="btnOptResetDistricts" class="optBtn" type="button">Reset</button>
+          <button id="btnOptSaveDistricts" class="optBtn primary" type="button">Guardar</button>
+          <button id="btnOptBackDistricts" class="optBtn" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTIONS: REGIÕES AUTÓNOMAS (tabela com Açores + Madeira) -->
+  <div id="screenOptionsRA" class="screen">
+    <div class="optWrap">
+      <div class="optPhone">
+        <div class="optHeader">
+          <div>
+            <div class="optTitle">Regiões Autónomas</div>
+            <div class="optMeta" id="optSelectedCountRA">Selecionados: 0</div>
+          </div>
+          <button id="btnOptBackTopRA" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+        </div>
+
+        <div class="optHint">
+          Escolhe a dificuldade por região.
+          Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
+          Nível 4 fica disponível para escolher, mas ainda não está implementado no jogo.
+        </div>
+
+        <div class="optTable" id="optTableRA"></div>
+
+        <div class="optFooter">
+          <button id="btnOptResetRA" class="optBtn" type="button">Reset</button>
+          <button id="btnOptSaveRA" class="optBtn primary" type="button">Guardar</button>
+          <button id="btnOptBackRA" class="optBtn" type="button">Voltar</button>
         </div>
       </div>
     </div>
@@ -599,7 +648,6 @@
       hintMult: 0.60,
     };
 
-    // NOVO: número de perguntas por sessão (escolhido antes de começar)
     let QUESTIONS_PER_SESSION = 10;
 
     function normalize(s) {
@@ -617,7 +665,6 @@
     function getIslandName(props) {
       return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
-
     function getMunicipalityKey(props) {
       const code = pickProp(props, [
         "DICOFRE","dicofre",
@@ -677,7 +724,6 @@
 
     function safeZoomToBounds(m, b, fitOpts = {}, padDeg = 0.25) {
       if (!m || !b || !b.isValid || !b.isValid()) return null;
-
       const sw = b.getSouthWest();
       const ne = b.getNorthEast();
       const dLat = Math.abs(ne.lat - sw.lat);
@@ -692,7 +738,6 @@
         m.fitBounds(expanded, fitOpts);
         return expanded;
       }
-
       m.fitBounds(b, fitOpts);
       return b;
     }
@@ -703,7 +748,6 @@
       const s = x.trim().replace(",", ".");
       return Number(s);
     }
-
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
       const lon = toNum(pair[0]);
@@ -723,30 +767,23 @@
       if (t === "GeometryCollection") return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
       return false;
     }
-
     function sanitizeFeatureCollection(fc) {
       const features = Array.isArray(fc?.features) ? fc.features : [];
       const kept = [];
       const dropped = [];
-
       for (const f of features) {
         const props = f?.properties || {};
         const name = getMunicipalityName(props) || "(sem nome)";
         if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
         else dropped.push(name);
       }
-
-      if (dropped.length) {
-        console.warn("Concelhos removidos por coordenadas estranhas:", dropped);
-      }
-
+      if (dropped.length) console.warn("Concelhos removidos por coordenadas estranhas:", dropped);
       return { cleaned: { ...fc, features: kept }, dropped };
     }
 
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
-
       const p = fetch(url)
         .then(async (r) => {
           if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
@@ -758,14 +795,16 @@
           cache.delete(url);
           throw err;
         });
-
       cache.set(url, p);
       return p;
     }
 
+    // SCREENS
     const screenMenu = document.getElementById("screenMenu");
     const screenSessionLen = document.getElementById("screenSessionLen");
-    const screenOptions = document.getElementById("screenOptions");
+    const screenOptionsMenu = document.getElementById("screenOptionsMenu");
+    const screenOptionsDistricts = document.getElementById("screenOptionsDistricts");
+    const screenOptionsRA = document.getElementById("screenOptionsRA");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -774,7 +813,8 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      for (const s of [screenMenu, screenSessionLen, screenOptions, screenLoading, screenGame]) s.classList.remove("active");
+      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenOptionsDistricts, screenOptionsRA, screenLoading, screenGame];
+      for (const s of all) s.classList.remove("active");
       el.classList.add("active");
     }
     function setLoading(step, pct) {
@@ -783,6 +823,7 @@
       loadingPct.textContent = `${pct}%`;
     }
 
+    // MENU BUTTONS
     const btnMenuPlay = document.getElementById("btnMenuPlay");
     const btnMenuOptions = document.getElementById("btnMenuOptions");
     const btnMenuExit = document.getElementById("btnMenuExit");
@@ -792,16 +833,9 @@
       alert("Para sair, fecha o separador / a app (PWA).");
     });
 
-    // NOVO: abrir menu de escolha de perguntas
-    btnMenuPlay.addEventListener("click", () => {
-      showScreen(screenSessionLen);
-    });
+    btnMenuPlay.addEventListener("click", () => showScreen(screenSessionLen));
+    document.getElementById("btnSessionLenBack").addEventListener("click", () => showScreen(screenMenu));
 
-    // NOVO: botão voltar nesse menu
-    const btnSessionLenBack = document.getElementById("btnSessionLenBack");
-    btnSessionLenBack.addEventListener("click", () => showScreen(screenMenu));
-
-    // NOVO: escolher 10/25/50/100 e iniciar
     screenSessionLen.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-qlen]");
       if (!btn) return;
@@ -810,6 +844,17 @@
       startGame();
     });
 
+    // OPTIONS MENU OPEN/CLOSE
+    btnMenuOptions.addEventListener("click", () => {
+      showScreen(screenOptionsMenu);
+    });
+    document.getElementById("btnOptMenuBack").addEventListener("click", () => showScreen(screenMenu));
+
+    // OPTIONS CATEGORY BUTTONS
+    document.getElementById("btnOptCatDistricts").addEventListener("click", () => openOptionsDistricts());
+    document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
+
+    // GAME UI
     const btnExit = document.getElementById("btnExit");
     const timeLine = document.getElementById("timeLine");
     const sessionLine = document.getElementById("sessionLine");
@@ -821,7 +866,7 @@
     const insetWrap = document.getElementById("insetWrap");
 
     /* =========================
-       OPTIONS STATE
+       OPTIONS STATE (mantém igual)
        ========================= */
     const OPT_KEY = "geoPT_options_v1";
 
@@ -839,7 +884,6 @@
         return defaultOptions();
       }
     }
-
     function saveOptions(o) { localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
 
     function getSelectedPacksFromOptions(o) {
@@ -852,22 +896,21 @@
       return selected;
     }
 
-    const optTable = document.getElementById("optTable");
-    const optSelectedCount = document.getElementById("optSelectedCount");
-    const btnOptBack = document.getElementById("btnOptBack");
-    const btnOptBackTop = document.getElementById("btnOptBackTop");
-    const btnOptSave = document.getElementById("btnOptSave");
-    const btnOptReset = document.getElementById("btnOptReset");
-
     let optionsDraft = loadOptions();
 
-    function updateOptSelectedCount() {
-      const selected = getSelectedPacksFromOptions(optionsDraft);
-      optSelectedCount.textContent = `Selecionados: ${selected.length}`;
+    function countSelectedForFilter(filterFn) {
+      const packs = getAllPacks().filter(filterFn);
+      let c = 0;
+      for (const p of packs) {
+        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
+        if (lvl >= 1 && lvl <= 4) c++;
+      }
+      return c;
     }
 
-    function renderOptionsTable() {
-      optTable.innerHTML = "";
+    // Render genérico de tabela por "lista de packs"
+    function renderOptionsTableInto(optTableEl, selectedCountEl, packs) {
+      optTableEl.innerHTML = "";
 
       const head = document.createElement("div");
       head.className = "optRow optHead";
@@ -878,9 +921,8 @@
         <div class="optCell dotCell">3</div>
         <div class="optCell dotCell">4</div>
       `;
-      optTable.appendChild(head);
+      optTableEl.appendChild(head);
 
-      const packs = getAllPacks();
       for (const p of packs) {
         const row = document.createElement("div");
         row.className = "optRow";
@@ -905,44 +947,102 @@
             const cur = Number(optionsDraft.levels?.[p.id] || 0);
             if (cur === L) delete optionsDraft.levels[p.id];
             else optionsDraft.levels[p.id] = L;
-            renderOptionsTable();
-            updateOptSelectedCount();
+            // re-render rápido
+            renderOptionsTableInto(optTableEl, selectedCountEl, packs);
           });
 
           cell.appendChild(dot);
           row.appendChild(cell);
         }
-        optTable.appendChild(row);
+
+        optTableEl.appendChild(row);
       }
 
-      updateOptSelectedCount();
+      // meta selecionados
+      let sel = 0;
+      for (const p of packs) {
+        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
+        if (lvl >= 1 && lvl <= 4) sel++;
+      }
+      selectedCountEl.textContent = `Selecionados: ${sel}`;
     }
 
-    function openOptionsScreen() {
+    // DISTRITOS SCREEN
+    const optTableDistricts = document.getElementById("optTableDistricts");
+    const optSelectedCountDistricts = document.getElementById("optSelectedCountDistricts");
+    const btnOptBackDistricts = document.getElementById("btnOptBackDistricts");
+    const btnOptBackTopDistricts = document.getElementById("btnOptBackTopDistricts");
+    const btnOptSaveDistricts = document.getElementById("btnOptSaveDistricts");
+    const btnOptResetDistricts = document.getElementById("btnOptResetDistricts");
+
+    function openOptionsDistricts() {
       optionsDraft = loadOptions();
-      renderOptionsTable();
-      showScreen(screenOptions);
+      const packs = getAllPacks().filter(p => p.region === "pt");
+      renderOptionsTableInto(optTableDistricts, optSelectedCountDistricts, packs);
+      showScreen(screenOptionsDistricts);
     }
-    function closeOptionsToMenu() { showScreen(screenMenu); }
+    function closeDistrictsToOptionsMenu() { showScreen(screenOptionsMenu); }
 
-    btnMenuOptions.addEventListener("click", () => openOptionsScreen());
-    btnOptBack.addEventListener("click", () => closeOptionsToMenu());
-    btnOptBackTop.addEventListener("click", () => closeOptionsToMenu());
+    btnOptBackDistricts.addEventListener("click", () => closeDistrictsToOptionsMenu());
+    btnOptBackTopDistricts.addEventListener("click", () => closeDistrictsToOptionsMenu());
 
-    btnOptReset.addEventListener("click", () => {
-      optionsDraft = defaultOptions();
-      renderOptionsTable();
-      updateOptSelectedCount();
+    btnOptResetDistricts.addEventListener("click", () => {
+      // reset só dos distritos (mantém o que houver nas RAs)
+      const base = loadOptions();
+      optionsDraft = base;
+      const packs = getAllPacks().filter(p => p.region === "pt");
+      for (const p of packs) delete optionsDraft.levels[p.id];
+      // mantém pelo menos porto=3, como no default, se quiseres:
+      optionsDraft.levels["pt:porto"] = 3;
+      renderOptionsTableInto(optTableDistricts, optSelectedCountDistricts, packs);
     });
 
-    btnOptSave.addEventListener("click", () => {
+    btnOptSaveDistricts.addEventListener("click", () => {
+      // validação: pelo menos 1 pack selecionado no total (como antes)
       const selected = getSelectedPacksFromOptions(optionsDraft);
       if (selected.length === 0) {
         alert("Seleciona pelo menos 1 distrito/região para jogar.");
         return;
       }
       saveOptions(optionsDraft);
-      closeOptionsToMenu();
+      closeDistrictsToOptionsMenu();
+    });
+
+    // REGIÕES AUTÓNOMAS SCREEN
+    const optTableRA = document.getElementById("optTableRA");
+    const optSelectedCountRA = document.getElementById("optSelectedCountRA");
+    const btnOptBackRA = document.getElementById("btnOptBackRA");
+    const btnOptBackTopRA = document.getElementById("btnOptBackTopRA");
+    const btnOptSaveRA = document.getElementById("btnOptSaveRA");
+    const btnOptResetRA = document.getElementById("btnOptResetRA");
+
+    function openOptionsRA() {
+      optionsDraft = loadOptions();
+      const packs = getAllPacks().filter(p => (p.region === "az" || p.region === "md"));
+      renderOptionsTableInto(optTableRA, optSelectedCountRA, packs);
+      showScreen(screenOptionsRA);
+    }
+    function closeRAToOptionsMenu() { showScreen(screenOptionsMenu); }
+
+    btnOptBackRA.addEventListener("click", () => closeRAToOptionsMenu());
+    btnOptBackTopRA.addEventListener("click", () => closeRAToOptionsMenu());
+
+    btnOptResetRA.addEventListener("click", () => {
+      // reset só das RAs
+      optionsDraft = loadOptions();
+      const packs = getAllPacks().filter(p => (p.region === "az" || p.region === "md"));
+      for (const p of packs) delete optionsDraft.levels[p.id];
+      renderOptionsTableInto(optTableRA, optSelectedCountRA, packs);
+    });
+
+    btnOptSaveRA.addEventListener("click", () => {
+      const selected = getSelectedPacksFromOptions(optionsDraft);
+      if (selected.length === 0) {
+        alert("Seleciona pelo menos 1 distrito/região para jogar.");
+        return;
+      }
+      saveOptions(optionsDraft);
+      closeRAToOptionsMenu();
     });
 
     /* =========================
@@ -1530,7 +1630,6 @@
 
         ensureMapReady();
         setMapInteractive(false);
-
         invalidateMapSizeHard();
 
         playActive = true;
@@ -1574,4 +1673,5 @@
   </script>
 </body>
 </html>
+
 
