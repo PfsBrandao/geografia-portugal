@@ -169,6 +169,31 @@
     body.playing .leaflet-control-zoom,
     body.playing .leaflet-control-attribution { display: none !important; }
 
+    /* ==============
+       INSET (AÇORES)
+       ============== */
+    .insetWrap{
+      position:absolute;
+      right: 10px;
+      top: 10px;
+      width: min(42vw, 220px);
+      height: min(42vw, 220px);
+      border-radius: 14px;
+      border: 3px solid rgba(255,255,255,.85);
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+      overflow:hidden;
+      background:#fff;
+      z-index: 40;
+      display:none;
+    }
+    .insetWrap.show{ display:block; }
+    #insetMap{ width:100%; height:100%; background:#fff; }
+    body.playing #insetMap {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     .gameBottom {
       background: rgba(16,16,24,.95);
       border-radius: 18px;
@@ -386,6 +411,10 @@
       .optPhone { padding: 12px; }
       .optRow { grid-template-columns: 1.7fr repeat(4, 0.42fr); }
       .dot { width: 16px; height: 16px; }
+      .insetWrap{
+        width: min(46vw, 200px);
+        height: min(46vw, 200px);
+      }
     }
 
     @media (min-width: 900px) {
@@ -469,6 +498,11 @@
       <div class="gameStage">
         <div id="map"></div>
 
+        <!-- INSET (AÇORES) -->
+        <div id="insetWrap" class="insetWrap" aria-hidden="true">
+          <div id="insetMap"></div>
+        </div>
+
         <div id="finalOverlay" class="overlay" role="dialog" aria-modal="true">
           <div class="overlayCard">
             <div class="t">Fim!</div>
@@ -548,6 +582,9 @@
     }
     function getMunicipalityName(props) {
       return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
+    }
+    function getIslandName(props) {
+      return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
 
     function shuffle(arr) {
@@ -668,6 +705,8 @@
     const finalOverlay = document.getElementById("finalOverlay");
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
+
+    const insetWrap = document.getElementById("insetWrap");
 
     /* =========================
        OPTIONS STATE
@@ -816,6 +855,15 @@
     let map = null;
     let fillLayer = null;
 
+    // Inset (Açores)
+    let insetMap = null;
+    let insetLayer = null;
+    let insetRect = null;
+
+    // concelhoKey -> ilha ; ilha -> bounds
+    let keyToIsland = new Map();
+    let islandToBounds = new Map();
+
     function ensureMapReady() {
       if (map) return;
       map = L.map("map", {
@@ -828,12 +876,40 @@
       map.setView([39.5, -8.0], 7);
     }
 
+    function ensureInsetReady() {
+      if (insetMap) return;
+      insetMap = L.map("insetMap", {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        touchZoom: false,
+        doubleClickZoom: false,
+        scrollWheelZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        zoomAnimation: false,
+        fadeAnimation: false,
+        markerZoomAnimation: false
+      });
+      insetMap.setView([39.5, -8.0], 7);
+    }
+
     function invalidateMapSizeHard() {
       if (!map) return;
       requestAnimationFrame(() => {
         try { map.invalidateSize(true); } catch {}
         requestAnimationFrame(() => {
           try { map.invalidateSize(true); } catch {}
+        });
+      });
+    }
+
+    function invalidateInsetSizeHard() {
+      if (!insetMap) return;
+      requestAnimationFrame(() => {
+        try { insetMap.invalidateSize(true); } catch {}
+        requestAnimationFrame(() => {
+          try { insetMap.invalidateSize(true); } catch {}
         });
       });
     }
@@ -868,8 +944,17 @@
     function clearLayer() {
       if (fillLayer) fillLayer.remove();
       fillLayer = null;
+
+      if (insetLayer) insetLayer.remove();
+      insetLayer = null;
+
+      if (insetRect) insetRect.remove();
+      insetRect = null;
+
       byKey.clear();
       keyToOfficial.clear();
+      keyToIsland.clear();
+      islandToBounds.clear();
     }
 
     /* =========================
@@ -922,10 +1007,14 @@
       return { color:"#000", weight: 1.1, fillColor:"#fff", fillOpacity: 1 };
     }
 
-    function refreshStyles() { if (fillLayer) fillLayer.setStyle(styleFill); }
+    function refreshStyles() {
+      if (fillLayer) fillLayer.setStyle(styleFill);
+      if (insetLayer) insetLayer.setStyle(styleFill);
+    }
 
     function buildLayer(fc) {
       ensureMapReady();
+      ensureInsetReady();
       clearLayer();
 
       const { cleaned } = sanitizeFeatureCollection(fc);
@@ -935,14 +1024,33 @@
 
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
-        onEachFeature: (feature) => {
+        onEachFeature: (feature, layer) => {
           const raw = getMunicipalityName(feature.properties || {});
           const key = normalize(raw);
-          if (key) { byKey.set(key, true); keyToOfficial.set(key, raw); }
+          if (key) {
+            byKey.set(key, true);
+            keyToOfficial.set(key, raw);
+
+            const ilha = getIslandName(feature.properties || {});
+            if (ilha) {
+              keyToIsland.set(key, ilha);
+              try {
+                const b = layer.getBounds?.();
+                if (b && b.isValid && b.isValid()) {
+                  const cur = islandToBounds.get(ilha);
+                  islandToBounds.set(ilha, cur ? cur.extend(b) : b);
+                }
+              } catch {}
+            }
+          }
         }
       }).addTo(map);
 
+      // Inset desenha o mesmo conteúdo (sem interação)
+      insetLayer = L.geoJSON(cleaned, { style: styleFill }).addTo(insetMap);
+
       invalidateMapSizeHard();
+
       try {
         const b = fillLayer.getBounds();
         if (b && b.isValid && b.isValid()) {
@@ -1016,8 +1124,6 @@
     }
 
     function pickPackForRound() {
-      // simples: escolher ao acaso entre os selecionados
-      // (mais tarde podes fazer “quota” por distrito, etc.)
       const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
       return p;
     }
@@ -1028,7 +1134,6 @@
     }
 
     function prepareChoicesForRound() {
-      // nível 4 ainda não implementado (texto). Por agora comporta-se como nível 3.
       const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
       const n = PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
@@ -1073,7 +1178,6 @@
 
     async function ensurePackLoaded(pack) {
       if (currentPack && currentPack.id === pack.id) {
-        // só ajustar nível
         playPackLevel = pack.level;
         return;
       }
@@ -1094,11 +1198,36 @@
       invalidateMapSizeHard();
       setTimeout(invalidateMapSizeHard, 200);
 
-      // atualizar pool do pack atual
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
       transitioning = false;
+    }
+
+    function updateAzoresInsetForCurrentTarget() {
+      if (!currentPack || currentPack.region !== "az") {
+        insetWrap.classList.remove("show");
+        if (insetRect) { insetRect.remove(); insetRect = null; }
+        return;
+      }
+
+      insetWrap.classList.add("show");
+      invalidateInsetSizeHard();
+
+      const ilha = keyToIsland.get(currentTargetKey);
+      const b = ilha ? islandToBounds.get(ilha) : null;
+
+      if (b && b.isValid && b.isValid()) {
+        try {
+          insetMap.fitBounds(b, { padding: [10, 10], animate: false, maxZoom: 11 });
+        } catch {}
+
+        // Retângulo no mapa principal (onde está o zoom)
+        if (insetRect) insetRect.remove();
+        insetRect = L.rectangle(b, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
+      } else {
+        if (insetRect) { insetRect.remove(); insetRect = null; }
+      }
     }
 
     async function nextRound() {
@@ -1107,7 +1236,6 @@
       hintUsedThisRound = false;
       inputBlockedUntil = Date.now() + 220;
 
-      // escolher pack e garantir que está carregado
       const pack = pickPackForRound();
       await ensurePackLoaded(pack);
 
@@ -1119,6 +1247,9 @@
       lockChoices(false);
 
       refreshStyles();
+
+      // Inset (Açores): zoom por ilha do concelho alvo
+      updateAzoresInsetForCurrentTarget();
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       startTimer();
@@ -1237,6 +1368,9 @@
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       sessionLine.textContent = `1/${PLAY.QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
+
+      insetWrap.classList.remove("show");
+      if (insetRect) { insetRect.remove(); insetRect = null; }
     }
 
     async function startGame() {
@@ -1245,7 +1379,6 @@
       setLoading("A iniciar…", 10);
 
       try {
-        // carregar opções
         const opts = loadOptions();
         selectedPacks = getSelectedPacksFromOptions(opts);
         if (selectedPacks.length === 0) {
@@ -1259,13 +1392,15 @@
         await new Promise(resolve => afterNextPaint(resolve));
 
         ensureMapReady();
+        ensureInsetReady();
+
         setMapInteractive(false);
         invalidateMapSizeHard();
+        invalidateInsetSizeHard();
 
         playActive = true;
         setLoading("Concluído", 100);
 
-        // primeira pergunta
         transitioning = true;
         await nextRound();
         transitioning = false;
