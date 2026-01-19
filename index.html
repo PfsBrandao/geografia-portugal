@@ -172,14 +172,12 @@
     /* ==============
        INSET (AÇORES)
        - canto inferior esquerdo
-       - 30% mais pequeno (vs antes)
+       - ~30% mais pequeno do que a versão inicial
        ============== */
     .insetWrap{
       position:absolute;
       left: 10px;
       bottom: 10px;
-      right: auto;
-      top: auto;
 
       width: min(29vw, 154px);
       height: min(29vw, 154px);
@@ -665,6 +663,32 @@
       return { cleaned: { ...fc, features: kept } };
     }
 
+    /* =========================
+       SAFE ZOOM (fix para bounds "micro")
+       ========================= */
+    function safeZoomToBounds(m, b, fitOpts = {}, padDeg = 0.25) {
+      if (!m || !b || !b.isValid || !b.isValid()) return null;
+
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const dLat = Math.abs(ne.lat - sw.lat);
+      const dLng = Math.abs(ne.lng - sw.lng);
+
+      // se a caixa for muito pequena (quase um ponto), expande artificialmente
+      if (dLat < 0.01 && dLng < 0.01) {
+        const c = b.getCenter();
+        const expanded = L.latLngBounds(
+          [c.lat - padDeg, c.lng - padDeg],
+          [c.lat + padDeg, c.lng + padDeg]
+        );
+        m.fitBounds(expanded, fitOpts);
+        return expanded;
+      }
+
+      m.fitBounds(b, fitOpts);
+      return b;
+    }
+
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -721,9 +745,7 @@
        ========================= */
     const OPT_KEY = "geoPT_options_v1";
 
-    function defaultOptions() {
-      return { levels: { "pt:porto": 3 } };
-    }
+    function defaultOptions() { return { levels: { "pt:porto": 3 } }; }
 
     function loadOptions() {
       try {
@@ -862,7 +884,7 @@
     let keyToIsland = new Map();
     let islandToBounds = new Map();
 
-    // Fallback sempre disponível: concelhoKey -> bounds da feature
+    // fallback universal: concelhoKey -> bounds
     let keyToBounds = new Map();
 
     function ensureMapReady() {
@@ -1215,24 +1237,28 @@
         return;
       }
 
-      // mostrar primeiro (para o Leaflet medir corretamente)
       insetWrap.classList.add("show");
 
-      // garantir sizes e só depois fitBounds (evita “aparecer só um ponto” por size=0)
+      // garantir sizes e só depois fitBounds
       afterNextPaint(() => {
         invalidateInsetSizeHard();
 
-        // prioridade: bounds da ilha; fallback: bounds do concelho
         const ilha = keyToIsland.get(currentTargetKey);
-        const b = (ilha && islandToBounds.get(ilha)) ? islandToBounds.get(ilha) : keyToBounds.get(currentTargetKey);
+        const b =
+          (ilha && islandToBounds.get(ilha)) ? islandToBounds.get(ilha)
+          : keyToBounds.get(currentTargetKey);
 
         if (b && b.isValid && b.isValid()) {
-          try {
-            insetMap.fitBounds(b, { padding: [10, 10], animate: false, maxZoom: 12 });
-          } catch {}
+          // PAD recomendado para a tua situação atual (bounds em cm): ~28km
+          const usedB = safeZoomToBounds(
+            insetMap,
+            b,
+            { padding: [10, 10], animate: false, maxZoom: 12 },
+            0.25
+          );
 
           if (insetRect) insetRect.remove();
-          insetRect = L.rectangle(b, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
+          if (usedB) insetRect = L.rectangle(usedB, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
         } else {
           if (insetRect) { insetRect.remove(); insetRect = null; }
         }
@@ -1257,7 +1283,6 @@
 
       refreshStyles();
 
-      // Inset (Açores)
       updateAzoresInsetForCurrentTarget();
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
@@ -1448,7 +1473,4 @@
   </script>
 </body>
 </html>
-
-
-
 
