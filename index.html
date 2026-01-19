@@ -51,6 +51,7 @@
       justify-content:center;
       overflow:hidden;
       margin-bottom: 14px;
+      position: relative;
     }
     .menuLogo img {
       width: 100%;
@@ -59,6 +60,22 @@
       object-position: center;
       display:block;
     }
+    .menuLogo .menuTitleOverlay{
+      position:absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(0,0,0,.55);
+      color:#fff;
+      font-weight: 900;
+      font-size: 18px;
+      text-align: center;
+      display:none; /* só usamos quando queremos texto no "logo" */
+    }
+    .menuLogo.hasTitle .menuTitleOverlay{ display:block; }
+
     .menuBtns { display:flex; flex-direction:column; gap: 12px; }
     .menuBtn {
       width: 100%;
@@ -438,6 +455,25 @@
     </div>
   </div>
 
+  <!-- NEW: SESSION LENGTH MENU (mesmo aspeto do menu inicial) -->
+  <div id="screenSessionLen" class="screen">
+    <div class="menuWrap">
+      <div class="menuPhone">
+        <div class="menuLogo hasTitle" aria-label="Geo-PT">
+          <img alt="Geo-PT" src="/geografia-portugal/icons/icon-192.png" onerror="this.style.display='none'">
+          <div class="menuTitleOverlay">Quantas perguntas?</div>
+        </div>
+        <div class="menuBtns">
+          <button class="menuBtn" data-qlen="10">10</button>
+          <button class="menuBtn" data-qlen="25">25</button>
+          <button class="menuBtn" data-qlen="50">50</button>
+          <button class="menuBtn" data-qlen="100">100</button>
+          <button id="btnSessionLenBack" class="menuBtn small">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- OPTIONS -->
   <div id="screenOptions" class="screen">
     <div class="optWrap">
@@ -557,12 +593,14 @@
     }
 
     const PLAY = {
-      QUESTIONS_PER_SESSION: 10,
       TIME_LIMIT_SEC: 60,
       optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
       difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
       hintMult: 0.60,
     };
+
+    // NOVO: número de perguntas por sessão (escolhido antes de começar)
+    let QUESTIONS_PER_SESSION = 10;
 
     function normalize(s) {
       return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -580,7 +618,6 @@
       return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
 
-    // NOVO: chave interna mais robusta (tenta código primeiro; senão usa nome)
     function getMunicipalityKey(props) {
       const code = pickProp(props, [
         "DICOFRE","dicofre",
@@ -638,7 +675,28 @@
       return { ok: true, reason: "ok" };
     }
 
-    // NOVO: conversão tolerante (vírgula -> ponto), para coordenadas em string
+    function safeZoomToBounds(m, b, fitOpts = {}, padDeg = 0.25) {
+      if (!m || !b || !b.isValid || !b.isValid()) return null;
+
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      const dLat = Math.abs(ne.lat - sw.lat);
+      const dLng = Math.abs(ne.lng - sw.lng);
+
+      if (dLat < 0.01 && dLng < 0.01) {
+        const c = b.getCenter();
+        const expanded = L.latLngBounds(
+          [c.lat - padDeg, c.lng - padDeg],
+          [c.lat + padDeg, c.lng + padDeg]
+        );
+        m.fitBounds(expanded, fitOpts);
+        return expanded;
+      }
+
+      m.fitBounds(b, fitOpts);
+      return b;
+    }
+
     function toNum(x) {
       if (typeof x === "number") return x;
       if (typeof x !== "string") return Number(x);
@@ -666,7 +724,6 @@
       return false;
     }
 
-    // NOVO: relatório do que foi removido (para não acontecer "em silêncio")
     function sanitizeFeatureCollection(fc) {
       const features = Array.isArray(fc?.features) ? fc.features : [];
       const kept = [];
@@ -686,31 +743,6 @@
       return { cleaned: { ...fc, features: kept }, dropped };
     }
 
-    /* =========================
-       SAFE ZOOM (fix para bounds "micro")
-       ========================= */
-    function safeZoomToBounds(m, b, fitOpts = {}, padDeg = 0.25) {
-      if (!m || !b || !b.isValid || !b.isValid()) return null;
-
-      const sw = b.getSouthWest();
-      const ne = b.getNorthEast();
-      const dLat = Math.abs(ne.lat - sw.lat);
-      const dLng = Math.abs(ne.lng - sw.lng);
-
-      if (dLat < 0.01 && dLng < 0.01) {
-        const c = b.getCenter();
-        const expanded = L.latLngBounds(
-          [c.lat - padDeg, c.lng - padDeg],
-          [c.lat + padDeg, c.lng + padDeg]
-        );
-        m.fitBounds(expanded, fitOpts);
-        return expanded;
-      }
-
-      m.fitBounds(b, fitOpts);
-      return b;
-    }
-
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
@@ -723,7 +755,6 @@
           return JSON.parse(clean);
         })
         .catch((err) => {
-          // NOVO: se falhou, não guardes o erro; permite tentar outra vez
           cache.delete(url);
           throw err;
         });
@@ -733,6 +764,7 @@
     }
 
     const screenMenu = document.getElementById("screenMenu");
+    const screenSessionLen = document.getElementById("screenSessionLen");
     const screenOptions = document.getElementById("screenOptions");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
@@ -742,7 +774,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      for (const s of [screenMenu, screenOptions, screenLoading, screenGame]) s.classList.remove("active");
+      for (const s of [screenMenu, screenSessionLen, screenOptions, screenLoading, screenGame]) s.classList.remove("active");
       el.classList.add("active");
     }
     function setLoading(step, pct) {
@@ -754,9 +786,28 @@
     const btnMenuPlay = document.getElementById("btnMenuPlay");
     const btnMenuOptions = document.getElementById("btnMenuOptions");
     const btnMenuExit = document.getElementById("btnMenuExit");
+
     btnMenuExit.addEventListener("click", () => {
       try { window.close(); } catch {}
       alert("Para sair, fecha o separador / a app (PWA).");
+    });
+
+    // NOVO: abrir menu de escolha de perguntas
+    btnMenuPlay.addEventListener("click", () => {
+      showScreen(screenSessionLen);
+    });
+
+    // NOVO: botão voltar nesse menu
+    const btnSessionLenBack = document.getElementById("btnSessionLenBack");
+    btnSessionLenBack.addEventListener("click", () => showScreen(screenMenu));
+
+    // NOVO: escolher 10/25/50/100 e iniciar
+    screenSessionLen.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-qlen]");
+      if (!btn) return;
+      const n = Number(btn.dataset.qlen || 10);
+      QUESTIONS_PER_SESSION = ([10,25,50,100].includes(n) ? n : 10);
+      startGame();
     });
 
     const btnExit = document.getElementById("btnExit");
@@ -767,7 +818,6 @@
     const finalOverlay = document.getElementById("finalOverlay");
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
-
     const insetWrap = document.getElementById("insetWrap");
 
     /* =========================
@@ -901,26 +951,19 @@
     let map = null;
     let fillLayer = null;
 
-    // Inset (Açores)
     let insetMap = null;
     let insetLayer = null;
     let insetRect = null;
 
-    // Cache do último GeoJSON limpo (para poder criar insetLayer mesmo que insetMap seja criado mais tarde)
     let lastCleanedGeoJSON = null;
-
-    // Arranque a frio: inset priming
     let insetPrimed = false;
 
-    // Indexes
     let byKey = new Map();
     let keyToOfficial = new Map();
 
-    // Açores: concelhoKey -> ilha ; ilha -> bounds
     let keyToIsland = new Map();
     let islandToBounds = new Map();
 
-    // fallback universal: concelhoKey -> bounds
     let keyToBounds = new Map();
 
     function ensureMapReady() {
@@ -1023,7 +1066,7 @@
     let playActive = false;
 
     let selectedPacks = [];
-    let currentPack = null; // {id, region, slug, label, level}
+    let currentPack = null;
 
     let playPackLevel = 3;
     let playPoolKeys = [];
@@ -1056,7 +1099,6 @@
 
     function styleFill(feature) {
       const key = getMunicipalityKey(feature.properties || {});
-
       if (playActive) {
         const isTarget = (key && key === currentTargetKey);
         return { color:"#000", weight: isTarget ? 2.0 : 1.1, fillColor: isTarget ? "#c00" : "#fff", fillOpacity: 1 };
@@ -1200,13 +1242,12 @@
       currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
     }
 
-    // CORREÇÃO: não mostrar a questão "adiantada" enquanto estás a ver a correção
     function renderHUD() {
       const shown = awaitingTap
-        ? Math.min(sessionIndex, PLAY.QUESTIONS_PER_SESSION)
-        : Math.min(sessionIndex + 1, PLAY.QUESTIONS_PER_SESSION);
+        ? Math.min(sessionIndex, QUESTIONS_PER_SESSION)
+        : Math.min(sessionIndex + 1, QUESTIONS_PER_SESSION);
 
-      sessionLine.textContent = `${shown}/${PLAY.QUESTIONS_PER_SESSION}`;
+      sessionLine.textContent = `${shown}/${QUESTIONS_PER_SESSION}`;
       btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound || transitioning;
     }
 
@@ -1264,7 +1305,6 @@
       playPoolKeys = Array.from(keyToOfficial.keys());
       playRemainingKeys = shuffle(playPoolKeys);
 
-      // ao trocar de pack, o inset fica "por primar" de novo (porque pode ter estado escondido)
       insetPrimed = false;
       if (insetLayer) { insetLayer.remove(); insetLayer = null; }
       if (insetRect) { insetRect.remove(); insetRect = null; }
@@ -1281,22 +1321,18 @@
 
       insetWrap.classList.add("show");
 
-      // IMPORTANT: só criar/primar insetMap quando o wrap já está visível
       afterNextPaint(() => {
         if (!insetMap) {
           ensureInsetReady();
           insetPrimed = false;
         }
 
-        // se buildLayer correu antes de insetMap existir, cria agora a layer no inset
         if (!insetLayer && insetMap && lastCleanedGeoJSON) {
           insetLayer = L.geoJSON(lastCleanedGeoJSON, { style: styleFill }).addTo(insetMap);
         }
 
-        // 1º invalidate (já visível)
         invalidateInsetSizeHard();
 
-        // 2º frame: garante sizes e só depois zoom
         afterNextPaint(() => {
           invalidateInsetSizeHard();
 
@@ -1320,12 +1356,10 @@
             insetPrimed = true;
           };
 
-          // Reforço extra (pouco invasivo) para reduzir falhas de "arranque frio"/layout
           runZoom();
           setTimeout(() => { invalidateInsetSizeHard(); runZoom(); }, 120);
           setTimeout(() => { invalidateInsetSizeHard(); runZoom(); }, 320);
 
-          // Mantém o teu comportamento anterior (um batimento curto) para o primeiro arranque
           if (!insetPrimed) {
             setTimeout(() => {
               invalidateInsetSizeHard();
@@ -1365,7 +1399,7 @@
       awaitingTap = false;
       inputBlockedUntil = Date.now() + 250;
 
-      finalCorrect.textContent = `Corretas: ${sessionCorrect}/${PLAY.QUESTIONS_PER_SESSION}`;
+      finalCorrect.textContent = `Corretas: ${sessionCorrect}/${QUESTIONS_PER_SESSION}`;
       finalXP.textContent = `XP ganho: ${sessionXP}`;
       finalOverlay.classList.add("show");
     }
@@ -1421,7 +1455,7 @@
       if (!awaitingTap) return;
       if (Date.now() < inputBlockedUntil) return;
 
-      if (sessionIndex >= PLAY.QUESTIONS_PER_SESSION) {
+      if (sessionIndex >= QUESTIONS_PER_SESSION) {
         endSessionOverlay();
         return;
       }
@@ -1470,7 +1504,7 @@
       finalOverlay.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
-      sessionLine.textContent = `1/${PLAY.QUESTIONS_PER_SESSION}`;
+      sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
 
       insetWrap.classList.remove("show");
@@ -1497,8 +1531,6 @@
         ensureMapReady();
         setMapInteractive(false);
 
-        // IMPORTANT: não criar insetMap aqui (inset ainda pode estar escondido).
-        // O insetMap será criado/primado em updateAzoresInsetForCurrentTarget() quando necessário.
         invalidateMapSizeHard();
 
         playActive = true;
@@ -1526,8 +1558,6 @@
       setMapInteractive(true);
     }
 
-    btnMenuPlay.addEventListener("click", () => startGame());
-
     btnExit.addEventListener("click", (e) => {
       e.stopPropagation();
       backToMenu();
@@ -1544,5 +1574,4 @@
   </script>
 </body>
 </html>
-
 
