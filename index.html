@@ -580,6 +580,20 @@
       return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
 
+    // NOVO: chave interna mais robusta (tenta código primeiro; senão usa nome)
+    function getMunicipalityKey(props) {
+      const code = pickProp(props, [
+        "DICOFRE","dicofre",
+        "CODIGO","codigo",
+        "COD_MUN","cod_mun",
+        "ID","id",
+        "OBJECTID","objectid"
+      ]);
+      if (code) return `id:${normalize(code)}`;
+      const name = getMunicipalityName(props);
+      return `nm:${normalize(name)}`;
+    }
+
     function shuffle(arr) {
       const a = arr.slice();
       for (let i = a.length - 1; i > 0; i--) {
@@ -624,10 +638,18 @@
       return { ok: true, reason: "ok" };
     }
 
+    // NOVO: conversão tolerante (vírgula -> ponto), para coordenadas em string
+    function toNum(x) {
+      if (typeof x === "number") return x;
+      if (typeof x !== "string") return Number(x);
+      const s = x.trim().replace(",", ".");
+      return Number(s);
+    }
+
     function coordPairOk(pair) {
       if (!Array.isArray(pair) || pair.length < 2) return false;
-      const lon = (typeof pair[0] === "string") ? Number(pair[0]) : pair[0];
-      const lat = (typeof pair[1] === "string") ? Number(pair[1]) : pair[1];
+      const lon = toNum(pair[0]);
+      const lat = toNum(pair[1]);
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
       if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return false;
       return true;
@@ -643,11 +665,25 @@
       if (t === "GeometryCollection") return Array.isArray(geom.geometries) && geom.geometries.every(geometryHasOnlyValidCoords);
       return false;
     }
+
+    // NOVO: relatório do que foi removido (para não acontecer "em silêncio")
     function sanitizeFeatureCollection(fc) {
       const features = Array.isArray(fc?.features) ? fc.features : [];
       const kept = [];
-      for (const f of features) if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
-      return { cleaned: { ...fc, features: kept } };
+      const dropped = [];
+
+      for (const f of features) {
+        const props = f?.properties || {};
+        const name = getMunicipalityName(props) || "(sem nome)";
+        if (geometryHasOnlyValidCoords(f?.geometry)) kept.push(f);
+        else dropped.push(name);
+      }
+
+      if (dropped.length) {
+        console.warn("Concelhos removidos por coordenadas estranhas:", dropped);
+      }
+
+      return { cleaned: { ...fc, features: kept }, dropped };
     }
 
     /* =========================
@@ -678,12 +714,20 @@
     const cache = new Map();
     async function loadJSON(url) {
       if (cache.has(url)) return cache.get(url);
-      const p = fetch(url).then(async (r) => {
-        if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
-        const txt = await r.text();
-        const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
-        return JSON.parse(clean);
-      });
+
+      const p = fetch(url)
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`Falha a carregar ${url} (HTTP ${r.status})`);
+          const txt = await r.text();
+          const clean = (txt.charCodeAt(0) === 0xFEFF) ? txt.slice(1) : txt;
+          return JSON.parse(clean);
+        })
+        .catch((err) => {
+          // NOVO: se falhou, não guardes o erro; permite tentar outra vez
+          cache.delete(url);
+          throw err;
+        });
+
       cache.set(url, p);
       return p;
     }
@@ -1011,8 +1055,7 @@
     }
 
     function styleFill(feature) {
-      const raw = getMunicipalityName(feature.properties || {});
-      const key = normalize(raw);
+      const key = getMunicipalityKey(feature.properties || {});
 
       if (playActive) {
         const isTarget = (key && key === currentTargetKey);
@@ -1041,7 +1084,7 @@
         style: styleFill,
         onEachFeature: (feature, layer) => {
           const raw = getMunicipalityName(feature.properties || {});
-          const key = normalize(raw);
+          const key = getMunicipalityKey(feature.properties || {});
           if (!key) return;
 
           byKey.set(key, true);
@@ -1157,8 +1200,12 @@
       currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
     }
 
+    // CORREÇÃO: não mostrar a questão "adiantada" enquanto estás a ver a correção
     function renderHUD() {
-      const shown = Math.min(sessionIndex + 1, PLAY.QUESTIONS_PER_SESSION);
+      const shown = awaitingTap
+        ? Math.min(sessionIndex, PLAY.QUESTIONS_PER_SESSION)
+        : Math.min(sessionIndex + 1, PLAY.QUESTIONS_PER_SESSION);
+
       sessionLine.textContent = `${shown}/${PLAY.QUESTIONS_PER_SESSION}`;
       btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound || transitioning;
     }
@@ -1273,14 +1320,17 @@
             insetPrimed = true;
           };
 
-          // no primeiro arranque “a frio”, dá mais um batimento curto
+          // Reforço extra (pouco invasivo) para reduzir falhas de "arranque frio"/layout
+          runZoom();
+          setTimeout(() => { invalidateInsetSizeHard(); runZoom(); }, 120);
+          setTimeout(() => { invalidateInsetSizeHard(); runZoom(); }, 320);
+
+          // Mantém o teu comportamento anterior (um batimento curto) para o primeiro arranque
           if (!insetPrimed) {
             setTimeout(() => {
               invalidateInsetSizeHard();
               runZoom();
             }, 60);
-          } else {
-            runZoom();
           }
         });
       });
@@ -1494,4 +1544,5 @@
   </script>
 </body>
 </html>
+
 
