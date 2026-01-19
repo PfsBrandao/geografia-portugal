@@ -171,13 +171,19 @@
 
     /* ==============
        INSET (AÇORES)
+       - canto inferior esquerdo
+       - 30% mais pequeno (vs antes)
        ============== */
     .insetWrap{
       position:absolute;
-      right: 10px;
-      top: 10px;
-      width: min(42vw, 220px);
-      height: min(42vw, 220px);
+      left: 10px;
+      bottom: 10px;
+      right: auto;
+      top: auto;
+
+      width: min(29vw, 154px);
+      height: min(29vw, 154px);
+
       border-radius: 14px;
       border: 3px solid rgba(255,255,255,.85);
       box-shadow: 0 8px 18px rgba(0,0,0,.35);
@@ -411,9 +417,11 @@
       .optPhone { padding: 12px; }
       .optRow { grid-template-columns: 1.7fr repeat(4, 0.42fr); }
       .dot { width: 16px; height: 16px; }
+
+      /* inset um pouco maior em ecrãs muito pequenos para continuar legível */
       .insetWrap{
-        width: min(46vw, 200px);
-        height: min(46vw, 200px);
+        width: min(34vw, 160px);
+        height: min(34vw, 160px);
       }
     }
 
@@ -714,10 +722,7 @@
     const OPT_KEY = "geoPT_options_v1";
 
     function defaultOptions() {
-      // default: Porto nível 3 (igual ao comportamento atual)
-      return {
-        levels: { "pt:porto": 3 },
-      };
+      return { levels: { "pt:porto": 3 } };
     }
 
     function loadOptions() {
@@ -733,9 +738,7 @@
       }
     }
 
-    function saveOptions(o) {
-      localStorage.setItem(OPT_KEY, JSON.stringify(o));
-    }
+    function saveOptions(o) { localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
 
     function getSelectedPacksFromOptions(o) {
       const packs = getAllPacks();
@@ -776,7 +779,6 @@
       optTable.appendChild(head);
 
       const packs = getAllPacks();
-
       for (const p of packs) {
         const row = document.createElement("div");
         row.className = "optRow";
@@ -799,12 +801,8 @@
 
           dot.addEventListener("click", () => {
             const cur = Number(optionsDraft.levels?.[p.id] || 0);
-            if (cur === L) {
-              // tocar no mesmo nível -> desativa a zona
-              delete optionsDraft.levels[p.id];
-            } else {
-              optionsDraft.levels[p.id] = L;
-            }
+            if (cur === L) delete optionsDraft.levels[p.id];
+            else optionsDraft.levels[p.id] = L;
             renderOptionsTable();
             updateOptSelectedCount();
           });
@@ -812,7 +810,6 @@
           cell.appendChild(dot);
           row.appendChild(cell);
         }
-
         optTable.appendChild(row);
       }
 
@@ -824,10 +821,7 @@
       renderOptionsTable();
       showScreen(screenOptions);
     }
-
-    function closeOptionsToMenu() {
-      showScreen(screenMenu);
-    }
+    function closeOptionsToMenu() { showScreen(screenMenu); }
 
     btnMenuOptions.addEventListener("click", () => openOptionsScreen());
     btnOptBack.addEventListener("click", () => closeOptionsToMenu());
@@ -860,9 +854,16 @@
     let insetLayer = null;
     let insetRect = null;
 
-    // concelhoKey -> ilha ; ilha -> bounds
+    // Indexes
+    let byKey = new Map();
+    let keyToOfficial = new Map();
+
+    // Açores: concelhoKey -> ilha ; ilha -> bounds
     let keyToIsland = new Map();
     let islandToBounds = new Map();
+
+    // Fallback sempre disponível: concelhoKey -> bounds da feature
+    let keyToBounds = new Map();
 
     function ensureMapReady() {
       if (map) return;
@@ -938,9 +939,6 @@
       }
     }
 
-    let byKey = new Map();
-    let keyToOfficial = new Map();
-
     function clearLayer() {
       if (fillLayer) fillLayer.remove();
       fillLayer = null;
@@ -953,8 +951,10 @@
 
       byKey.clear();
       keyToOfficial.clear();
+
       keyToIsland.clear();
       islandToBounds.clear();
+      keyToBounds.clear();
     }
 
     /* =========================
@@ -962,11 +962,9 @@
        ========================= */
     let playActive = false;
 
-    // pool de packs selecionados (zona + nível)
     let selectedPacks = [];
     let currentPack = null; // {id, region, slug, label, level}
 
-    // pool de respostas (do pack atual)
     let playPackLevel = 3;
     let playPoolKeys = [];
     let playRemainingKeys = [];
@@ -1027,26 +1025,33 @@
         onEachFeature: (feature, layer) => {
           const raw = getMunicipalityName(feature.properties || {});
           const key = normalize(raw);
-          if (key) {
-            byKey.set(key, true);
-            keyToOfficial.set(key, raw);
+          if (!key) return;
 
-            const ilha = getIslandName(feature.properties || {});
-            if (ilha) {
-              keyToIsland.set(key, ilha);
-              try {
-                const b = layer.getBounds?.();
-                if (b && b.isValid && b.isValid()) {
-                  const cur = islandToBounds.get(ilha);
-                  islandToBounds.set(ilha, cur ? cur.extend(b) : b);
-                }
-              } catch {}
-            }
+          byKey.set(key, true);
+          keyToOfficial.set(key, raw);
+
+          // bounds por concelho (fallback para inset)
+          try {
+            const bKey = layer.getBounds?.();
+            if (bKey && bKey.isValid && bKey.isValid()) keyToBounds.set(key, bKey);
+          } catch {}
+
+          // ilha (se existir)
+          const ilha = getIslandName(feature.properties || {});
+          if (ilha) {
+            keyToIsland.set(key, ilha);
+            try {
+              const b = layer.getBounds?.();
+              if (b && b.isValid && b.isValid()) {
+                const cur = islandToBounds.get(ilha);
+                islandToBounds.set(ilha, cur ? cur.extend(b) : b);
+              }
+            } catch {}
           }
         }
       }).addTo(map);
 
-      // Inset desenha o mesmo conteúdo (sem interação)
+      // inset desenha o mesmo conteúdo (sem interação)
       insetLayer = L.geoJSON(cleaned, { style: styleFill }).addTo(insetMap);
 
       invalidateMapSizeHard();
@@ -1124,8 +1129,7 @@
     }
 
     function pickPackForRound() {
-      const p = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
-      return p;
+      return selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
     }
 
     function pickNewTargetKey() {
@@ -1211,23 +1215,28 @@
         return;
       }
 
+      // mostrar primeiro (para o Leaflet medir corretamente)
       insetWrap.classList.add("show");
-      invalidateInsetSizeHard();
 
-      const ilha = keyToIsland.get(currentTargetKey);
-      const b = ilha ? islandToBounds.get(ilha) : null;
+      // garantir sizes e só depois fitBounds (evita “aparecer só um ponto” por size=0)
+      afterNextPaint(() => {
+        invalidateInsetSizeHard();
 
-      if (b && b.isValid && b.isValid()) {
-        try {
-          insetMap.fitBounds(b, { padding: [10, 10], animate: false, maxZoom: 11 });
-        } catch {}
+        // prioridade: bounds da ilha; fallback: bounds do concelho
+        const ilha = keyToIsland.get(currentTargetKey);
+        const b = (ilha && islandToBounds.get(ilha)) ? islandToBounds.get(ilha) : keyToBounds.get(currentTargetKey);
 
-        // Retângulo no mapa principal (onde está o zoom)
-        if (insetRect) insetRect.remove();
-        insetRect = L.rectangle(b, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
-      } else {
-        if (insetRect) { insetRect.remove(); insetRect = null; }
-      }
+        if (b && b.isValid && b.isValid()) {
+          try {
+            insetMap.fitBounds(b, { padding: [10, 10], animate: false, maxZoom: 12 });
+          } catch {}
+
+          if (insetRect) insetRect.remove();
+          insetRect = L.rectangle(b, { color: "#000", weight: 2, fillOpacity: 0 }).addTo(map);
+        } else {
+          if (insetRect) { insetRect.remove(); insetRect = null; }
+        }
+      });
     }
 
     async function nextRound() {
@@ -1248,7 +1257,7 @@
 
       refreshStyles();
 
-      // Inset (Açores): zoom por ilha do concelho alvo
+      // Inset (Açores)
       updateAzoresInsetForCurrentTarget();
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
@@ -1381,9 +1390,7 @@
       try {
         const opts = loadOptions();
         selectedPacks = getSelectedPacksFromOptions(opts);
-        if (selectedPacks.length === 0) {
-          selectedPacks = getSelectedPacksFromOptions(defaultOptions());
-        }
+        if (selectedPacks.length === 0) selectedPacks = getSelectedPacksFromOptions(defaultOptions());
 
         resetSession();
         setLoading("A preparar ecrã…", 25);
