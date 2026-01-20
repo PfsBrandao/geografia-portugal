@@ -261,6 +261,9 @@
       color: #071018 !important;
     }
 
+    /* nível 4: slots vazios NÃO ocupam espaço (corrige o “espaço morto” e teclado cortado) */
+    .choiceBtn.ghost { display: none; }
+
     .overlay {
       position: absolute;
       inset: 0;
@@ -312,7 +315,7 @@
     }
     .kbWrap.disabled{
       opacity: .75;
-      pointer-events: none; /* deixa o “tap para avançar” passar para o listener global */
+      pointer-events: none;
     }
     .kbRow{
       display:flex;
@@ -521,7 +524,7 @@
     </div>
   </div>
 
-  <!-- OPTIONS: MENU COM CATEGORIAS (mesmo aspeto do menu inicial) -->
+  <!-- OPTIONS: MENU COM CATEGORIAS -->
   <div id="screenOptionsMenu" class="screen">
     <div class="menuWrap">
       <div class="menuPhone">
@@ -653,7 +656,7 @@
       </div>
 
       <div class="gameBottom">
-        <!-- NÍVEL 4: barra com o que estás a escrever -->
+        <!-- NÍVEL 4 -->
         <div id="lvl4Bar" class="lvl4Bar" style="display:none;">
           <span id="lvl4Typed">—</span>
         </div>
@@ -662,7 +665,6 @@
           <div class="choices" id="choices"></div>
         </div>
 
-        <!-- NÍVEL 4: teclado do jogo -->
         <div id="lvl4Keyboard" class="kbWrap" style="display:none;" aria-label="Teclado">
           <div class="kbRow" data-row="1"></div>
           <div class="kbRow" data-row="2"></div>
@@ -963,7 +965,6 @@
 
     let optionsDraft = loadOptions();
 
-    // Render genérico de tabela por "lista de packs"
     function renderOptionsTableInto(optTableEl, selectedCountEl, packs) {
       optTableEl.innerHTML = "";
 
@@ -986,7 +987,6 @@
         const nameCell = document.createElement("div");
         nameCell.className = "optCell";
         const lvl = Number(optionsDraft.levels?.[p.id] || 0);
-        // (removido "em breve")
         nameCell.innerHTML = `<div class="optName">${p.label}</div>`;
         row.appendChild(nameCell);
 
@@ -1236,13 +1236,12 @@
     let inputBlockedUntil = 0;
     let transitioning = false;
 
-    // anti-bug “clica na opção seguinte”
     let suppressChoiceUntil = 0;
 
     // nível 4
-    let playPoolEntries = []; // [{key,name,norm}] ordenado
+    let playPoolEntries = [];
     let lvl4Typed = "";
-    let lvl4Suggest = []; // array entries
+    let lvl4Suggest = [];
     let level4HintChoiceMode = false;
 
     function stopTimer() {
@@ -1373,7 +1372,6 @@
       const base = 10;
       const bonus = Math.round(40 * timeFactor);
       let xp = base + bonus;
-      // packLevel 4 usa o mult do 3 (mesma dificuldade real), mas mantém “4” como modo
       const eff = (packLevel === 4 ? 3 : packLevel);
       xp = xp * PLAY.difficultyMultByPackLevel(eff);
       if (usedHint) xp = xp * PLAY.hintMult;
@@ -1427,16 +1425,7 @@
       }
     }
 
-    function revealCorrectAndWrong(chosenKey) {
-      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
-      for (const b of btns) {
-        const k = b.dataset.key || "";
-        if (k === currentTargetKey) b.classList.add("correct");
-        if (chosenKey !== "__timeout__" && k === chosenKey && chosenKey !== currentTargetKey) b.classList.add("wrong");
-      }
-    }
-
-    // ===== NÍVEL 4: UI helpers =====
+    // ===== NÍVEL 4 =====
     function setLevel4UI(on) {
       lvl4Bar.style.display = on ? "block" : "none";
       lvl4Keyboard.style.display = on ? "flex" : "none";
@@ -1462,7 +1451,6 @@
       lvl4Suggest = getLevel4Suggestions();
       setLevel4TypedText(lvl4Typed);
 
-      // construir 4 slots (2x2) no grid normal
       const slots = lvl4Suggest.slice(0,4);
       while (slots.length < 4) slots.push(null);
 
@@ -1474,7 +1462,8 @@
         b.className = "choiceBtn";
 
         if (!item) {
-          b.classList.add("hidden");
+          // CORREÇÃO: no nível 4, slots vazios não devem reservar altura
+          b.classList.add("ghost");
           b.disabled = true;
           b.textContent = "";
         } else {
@@ -1517,7 +1506,6 @@
       awaitingTap = true;
       inputBlockedUntil = Date.now() + 250;
 
-      // bloquear teclado e botões (mas permitir “tap para avançar”)
       lvl4Keyboard.classList.add("disabled");
 
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
@@ -1531,7 +1519,6 @@
         b.disabled = true;
       }
 
-      // se falhou: correta por baixo, a verde, mesma formatação
       if (!isCorrect && chosenBtn) {
         const correctName = keyToOfficial.get(currentTargetKey) || "";
 
@@ -1555,10 +1542,8 @@
       if (key === "BACK") {
         lvl4Typed = lvl4Typed.slice(0, -1);
       } else if (key === "SPACE") {
-        // opcional: permite “Porto de Mós”
         if (lvl4Typed.length && !lvl4Typed.endsWith(" ")) lvl4Typed += " ";
       } else {
-        // letras
         if (lvl4Typed.length < 28) lvl4Typed += key;
       }
 
@@ -1575,7 +1560,6 @@
       inputBlockedUntil = Date.now() + 250;
 
       if (playPackLevel === 4 && !level4HintChoiceMode) {
-        // mostrar correta em verde (sem texto extra)
         lvl4Keyboard.classList.add("disabled");
         choicesEl.innerHTML = "";
 
@@ -1586,22 +1570,16 @@
         b.disabled = true;
         b.textContent = correctName;
 
-        // ocupar o primeiro slot e manter layout
         choicesEl.appendChild(b);
-        for (let i = 0; i < 3; i++) {
-          const h = document.createElement("button");
-          h.type = "button";
-          h.className = "choiceBtn hidden";
-          h.disabled = true;
-          h.textContent = "";
-          choicesEl.appendChild(h);
-        }
-
         renderHUD();
         return;
       }
 
-      revealCorrectAndWrong("__timeout__");
+      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+      for (const b of btns) {
+        const k = b.dataset.key || "";
+        if (k === currentTargetKey) b.classList.add("correct");
+      }
       lockChoices(true);
       renderHUD();
     }
@@ -1711,14 +1689,11 @@
 
       currentTargetKey = pickNewTargetKey();
 
-      // modo por nível
       if (playPackLevel === 4) {
         setLevel4UI(true);
         lvl4Keyboard.classList.remove("disabled");
         lvl4Typed = "";
         setLevel4TypedText(lvl4Typed);
-
-        // sugestões (início vazio)
         renderLevel4Suggestions();
       } else {
         setLevel4UI(false);
@@ -1768,8 +1743,14 @@
       awaitingTap = true;
       inputBlockedUntil = Date.now() + 250;
 
-      revealCorrectAndWrong(chosenKey);
-      lockChoices(true);
+      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+      for (const b of btns) {
+        const k = b.dataset.key || "";
+        if (k === currentTargetKey) b.classList.add("correct");
+        if (k === chosenKey && chosenKey !== currentTargetKey) b.classList.add("wrong");
+        b.disabled = true;
+      }
+
       renderHUD();
     }
 
@@ -1779,7 +1760,6 @@
 
       hintUsedThisRound = true;
 
-      // nível 4: em vez de “remover 2”, mostra 8 opções (modo nível 3)
       if (playPackLevel === 4) {
         level4HintChoiceMode = true;
         setLevel4UI(false);
@@ -1819,7 +1799,6 @@
       transitioning = true;
       suppressChoiceUntil = Date.now() + 400;
 
-      // MUITO IMPORTANTE: deixa o evento atual terminar antes de desenhar a ronda seguinte
       await new Promise(r => setTimeout(r, 0));
 
       try {
@@ -1829,7 +1808,6 @@
       }
     }
 
-    // ===== teclado do jogo (QWERTY) =====
     function buildKeyboard() {
       const rows = [
         ["Q","W","E","R","T","Y","U","I","O","P"],
@@ -1850,15 +1828,12 @@
         b.className = "kbKey" + (cls ? " " + cls : "");
         b.textContent = label;
 
-        // pointerup global é para avançar quando awaitingTap.
-        // quando NÃO está awaitingTap, não deve disparar avanço.
         b.addEventListener("pointerdown", (e) => {
           if (!awaitingTap) e.stopPropagation();
         }, true);
 
         b.addEventListener("click", (e) => {
           if (!awaitingTap) e.stopPropagation();
-          // se estiver awaitingTap, deixa o click “passar” (mas como kbWrap fica disabled, normalmente já nem recebe)
           level4HandleKey(code);
         });
 
@@ -1869,7 +1844,6 @@
       rows[1].forEach(k => r2.appendChild(mkKey(k, k)));
       rows[2].forEach(k => r3.appendChild(mkKey(k, k)));
 
-      // linha 4: backspace + espaço
       r4.appendChild(mkKey("⌫", "BACK", "wide"));
       r4.appendChild(mkKey("␣", "SPACE", "space"));
     }
@@ -1987,5 +1961,3 @@
   </script>
 </body>
 </html>
-
-
