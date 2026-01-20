@@ -220,6 +220,9 @@
       box-sizing: border-box;
       color: #f2f2f2;
       overflow: hidden;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .choices {
@@ -258,77 +261,6 @@
       color: #071018 !important;
     }
 
-    /* =========================
-       DIFICULDADE 4 (TEXTO + AUTOCOMPLETE)
-       ========================= */
-    .textAnswerBlock { margin-top: 6px; }
-    .answerInput {
-      width: 100%;
-      min-height: 44px;
-      border-radius: 16px;
-      border: 2px solid #cfcfcf;
-      font-size: 16px;
-      font-weight: 900;
-      padding: 10px 12px;
-      box-sizing: border-box;
-      outline: none;
-    }
-    .answerInput.correct {
-      border-color: rgba(0,0,0,.18) !important;
-      background: #17c964 !important;
-      color: #071018 !important;
-    }
-    .answerInput.wrong {
-      border-color: rgba(0,0,0,.18) !important;
-      background: #ff4d4f !important;
-      color: #071018 !important;
-    }
-
-    .answerDropdown {
-      margin-top: 8px;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 2px solid rgba(255,255,255,.15);
-      background: rgba(0,0,0,.25);
-      display: none;
-    }
-    .answerDropdown.show { display: block; }
-    .sugBtn {
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      border: 0;
-      background: rgba(255,255,255,.08);
-      color: #fff;
-      font-weight: 900;
-      font-size: 14px;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .sugBtn + .sugBtn { border-top: 1px solid rgba(255,255,255,.12); }
-    .sugBtn:active { transform: translateY(1px); }
-    .sugBtn:disabled { opacity: .6; cursor: not-allowed; }
-
-    /* aqui passa a ser a "pílula" da resposta correta (verde) */
-    .answerFeedback {
-      margin-top: 8px;
-      min-height: 44px;
-      border-radius: 16px;
-      border: 2px solid #cfcfcf;
-      font-size: 16px;
-      font-weight: 900;
-      padding: 10px 12px;
-      box-sizing: border-box;
-      display: none;
-    }
-    .answerFeedback.show { display: block; }
-    .answerFeedback.correct {
-      border-color: rgba(0,0,0,.18) !important;
-      background: #17c964 !important;
-      color: #071018 !important;
-    }
-
     .overlay {
       position: absolute;
       inset: 0;
@@ -353,6 +285,57 @@
     .overlayCard .t { font-size: 24px; font-weight: 900; color: #111; margin: 0 0 10px; }
     .overlayCard .p { font-size: 18px; font-weight: 800; color: #111; margin: 8px 0; }
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
+
+    /* =========================
+       NÍVEL 4: BARRA + TECLADO (in-game)
+       ========================= */
+    .lvl4Bar{
+      background:#efefef;
+      border:2px solid #cfcfcf;
+      border-radius: 14px;
+      padding: 8px 10px;
+      color:#111;
+      font-weight: 900;
+      text-align:center;
+      user-select:none;
+    }
+    .kbWrap{
+      background: rgba(255,255,255,.10);
+      border: 2px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 8px;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .kbWrap.disabled{
+      opacity: .75;
+      pointer-events: none; /* deixa o “tap para avançar” passar para o listener global */
+    }
+    .kbRow{
+      display:flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .kbKey{
+      flex: 0 0 auto;
+      min-width: 30px;
+      height: 44px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 2px solid rgba(0,0,0,.18);
+      background: #e9e9e9;
+      color:#111;
+      font-weight: 900;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0,0,0,.12);
+    }
+    .kbKey:active{ transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+    .kbKey.wide{ min-width: 72px; }
+    .kbKey.space{ min-width: min(56vw, 320px); }
 
     /* =========================
        OPTIONS TABLE SCREENS
@@ -490,6 +473,8 @@
         width: min(34vw, 160px);
         height: min(34vw, 160px);
       }
+
+      .kbKey{ height: 40px; font-size: 15px; }
     }
 
     @media (min-width: 900px) {
@@ -536,7 +521,7 @@
     </div>
   </div>
 
-  <!-- OPTIONS: MENU COM CATEGORIAS -->
+  <!-- OPTIONS: MENU COM CATEGORIAS (mesmo aspeto do menu inicial) -->
   <div id="screenOptionsMenu" class="screen">
     <div class="menuWrap">
       <div class="menuPhone">
@@ -571,7 +556,7 @@
         <div class="optHint">
           Escolhe a dificuldade por distrito.
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
-          Nível 4 = escrever (sem opções; a Ajuda mostra 8 opções).
+          Nível 4 = escreve com teclado do jogo (sugestões).
         </div>
 
         <div class="optTable" id="optTableDistricts"></div>
@@ -600,7 +585,7 @@
         <div class="optHint">
           Escolhe a dificuldade por região.
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
-          Nível 4 = escrever (sem opções; a Ajuda mostra 8 opções).
+          Nível 4 = escreve com teclado do jogo (sugestões).
         </div>
 
         <div class="optTable" id="optTableRA"></div>
@@ -668,26 +653,21 @@
       </div>
 
       <div class="gameBottom">
+        <!-- NÍVEL 4: barra com o que estás a escrever -->
+        <div id="lvl4Bar" class="lvl4Bar" style="display:none;">
+          <span id="lvl4Typed">—</span>
+        </div>
+
         <div id="choicesBlock">
           <div class="choices" id="choices"></div>
         </div>
 
-        <!-- DIFICULDADE 4 -->
-        <div id="textAnswerBlock" class="textAnswerBlock" style="display:none;">
-          <input
-            id="answerInput"
-            class="answerInput"
-            type="text"
-            placeholder="Escreve o concelho…"
-            autocomplete="off"
-            autocapitalize="words"
-            spellcheck="false"
-            enterkeyhint="done"
-          >
-          <div id="answerDropdown" class="answerDropdown" role="listbox" aria-label="Sugestões"></div>
-
-          <!-- aparece só quando erras/timeout: a correta a verde -->
-          <div id="textAnswerFeedback" class="answerFeedback"></div>
+        <!-- NÍVEL 4: teclado do jogo -->
+        <div id="lvl4Keyboard" class="kbWrap" style="display:none;" aria-label="Teclado">
+          <div class="kbRow" data-row="1"></div>
+          <div class="kbRow" data-row="2"></div>
+          <div class="kbRow" data-row="3"></div>
+          <div class="kbRow" data-row="4"></div>
         </div>
       </div>
     </div>
@@ -724,14 +704,14 @@
     const PLAY = {
       TIME_LIMIT_SEC: 60,
       optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
-      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : lvl === 3 ? 1.38 : 1.65),
+      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
       hintMult: 0.60,
     };
 
     let QUESTIONS_PER_SESSION = 10;
 
     function normalize(s) {
-      return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+      return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
     function pickProp(props, keys) {
       for (const k of keys) {
@@ -945,12 +925,10 @@
     const finalXP = document.getElementById("finalXP");
     const insetWrap = document.getElementById("insetWrap");
 
-    // Dificuldade 4 UI
-    const choicesBlock = document.getElementById("choicesBlock");
-    const textAnswerBlock = document.getElementById("textAnswerBlock");
-    const answerInput = document.getElementById("answerInput");
-    const answerDropdown = document.getElementById("answerDropdown");
-    const textAnswerFeedback = document.getElementById("textAnswerFeedback");
+    // NÍVEL 4 UI
+    const lvl4Bar = document.getElementById("lvl4Bar");
+    const lvl4TypedEl = document.getElementById("lvl4Typed");
+    const lvl4Keyboard = document.getElementById("lvl4Keyboard");
 
     /* =========================
        OPTIONS STATE
@@ -1007,10 +985,10 @@
 
         const nameCell = document.createElement("div");
         nameCell.className = "optCell";
+        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
+        // (removido "em breve")
         nameCell.innerHTML = `<div class="optName">${p.label}</div>`;
         row.appendChild(nameCell);
-
-        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
 
         for (let L = 1; L <= 4; L++) {
           const cell = document.createElement("div");
@@ -1241,13 +1219,10 @@
 
     let playPackLevel = 3;
     let playPoolKeys = [];
-    let playPoolEntries = []; // [{key, name, norm}] ordenado alfabeticamente
     let playRemainingKeys = [];
     let currentTargetKey = "";
     let currentChoicesKeys = [];
     let hintUsedThisRound = false;
-
-    let level4HintChoiceMode = false; // <- quando pedes Ajuda no nível 4, passa a escolhas
 
     let roundStartedAt = 0;
     let timerHandle = null;
@@ -1261,8 +1236,14 @@
     let inputBlockedUntil = 0;
     let transitioning = false;
 
-    // airbag para o tap de avançar não marcar input/opções da ronda seguinte
+    // anti-bug “clica na opção seguinte”
     let suppressChoiceUntil = 0;
+
+    // nível 4
+    let playPoolEntries = []; // [{key,name,norm}] ordenado
+    let lvl4Typed = "";
+    let lvl4Suggest = []; // array entries
+    let level4HintChoiceMode = false;
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
@@ -1272,39 +1253,6 @@
     function lockChoices(locked) {
       const btns = choicesEl.querySelectorAll("button.choiceBtn");
       btns.forEach(b => b.disabled = !!locked);
-    }
-
-    function setAnswerModeText(enabled) {
-      choicesBlock.style.display = enabled ? "none" : "block";
-      textAnswerBlock.style.display = enabled ? "block" : "none";
-    }
-
-    function hideDropdown() {
-      answerDropdown.classList.remove("show");
-      answerDropdown.innerHTML = "";
-    }
-
-    function lockTextAnswer(locked) {
-      answerInput.disabled = !!locked;
-      const btns = answerDropdown.querySelectorAll("button");
-      btns.forEach(b => b.disabled = !!locked);
-    }
-
-    function hideCorrectPill() {
-      textAnswerFeedback.classList.remove("show", "correct");
-      textAnswerFeedback.textContent = "";
-    }
-
-    function showCorrectPill(name) {
-      textAnswerFeedback.textContent = name || "";
-      textAnswerFeedback.classList.add("show", "correct");
-    }
-
-    function clearTextAnswerUI() {
-      answerInput.value = "";
-      answerInput.classList.remove("correct", "wrong");
-      hideDropdown();
-      hideCorrectPill();
     }
 
     function styleFill(feature) {
@@ -1319,6 +1267,15 @@
     function refreshStyles() {
       if (fillLayer) fillLayer.setStyle(styleFill);
       if (insetLayer) insetLayer.setStyle(styleFill);
+    }
+
+    function rebuildPlayPoolEntries() {
+      const arr = [];
+      for (const [k, name] of keyToOfficial.entries()) {
+        arr.push({ key: k, name: name || k, norm: normalize(name || k) });
+      }
+      arr.sort((a,b) => (a.name || "").localeCompare((b.name || ""), "pt", { sensitivity: "base" }));
+      playPoolEntries = arr;
     }
 
     function buildLayer(fc) {
@@ -1410,37 +1367,15 @@
       }, 100);
     }
 
-    function onTimeout() {
-      if (!playActive || awaitingTap || transitioning) return;
-
-      sessionWrong++;
-      sessionIndex++;
-
-      awaitingTap = true;
-      inputBlockedUntil = Date.now() + 250;
-
-      // se for nível 4 mas estiver em modo "ajuda->8 opções", trata como escolhas
-      if (playPackLevel === 4 && !level4HintChoiceMode) {
-        lockTextAnswer(true);
-        hideDropdown();
-        answerInput.classList.remove("correct");
-        answerInput.classList.add("wrong");
-        showCorrectPill(keyToOfficial.get(currentTargetKey) || "");
-      } else {
-        revealCorrectAndWrong("__timeout__");
-        lockChoices(true);
-      }
-
-      renderHUD();
-    }
-
     function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
       const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
       const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC;
       const base = 10;
       const bonus = Math.round(40 * timeFactor);
       let xp = base + bonus;
-      xp = xp * PLAY.difficultyMultByPackLevel(packLevel);
+      // packLevel 4 usa o mult do 3 (mesma dificuldade real), mas mantém “4” como modo
+      const eff = (packLevel === 4 ? 3 : packLevel);
+      xp = xp * PLAY.difficultyMultByPackLevel(eff);
       if (usedHint) xp = xp * PLAY.hintMult;
       return Math.max(0, Math.floor(xp));
     }
@@ -1454,8 +1389,9 @@
       return playRemainingKeys.pop() || "";
     }
 
-    function prepareChoicesForRound(nFixed = null) {
-      const n = (nFixed != null) ? nFixed : PLAY.optionsByPackLevel(playPackLevel);
+    function prepareChoicesForRound(overrideN = null) {
+      const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
+      const n = (overrideN != null) ? overrideN : PLAY.optionsByPackLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
       const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
       currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
@@ -1500,17 +1436,174 @@
       }
     }
 
-    function localeCmpPT(a, b) {
-      return String(a).localeCompare(String(b), "pt", { sensitivity: "base" });
+    // ===== NÍVEL 4: UI helpers =====
+    function setLevel4UI(on) {
+      lvl4Bar.style.display = on ? "block" : "none";
+      lvl4Keyboard.style.display = on ? "flex" : "none";
+      if (!on) lvl4Keyboard.classList.remove("disabled");
+    }
+    function setLevel4TypedText(s) {
+      const t = (s && s.length) ? s.toUpperCase() : "—";
+      lvl4TypedEl.textContent = t;
     }
 
-    function rebuildPlayPoolEntries() {
-      playPoolEntries = Array.from(keyToOfficial.entries()).map(([key, name]) => ({
-        key,
-        name,
-        norm: normalize(name)
-      }));
-      playPoolEntries.sort((x, y) => localeCmpPT(x.name, y.name));
+    function getLevel4Suggestions() {
+      const pref = normalize(lvl4Typed);
+      if (!pref) return [];
+      const out = [];
+      for (const e of playPoolEntries) {
+        if (e.norm.startsWith(pref)) out.push(e);
+        if (out.length >= 4) break;
+      }
+      return out;
+    }
+
+    function renderLevel4Suggestions() {
+      lvl4Suggest = getLevel4Suggestions();
+      setLevel4TypedText(lvl4Typed);
+
+      // construir 4 slots (2x2) no grid normal
+      const slots = lvl4Suggest.slice(0,4);
+      while (slots.length < 4) slots.push(null);
+
+      choicesEl.innerHTML = "";
+
+      for (const item of slots) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choiceBtn";
+
+        if (!item) {
+          b.classList.add("hidden");
+          b.disabled = true;
+          b.textContent = "";
+        } else {
+          b.dataset.key = item.key;
+          b.textContent = item.name;
+          b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
+
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (Date.now() < suppressChoiceUntil) return;
+            if (Date.now() < inputBlockedUntil) return;
+            if (transitioning) return;
+            submitLevel4Pick(item.key);
+          });
+        }
+
+        choicesEl.appendChild(b);
+      }
+    }
+
+    function submitLevel4Pick(chosenKey) {
+      if (!playActive || awaitingTap || transitioning) return;
+      if (Date.now() < suppressChoiceUntil) return;
+      if (Date.now() < inputBlockedUntil) return;
+
+      stopTimer();
+      const elapsed = (Date.now() - roundStartedAt) / 1000;
+
+      sessionIndex++;
+
+      const isCorrect = (chosenKey === currentTargetKey);
+
+      if (isCorrect) {
+        sessionCorrect++;
+        sessionXP += computeXPForCorrect(elapsed, 4, hintUsedThisRound);
+      } else {
+        sessionWrong++;
+      }
+
+      awaitingTap = true;
+      inputBlockedUntil = Date.now() + 250;
+
+      // bloquear teclado e botões (mas permitir “tap para avançar”)
+      lvl4Keyboard.classList.add("disabled");
+
+      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+      let chosenBtn = null;
+
+      for (const b of btns) {
+        const k = b.dataset.key || "";
+        if (k === chosenKey) chosenBtn = b;
+        if (k === chosenKey && !isCorrect) b.classList.add("wrong");
+        if (k === chosenKey && isCorrect) b.classList.add("correct");
+        b.disabled = true;
+      }
+
+      // se falhou: correta por baixo, a verde, mesma formatação
+      if (!isCorrect && chosenBtn) {
+        const correctName = keyToOfficial.get(currentTargetKey) || "";
+
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "choiceBtn correct";
+        pill.disabled = true;
+        pill.style.cursor = "default";
+        pill.textContent = correctName;
+
+        chosenBtn.insertAdjacentElement("afterend", pill);
+      }
+
+      renderHUD();
+    }
+
+    function level4HandleKey(key) {
+      if (!playActive || awaitingTap || transitioning) return;
+      if (level4HintChoiceMode) return;
+
+      if (key === "BACK") {
+        lvl4Typed = lvl4Typed.slice(0, -1);
+      } else if (key === "SPACE") {
+        // opcional: permite “Porto de Mós”
+        if (lvl4Typed.length && !lvl4Typed.endsWith(" ")) lvl4Typed += " ";
+      } else {
+        // letras
+        if (lvl4Typed.length < 28) lvl4Typed += key;
+      }
+
+      renderLevel4Suggestions();
+    }
+
+    function onTimeout() {
+      if (!playActive || awaitingTap || transitioning) return;
+
+      sessionWrong++;
+      sessionIndex++;
+
+      awaitingTap = true;
+      inputBlockedUntil = Date.now() + 250;
+
+      if (playPackLevel === 4 && !level4HintChoiceMode) {
+        // mostrar correta em verde (sem texto extra)
+        lvl4Keyboard.classList.add("disabled");
+        choicesEl.innerHTML = "";
+
+        const correctName = keyToOfficial.get(currentTargetKey) || "";
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choiceBtn correct";
+        b.disabled = true;
+        b.textContent = correctName;
+
+        // ocupar o primeiro slot e manter layout
+        choicesEl.appendChild(b);
+        for (let i = 0; i < 3; i++) {
+          const h = document.createElement("button");
+          h.type = "button";
+          h.className = "choiceBtn hidden";
+          h.disabled = true;
+          h.textContent = "";
+          choicesEl.appendChild(h);
+        }
+
+        renderHUD();
+        return;
+      }
+
+      revealCorrectAndWrong("__timeout__");
+      lockChoices(true);
+      renderHUD();
     }
 
     async function ensurePackLoaded(pack) {
@@ -1521,7 +1614,6 @@
 
       transitioning = true;
       lockChoices(true);
-      lockTextAnswer(true);
       stopTimer();
 
       currentPack = pack;
@@ -1537,8 +1629,9 @@
       setTimeout(invalidateMapSizeHard, 200);
 
       playPoolKeys = Array.from(keyToOfficial.keys());
-      rebuildPlayPoolEntries();
       playRemainingKeys = shuffle(playPoolKeys);
+
+      rebuildPlayPoolEntries();
 
       insetPrimed = false;
       if (insetLayer) { insetLayer.remove(); insetLayer = null; }
@@ -1605,80 +1698,34 @@
       });
     }
 
-    function updateDropdownForInput() {
-      if (playPackLevel !== 4) { hideDropdown(); return; }
-      if (!playActive || awaitingTap || transitioning) { hideDropdown(); return; }
-      if (level4HintChoiceMode) { hideDropdown(); return; } // se já estás em modo escolha por Ajuda
-
-      const q = normalize(answerInput.value);
-      if (!q) { hideDropdown(); return; }
-
-      const matches = [];
-      for (const e of playPoolEntries) {
-        if (e.norm.startsWith(q)) matches.push(e);
-        if (matches.length >= 3) break;
-      }
-
-      // se já escreveste exatamente o nome correto, fecha dropdown e não mostra mais nada
-      if (matches.length === 1 && normalize(matches[0].name) === q) {
-        hideDropdown();
-        return;
-      }
-
-      if (matches.length === 0) { hideDropdown(); return; }
-
-      answerDropdown.innerHTML = "";
-      for (const m of matches) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "sugBtn";
-        b.textContent = m.name;
-
-        b.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          if (Date.now() < suppressChoiceUntil) return;
-          if (!playActive || awaitingTap || transitioning) return;
-          if (level4HintChoiceMode) return;
-
-          answerInput.value = m.name;
-          hideDropdown();
-          submitTextAnswer(m.name);
-        });
-
-        answerDropdown.appendChild(b);
-      }
-      answerDropdown.classList.add("show");
-    }
-
     async function nextRound() {
       stopTimer();
       awaitingTap = false;
       hintUsedThisRound = false;
       level4HintChoiceMode = false;
       inputBlockedUntil = Date.now() + 220;
+      suppressChoiceUntil = Date.now() + 320;
 
       const pack = pickPackForRound();
       await ensurePackLoaded(pack);
 
       currentTargetKey = pickNewTargetKey();
 
-      const textMode = (playPackLevel === 4);
+      // modo por nível
+      if (playPackLevel === 4) {
+        setLevel4UI(true);
+        lvl4Keyboard.classList.remove("disabled");
+        lvl4Typed = "";
+        setLevel4TypedText(lvl4Typed);
 
-      if (textMode) {
-        // nível 4: começa sempre em texto
-        setAnswerModeText(true);
-        clearTextAnswerUI();
-        lockTextAnswer(false);
-        hideDropdown();
+        // sugestões (início vazio)
+        renderLevel4Suggestions();
       } else {
-        // níveis 1-3
-        setAnswerModeText(false);
+        setLevel4UI(false);
         prepareChoicesForRound();
         renderChoices();
         lockChoices(false);
       }
-
-      renderHUD();
 
       refreshStyles();
       updateAzoresInsetForCurrentTarget();
@@ -1686,12 +1733,7 @@
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       startTimer();
 
-      if (textMode) {
-        afterNextPaint(() => {
-          try { answerInput.focus(); } catch {}
-          updateDropdownForInput();
-        });
-      }
+      renderHUD();
     }
 
     function endSessionOverlay() {
@@ -1707,6 +1749,7 @@
 
     function submitAnswerChoice(chosenKey) {
       if (!playActive || awaitingTap || transitioning) return;
+      if (Date.now() < suppressChoiceUntil) return;
       if (Date.now() < inputBlockedUntil) return;
 
       stopTimer();
@@ -1716,7 +1759,7 @@
 
       if (chosenKey === currentTargetKey) {
         sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
+        const xp = computeXPForCorrect(elapsed, (playPackLevel === 4 ? 3 : playPackLevel), hintUsedThisRound);
         sessionXP += xp;
       } else {
         sessionWrong++;
@@ -1730,72 +1773,24 @@
       renderHUD();
     }
 
-    function submitTextAnswer(text) {
-      if (!playActive || awaitingTap || transitioning) return;
-      if (Date.now() < inputBlockedUntil) return;
-      if (Date.now() < suppressChoiceUntil) return;
-      if (level4HintChoiceMode) return;
-
-      const typed = normalize(text);
-      if (!typed) return;
-
-      stopTimer();
-      const elapsed = (Date.now() - roundStartedAt) / 1000;
-
-      sessionIndex++;
-
-      const correctName = keyToOfficial.get(currentTargetKey) || "";
-      const isCorrect = (typed === normalize(correctName));
-
-      if (isCorrect) {
-        sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, playPackLevel, hintUsedThisRound);
-        sessionXP += xp;
-      } else {
-        sessionWrong++;
-      }
-
-      awaitingTap = true;
-      inputBlockedUntil = Date.now() + 250;
-
-      hideDropdown();
-      lockTextAnswer(true);
-
-      answerInput.classList.remove("correct", "wrong");
-      answerInput.classList.add(isCorrect ? "correct" : "wrong");
-
-      // sem texto tipo "errado/certo": só cor.
-      hideCorrectPill();
-      if (!isCorrect) showCorrectPill(correctName);
-
-      renderHUD();
-    }
-
     function useHint() {
       if (!playActive || awaitingTap || hintUsedThisRound || transitioning) return;
       if (Date.now() < inputBlockedUntil) return;
 
       hintUsedThisRound = true;
 
+      // nível 4: em vez de “remover 2”, mostra 8 opções (modo nível 3)
       if (playPackLevel === 4) {
-        // Ajuda no nível 4: mostrar 8 opções (como nível 3)
         level4HintChoiceMode = true;
-
-        // esconder UI de texto e mostrar escolhas
-        hideDropdown();
-        lockTextAnswer(true);
-        setAnswerModeText(false);
-        hideCorrectPill();
+        setLevel4UI(false);
 
         prepareChoicesForRound(8);
         renderChoices();
         lockChoices(false);
-
         renderHUD();
         return;
       }
 
-      // níveis 1-3: elimina 2 erradas
       const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
       const removeCount = Math.min(2, Math.max(0, wrong.length - 1));
       const toHide = sampleDistinct(wrong, removeCount);
@@ -1822,7 +1817,10 @@
       }
 
       transitioning = true;
-      suppressChoiceUntil = Date.now() + 450;
+      suppressChoiceUntil = Date.now() + 400;
+
+      // MUITO IMPORTANTE: deixa o evento atual terminar antes de desenhar a ronda seguinte
+      await new Promise(r => setTimeout(r, 0));
 
       try {
         await nextRound();
@@ -1831,12 +1829,56 @@
       }
     }
 
+    // ===== teclado do jogo (QWERTY) =====
+    function buildKeyboard() {
+      const rows = [
+        ["Q","W","E","R","T","Y","U","I","O","P"],
+        ["A","S","D","F","G","H","J","K","L"],
+        ["Z","X","C","V","B","N","M"],
+      ];
+
+      const r1 = lvl4Keyboard.querySelector('.kbRow[data-row="1"]');
+      const r2 = lvl4Keyboard.querySelector('.kbRow[data-row="2"]');
+      const r3 = lvl4Keyboard.querySelector('.kbRow[data-row="3"]');
+      const r4 = lvl4Keyboard.querySelector('.kbRow[data-row="4"]');
+
+      r1.innerHTML = ""; r2.innerHTML = ""; r3.innerHTML = ""; r4.innerHTML = "";
+
+      function mkKey(label, code, cls="") {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "kbKey" + (cls ? " " + cls : "");
+        b.textContent = label;
+
+        // pointerup global é para avançar quando awaitingTap.
+        // quando NÃO está awaitingTap, não deve disparar avanço.
+        b.addEventListener("pointerdown", (e) => {
+          if (!awaitingTap) e.stopPropagation();
+        }, true);
+
+        b.addEventListener("click", (e) => {
+          if (!awaitingTap) e.stopPropagation();
+          // se estiver awaitingTap, deixa o click “passar” (mas como kbWrap fica disabled, normalmente já nem recebe)
+          level4HandleKey(code);
+        });
+
+        return b;
+      }
+
+      rows[0].forEach(k => r1.appendChild(mkKey(k, k)));
+      rows[1].forEach(k => r2.appendChild(mkKey(k, k)));
+      rows[2].forEach(k => r3.appendChild(mkKey(k, k)));
+
+      // linha 4: backspace + espaço
+      r4.appendChild(mkKey("⌫", "BACK", "wide"));
+      r4.appendChild(mkKey("␣", "SPACE", "space"));
+    }
+
+    buildKeyboard();
+
     document.addEventListener("pointerup", async (e) => {
       if (!screenGame.classList.contains("active")) return;
       if (e.target.closest("#btnExit, #btnHint")) return;
-
-      // enquanto ainda NÃO respondeste no nível 4 (modo texto), tocar no input/dropdown não avança
-      if (!awaitingTap && e.target.closest("#answerInput, #answerDropdown")) return;
 
       if (finalOverlay.classList.contains("show")) {
         backToMenu();
@@ -1851,46 +1893,14 @@
       backToMenu();
     });
 
-    // Listeners do nível 4 (texto)
-    answerInput.addEventListener("input", () => {
-      if (Date.now() < suppressChoiceUntil) return;
-      if (playPackLevel !== 4) return;
-      if (!playActive || awaitingTap || transitioning) return;
-      if (level4HintChoiceMode) return;
-
-      answerInput.classList.remove("correct", "wrong");
-      hideCorrectPill();
-      updateDropdownForInput();
-    });
-
-    answerInput.addEventListener("keydown", (e) => {
-      if (playPackLevel !== 4) return;
-      if (e.key !== "Enter") return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (Date.now() < suppressChoiceUntil) return;
-      if (!playActive || awaitingTap || transitioning) return;
-      if (level4HintChoiceMode) return;
-
-      const val = (answerInput.value || "").trim();
-      if (!val) return;
-      submitTextAnswer(val);
-    });
-
-    /* =========================
-       SESSION CONTROL
-       ========================= */
     function resetSession() {
       stopTimer();
       awaitingTap = false;
       transitioning = false;
       inputBlockedUntil = Date.now() + 200;
+      suppressChoiceUntil = Date.now() + 300;
       hintUsedThisRound = false;
-
       level4HintChoiceMode = false;
-      suppressChoiceUntil = 0;
 
       sessionIndex = 0;
       sessionCorrect = 0;
@@ -1907,8 +1917,9 @@
       sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
 
-      clearTextAnswerUI();
-      lockTextAnswer(true);
+      setLevel4UI(false);
+      lvl4Typed = "";
+      setLevel4TypedText(lvl4Typed);
 
       insetWrap.classList.remove("show");
       if (insetRect) { insetRect.remove(); insetRect = null; }
