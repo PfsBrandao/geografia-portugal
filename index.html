@@ -1187,6 +1187,9 @@
     let inputBlockedUntil = 0;
     let transitioning = false;
 
+    // ✅ NOVO: "airbag" para o tap de avançar não marcar a opção da pergunta seguinte
+    let suppressChoiceUntil = 0;
+
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
       timerHandle = null;
@@ -1362,6 +1365,10 @@
 
         b.addEventListener("click", (e) => {
           e.stopPropagation();
+
+          // ✅ NOVO: impede o tap de "avançar" de marcar uma opção nova
+          if (Date.now() < suppressChoiceUntil) return;
+
           if (Date.now() < inputBlockedUntil) return;
           if (transitioning) return;
           submitAnswerChoice(k);
@@ -1561,6 +1568,10 @@
       }
 
       transitioning = true;
+
+      // ✅ NOVO: bloqueia cliques nas opções da pergunta seguinte por um instante
+      suppressChoiceUntil = Date.now() + 450;
+
       try {
         await nextRound();
       } finally {
@@ -1591,6 +1602,9 @@
       transitioning = false;
       inputBlockedUntil = Date.now() + 200;
       hintUsedThisRound = false;
+
+      // ✅ NOVO: reset ao bloqueio extra
+      suppressChoiceUntil = 0;
 
       sessionIndex = 0;
       sessionCorrect = 0;
@@ -1673,5 +1687,6 @@
   </script>
 </body>
 </html>
+
 
 
