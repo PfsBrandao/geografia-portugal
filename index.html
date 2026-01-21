@@ -119,11 +119,12 @@
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
 
+      /* ALTERAÇÃO: dar MAIS espaço ao bloco de opções (embaixo) e reduzir o "quadrado" do mapa */
       grid-template-rows:
         40px
-        minmax(0, 1fr)
+        minmax(0, 0.80fr)
         64px
-        minmax(0, 1fr);
+        minmax(0, 1.20fr);
     }
 
     .gameTop { display:flex; align-items:center; justify-content:flex-start; }
@@ -179,7 +180,10 @@
       border: 3px solid var(--panelBorder);
       overflow: hidden;
       position: relative;
-      min-height: 240px;
+
+      /* ALTERAÇÃO: reduzir um pouco a altura mínima do mapa */
+      min-height: 200px;
+
       min-width: 0;
     }
     #map { height: 100%; width: 100%; background: #fff; }
@@ -335,13 +339,14 @@
     }
 
     .kbWrap{
-      --kbKeyH: clamp(34px, 6.2dvh, 44px);
-      --kbGap: 8px;
+      /* ALTERAÇÃO: teclado mais pequeno */
+      --kbKeyH: clamp(28px, 5.2dvh, 38px);
+      --kbGap: 6px;
 
       background: rgba(255,255,255,.10);
       border: 2px solid rgba(255,255,255,.12);
       border-radius: 16px;
-      padding: 8px;
+      padding: 6px;
       display:flex;
       flex-direction: column;
       gap: var(--kbGap);
@@ -362,21 +367,21 @@
     }
     .kbKey{
       flex: 0 0 auto;
-      min-width: 30px;
+      min-width: 26px;
       height: var(--kbKeyH);
-      padding: 0 10px;
+      padding: 0 8px;
       border-radius: 10px;
       border: 2px solid rgba(0,0,0,.18);
       background: #e9e9e9;
       color:#111;
       font-weight: 900;
-      font-size: 16px;
+      font-size: 14px;
       cursor: pointer;
       box-shadow: 0 2px 0 rgba(0,0,0,.12);
     }
     .kbKey:active{ transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
-    .kbKey.wide{ min-width: 72px; }
-    .kbKey.space{ min-width: min(56vw, 320px); }
+    .kbKey.wide{ min-width: 64px; }
+    .kbKey.space{ min-width: min(52vw, 280px); }
 
     /* =========================
        OPTIONS TABLE SCREENS
@@ -514,12 +519,19 @@
         width: min(34vw, 160px);
         height: min(34vw, 160px);
       }
+
+      /* teclado ainda mais compacto em ecrãs pequenos */
+      .kbWrap{ --kbKeyH: clamp(26px, 4.8dvh, 34px); --kbGap: 5px; padding: 5px; }
+      .kbKey{ font-size: 13px; min-width: 24px; padding: 0 7px; }
+      .kbKey.wide{ min-width: 58px; }
+      .kbKey.space{ min-width: min(56vw, 260px); }
     }
 
     @media (max-height: 700px) {
       .gameShell { gap: 5px; padding: 8px; padding-top: calc(8px + env(safe-area-inset-top)); padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-      .kbWrap { padding: 6px; --kbGap: 6px; }
-      .kbKey { font-size: 15px; }
+      .kbWrap { padding: 5px; --kbGap: 5px; }
+      .kbKey { font-size: 13px; }
+      .gameStage { min-height: 180px; }
     }
 
     @media (min-width: 900px) {
@@ -763,47 +775,9 @@
       }
       return "";
     }
-
-    /* =========================
-       NAME EXTRACTION (FIX: LEVEL 4 SUGGESTIONS)
-       ========================= */
-    function guessNameFromProps(props) {
-      if (!props || typeof props !== "object") return "";
-
-      // chaves que tipicamente são códigos / ids (não queremos como "nome")
-      const badKeys = new Set([
-        "DICOFRE","dicofre","CODIGO","codigo","COD_MUN","cod_mun","ID","id","OBJECTID","objectid",
-        "FID","fid","GID","gid","CODE","code","COD","cod"
-      ]);
-
-      const hasLetters = (s) => /[A-Za-zÀ-ÿ]/.test(s);
-
-      for (const [k, v] of Object.entries(props)) {
-        if (badKeys.has(k)) continue;
-        if (typeof v !== "string") continue;
-        const s = v.trim();
-        if (!s) continue;
-        if (!hasLetters(s)) continue;
-        if (s.length > 60) continue;
-        return s;
-      }
-      return "";
-    }
-
     function getMunicipalityName(props) {
-      const direct = pickProp(props, [
-        "Concelho","CONCELHO",
-        "MUNICIPIO","Municipio","MUNICÍPIO","municipio",
-        "NOME","Nome","nome",
-        "NAME_2","NAME2","NAME",
-        "NAME_1","NAME1"
-      ]);
-      if (direct) return direct;
-
-      // fallback: procura um campo textual qualquer
-      return guessNameFromProps(props);
+      return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
     }
-
     function getIslandName(props) {
       return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
@@ -1351,7 +1325,7 @@
     function rebuildPlayPoolEntries() {
       const arr = [];
       for (const [k, name] of keyToOfficial.entries()) {
-        arr.push({ key: k, name: name || k, norm: normalize(name || k) });
+        arr.push({ key: k, name: (name || k), norm: normalize(name || k) });
       }
       arr.sort((a,b) => (a.name || "").localeCompare((b.name || ""), "pt", { sensitivity: "base" }));
       playPoolEntries = arr;
@@ -1371,8 +1345,7 @@
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
         onEachFeature: (feature, layer) => {
-          // FIX: garantir que nunca fica string vazia (e usar fallback inteligente acima)
-          const raw = getMunicipalityName(feature.properties || {}) || "(sem nome)";
+          const raw = getMunicipalityName(feature.properties || {});
           const key = getMunicipalityKey(feature.properties || {});
           if (!key) return;
 
@@ -1528,44 +1501,37 @@
       return out;
     }
 
-    // FIX: torna o comportamento visível quando não há sugestões
     function renderLevel4Suggestions() {
       lvl4Suggest = getLevel4Suggestions();
       setLevel4TypedText(lvl4Typed);
 
+      const slots = lvl4Suggest.slice(0,4);
+      while (slots.length < 4) slots.push(null);
+
       choicesEl.innerHTML = "";
 
-      // sem texto -> não mostra nada (evita "ghosts" invisíveis)
-      if (!normalize(lvl4Typed)) return;
-
-      // sem matches -> mostra feedback
-      if (lvl4Suggest.length === 0) {
+      for (const item of slots) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "choiceBtn";
-        b.disabled = true;
-        b.style.cursor = "default";
-        b.textContent = "Sem sugestões";
-        choicesEl.appendChild(b);
-        return;
-      }
 
-      for (const item of lvl4Suggest.slice(0, 4)) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "choiceBtn";
-        b.dataset.key = item.key;
-        b.textContent = item.name;
+        if (!item) {
+          b.classList.add("ghost");
+          b.disabled = true;
+          b.textContent = "";
+        } else {
+          b.dataset.key = item.key;
+          b.textContent = item.name;
+          b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
 
-        b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
-
-        b.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (Date.now() < suppressChoiceUntil) return;
-          if (Date.now() < inputBlockedUntil) return;
-          if (transitioning) return;
-          submitLevel4Pick(item.key);
-        });
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (Date.now() < suppressChoiceUntil) return;
+            if (Date.now() < inputBlockedUntil) return;
+            if (transitioning) return;
+            submitLevel4Pick(item.key);
+          });
+        }
 
         choicesEl.appendChild(b);
       }
@@ -2068,4 +2034,3 @@
   </script>
 </body>
 </html>
-
