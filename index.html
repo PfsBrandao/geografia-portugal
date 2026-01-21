@@ -119,7 +119,6 @@
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
 
-      /* ALTERAÇÃO: dar MAIS espaço ao bloco de opções (embaixo) e reduzir o "quadrado" do mapa */
       grid-template-rows:
         40px
         minmax(0, 0.80fr)
@@ -180,10 +179,7 @@
       border: 3px solid var(--panelBorder);
       overflow: hidden;
       position: relative;
-
-      /* ALTERAÇÃO: reduzir um pouco a altura mínima do mapa */
       min-height: 200px;
-
       min-width: 0;
     }
     #map { height: 100%; width: 100%; background: #fff; }
@@ -203,10 +199,8 @@
       position:absolute;
       left: 10px;
       bottom: 10px;
-
       width: min(29vw, 154px);
       height: min(29vw, 154px);
-
       border-radius: 14px;
       border: 3px solid rgba(255,255,255,.85);
       box-shadow: 0 8px 18px rgba(0,0,0,.35);
@@ -224,10 +218,11 @@
     }
 
     /* =========================
-       GAME BOTTOM (3 FIXED ZONES)
-       A) lvl4 bar (auto)
-       B) choicesBlock (scroll + shrink)
-       C) keyboard (auto)
+       GAME BOTTOM
+       A) question bar
+       B) lvl4 bar (auto)
+       C) choicesBlock (scroll + shrink)
+       D) keyboard (auto)
        ========================= */
     .gameBottom {
       background: rgba(16,16,24,.95);
@@ -237,12 +232,27 @@
       color: #f2f2f2;
 
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
       gap: 8px;
 
       overflow: hidden;
       min-height: 0;
       min-width: 0;
+    }
+
+    .questionBar{
+      background:#efefef;
+      border:2px solid #cfcfcf;
+      border-radius: 14px;
+      padding: 8px 10px;
+      color:#111;
+      font-weight: 900;
+      text-align:center;
+      user-select:none;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #choicesBlock{
@@ -292,7 +302,6 @@
       color: #071018 !important;
     }
 
-    /* nível 4: slots vazios NÃO ocupam espaço */
     .choiceBtn.ghost { display: none; }
 
     .overlay {
@@ -339,7 +348,6 @@
     }
 
     .kbWrap{
-      /* ALTERAÇÃO: teclado mais pequeno */
       --kbKeyH: clamp(28px, 5.2dvh, 38px);
       --kbGap: 6px;
 
@@ -382,9 +390,10 @@
     .kbKey:active{ transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
     .kbKey.wide{ min-width: 64px; }
     .kbKey.space{ min-width: min(52vw, 280px); }
+    .kbKey.confirm{ min-width: 78px; }
 
     /* =========================
-       OPTIONS TABLE SCREENS
+       OPTIONS TABLE SCREENS (v2: por categoria)
        ========================= */
     .optWrap {
       min-height: 100dvh;
@@ -396,7 +405,7 @@
       box-sizing: border-box;
     }
     .optPhone {
-      width: min(520px, 94vw);
+      width: min(560px, 94vw);
       background: #ffffff;
       border-radius: 22px;
       padding: 14px;
@@ -426,46 +435,65 @@
       margin: 0 4px 10px;
       line-height: 1.35;
     }
-    .optTable {
+
+    .optPack{
       border: 1px solid #d6d6d6;
       border-radius: 14px;
       overflow: hidden;
+      margin-bottom: 10px;
     }
-    .optRow {
-      display:grid;
-      grid-template-columns: 1.6fr repeat(4, 0.45fr);
-      align-items:center;
-      gap: 0;
-      border-bottom: 1px solid #e7e7e7;
-      min-height: 46px;
-    }
-    .optRow:last-child { border-bottom: none; }
-
-    .optHead {
-      background: #f3f3f3;
-      font-weight: 900;
-      color:#111;
-      font-size: 12px;
-      min-height: 44px;
-    }
-    .optCell {
-      padding: 8px 10px;
-      box-sizing:border-box;
-      border-right: 1px solid #e7e7e7;
-      height: 100%;
+    .optPackHead{
+      background:#f3f3f3;
       display:flex;
       align-items:center;
-    }
-    .optRow .optCell:last-child { border-right: none; }
-
-    .optName {
-      font-weight: 800;
-      font-size: 13px;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      box-sizing:border-box;
+      font-weight: 900;
       color:#111;
-      line-height: 1.15;
     }
+    .optPackHead .sub{ font-weight: 800; font-size: 11px; color:#444; opacity:.9; }
 
-    .dotCell { justify-content:center; padding: 8px; }
+    .optCatHead{
+      display:grid;
+      grid-template-columns: 1fr repeat(4, 34px);
+      gap: 0;
+      border-top: 1px solid #e7e7e7;
+      background:#fafafa;
+      font-weight: 900;
+      font-size: 12px;
+      color:#111;
+      min-height: 42px;
+    }
+    .optCatHead .c{
+      display:flex; align-items:center; justify-content:center;
+      border-right: 1px solid #e7e7e7;
+    }
+    .optCatHead .c:first-child{ justify-content:flex-start; padding-left: 12px; }
+    .optCatHead .c:last-child{ border-right:none; }
+
+    .optCatRow{
+      display:grid;
+      grid-template-columns: 1fr repeat(4, 34px);
+      gap: 0;
+      border-top: 1px solid #eeeeee;
+      min-height: 46px;
+      align-items: stretch;
+    }
+    .optCatRow .c{
+      display:flex; align-items:center;
+      padding: 8px 12px;
+      box-sizing:border-box;
+      border-right: 1px solid #eeeeee;
+      font-size: 12px;
+      color:#111;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .optCatRow .c.dotCell{ justify-content:center; padding: 8px; }
+    .optCatRow .c:last-child{ border-right:none; }
+
     .dot {
       width: 18px;
       height: 18px;
@@ -512,7 +540,7 @@
       .hudBtn { font-size: 16px; }
       .choiceBtn { min-height: 42px; font-size: 13px; }
       .optPhone { padding: 12px; }
-      .optRow { grid-template-columns: 1.7fr repeat(4, 0.42fr); }
+
       .dot { width: 16px; height: 16px; }
 
       .insetWrap{
@@ -520,11 +548,13 @@
         height: min(34vw, 160px);
       }
 
-      /* teclado ainda mais compacto em ecrãs pequenos */
       .kbWrap{ --kbKeyH: clamp(26px, 4.8dvh, 34px); --kbGap: 5px; padding: 5px; }
       .kbKey{ font-size: 13px; min-width: 24px; padding: 0 7px; }
       .kbKey.wide{ min-width: 58px; }
       .kbKey.space{ min-width: min(56vw, 260px); }
+      .kbKey.confirm{ min-width: 70px; }
+
+      .optCatHead, .optCatRow{ grid-template-columns: 1fr repeat(4, 30px); }
     }
 
     @media (max-height: 700px) {
@@ -611,12 +641,13 @@
         </div>
 
         <div class="optHint">
-          Escolhe a dificuldade por distrito.
+          Define o que é perguntado em cada distrito (categorias independentes).
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
-          Nível 4 = escreve com teclado do jogo (sugestões).
+          Nível 4 = escrever no teclado do jogo (nomes) ou valor numérico (±10%).
+          (Bandeiras está previsto mas ainda não implementado.)
         </div>
 
-        <div class="optTable" id="optTableDistricts"></div>
+        <div id="optDistrictsBlocks"></div>
 
         <div class="optFooter">
           <button id="btnOptResetDistricts" class="optBtn" type="button">Reset</button>
@@ -640,12 +671,12 @@
         </div>
 
         <div class="optHint">
-          Escolhe a dificuldade por região.
+          Define o que é perguntado em cada região (categorias independentes).
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
-          Nível 4 = escreve com teclado do jogo (sugestões).
+          Nível 4 = escrever no teclado do jogo (nomes) ou valor numérico (±10%).
         </div>
 
-        <div class="optTable" id="optTableRA"></div>
+        <div id="optRABlocks"></div>
 
         <div class="optFooter">
           <button id="btnOptResetRA" class="optBtn" type="button">Reset</button>
@@ -710,6 +741,8 @@
       </div>
 
       <div class="gameBottom">
+        <div id="questionBar" class="questionBar">—</div>
+
         <!-- NÍVEL 4 -->
         <div id="lvl4Bar" class="lvl4Bar" style="display:none;">
           <span id="lvl4Typed">—</span>
@@ -739,6 +772,7 @@
       concelhosPT: (districtSlug) => `${BASE}data/concelhos_${districtSlug}.geojson`,
       concelhosAZ: `${BASE}data/concelhos_acores.geojson`,
       concelhosMD: `${BASE}data/concelhos_madeira.geojson`,
+      demografia: `${BASE}data/municipios_demografia.json`,
     };
 
     const DISTRICTS_PT = [
@@ -751,16 +785,24 @@
     ];
 
     function getAllPacks() {
-      const arr = DISTRICTS_PT.map(([name, slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${name}`, region:"pt", slug }));
-      arr.push({ id:"az", label:"Região — Açores", region:"az", slug:"acores" });
-      arr.push({ id:"md", label:"Região — Madeira", region:"md", slug:"madeira" });
+      const arr = DISTRICTS_PT.map(([name, slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${name}`, region:"pt", slug, short:name }));
+      arr.push({ id:"az", label:"Região — Açores", region:"az", slug:"acores", short:"Açores" });
+      arr.push({ id:"md", label:"Região — Madeira", region:"md", slug:"madeira", short:"Madeira" });
       return arr;
     }
 
+    const CATEGORIES = [
+      { id:"identify", label:"Concelhos no mapa", kind:"name" },
+      { id:"pop", label:"População (habitantes)", kind:"num", unit:"habitantes" },
+      { id:"area", label:"Área (km²)", kind:"num", unit:"km²" },
+      { id:"dens", label:"Densidade (hab/km²)", kind:"num", unit:"hab/km²" },
+      { id:"flags", label:"(Futuro) Bandeiras", kind:"future" }
+    ];
+
     const PLAY = {
       TIME_LIMIT_SEC: 60,
-      optionsByPackLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
-      difficultyMultByPackLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
+      optionsByLevel: (lvl) => (lvl === 1 ? 4 : lvl === 2 ? 6 : 8),
+      difficultyMultByLevel: (lvl) => (lvl === 1 ? 1.00 : lvl === 2 ? 1.18 : 1.38),
       hintMult: 0.60,
     };
 
@@ -961,9 +1003,7 @@
     });
 
     // OPTIONS MENU OPEN/CLOSE
-    btnMenuOptions.addEventListener("click", () => {
-      showScreen(screenOptionsMenu);
-    });
+    btnMenuOptions.addEventListener("click", () => showScreen(screenOptionsMenu));
     document.getElementById("btnOptMenuBack").addEventListener("click", () => showScreen(screenMenu));
 
     // OPTIONS CATEGORY BUTTONS
@@ -980,6 +1020,7 @@
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
     const insetWrap = document.getElementById("insetWrap");
+    const questionBar = document.getElementById("questionBar");
 
     // NÍVEL 4 UI
     const lvl4Bar = document.getElementById("lvl4Bar");
@@ -987,19 +1028,44 @@
     const lvl4Keyboard = document.getElementById("lvl4Keyboard");
 
     /* =========================
-       OPTIONS STATE
+       OPTIONS STATE (v2)
        ========================= */
-    const OPT_KEY = "geoPT_options_v1";
+    const OPT_KEY = "geoPT_options_v2";
 
-    function defaultOptions() { return { levels: { "pt:porto": 3 } }; }
+    function makeEmptyCfg() {
+      const obj = {};
+      for (const c of CATEGORIES) {
+        if (c.id === "flags") continue; // previsto, mas não joga
+        obj[c.id] = 0;
+      }
+      return obj;
+    }
+
+    function defaultOptions() {
+      // default: Porto com identificação no nível 3
+      return { cfg: { "pt:porto": { ...makeEmptyCfg(), identify: 3 } } };
+    }
+
+    function migrateV1ToV2(o) {
+      // v1: { levels: { "pt:porto": 3, ... } }
+      if (!o || typeof o !== "object") return defaultOptions();
+      if (o.cfg && typeof o.cfg === "object") return o;
+      const out = { cfg: {} };
+      const levels = (o.levels && typeof o.levels === "object") ? o.levels : {};
+      for (const [packId, lvl] of Object.entries(levels)) {
+        const L = Number(lvl || 0);
+        if (L >= 1 && L <= 4) out.cfg[packId] = { ...makeEmptyCfg(), identify: L };
+      }
+      if (Object.keys(out.cfg).length === 0) return defaultOptions();
+      return out;
+    }
 
     function loadOptions() {
       try {
         const raw = localStorage.getItem(OPT_KEY);
         if (!raw) return defaultOptions();
-        const o = JSON.parse(raw);
-        if (!o || typeof o !== "object") return defaultOptions();
-        if (!o.levels || typeof o.levels !== "object") o.levels = {};
+        const o = migrateV1ToV2(JSON.parse(raw));
+        if (!o.cfg || typeof o.cfg !== "object") o.cfg = {};
         return o;
       } catch {
         return defaultOptions();
@@ -1007,75 +1073,120 @@
     }
     function saveOptions(o) { localStorage.setItem(OPT_KEY, JSON.stringify(o)); }
 
+    function ensurePackCfg(o, packId) {
+      if (!o.cfg) o.cfg = {};
+      if (!o.cfg[packId] || typeof o.cfg[packId] !== "object") o.cfg[packId] = makeEmptyCfg();
+      for (const c of CATEGORIES) {
+        if (c.id === "flags") continue;
+        if (o.cfg[packId][c.id] == null) o.cfg[packId][c.id] = 0;
+      }
+      return o.cfg[packId];
+    }
+
+    function packIsPlayable(cfg) {
+      if (!cfg) return false;
+      return ["identify","pop","area","dens"].some(k => Number(cfg[k] || 0) >= 1 && Number(cfg[k] || 0) <= 4);
+    }
+
     function getSelectedPacksFromOptions(o) {
       const packs = getAllPacks();
       const selected = [];
       for (const p of packs) {
-        const lvl = Number(o.levels?.[p.id] || 0);
-        if (lvl >= 1 && lvl <= 4) selected.push({ ...p, level: lvl });
+        const cfg = ensurePackCfg(o, p.id);
+        if (packIsPlayable(cfg)) selected.push({ ...p, cfg });
       }
       return selected;
     }
 
-    let optionsDraft = loadOptions();
-
-    function renderOptionsTableInto(optTableEl, selectedCountEl, packs) {
-      optTableEl.innerHTML = "";
-
-      const head = document.createElement("div");
-      head.className = "optRow optHead";
-      head.innerHTML = `
-        <div class="optCell">Zona</div>
-        <div class="optCell dotCell">1</div>
-        <div class="optCell dotCell">2</div>
-        <div class="optCell dotCell">3</div>
-        <div class="optCell dotCell">4</div>
-      `;
-      optTableEl.appendChild(head);
-
-      for (const p of packs) {
-        const row = document.createElement("div");
-        row.className = "optRow";
-        row.dataset.id = p.id;
-
-        const nameCell = document.createElement("div");
-        nameCell.className = "optCell";
-        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
-        nameCell.innerHTML = `<div class="optName">${p.label}</div>`;
-        row.appendChild(nameCell);
-
-        for (let L = 1; L <= 4; L++) {
-          const cell = document.createElement("div");
-          cell.className = "optCell dotCell";
-
-          const dot = document.createElement("span");
-          dot.className = "dot" + (lvl === L ? " on" : "");
-          dot.title = `Nível ${L}`;
-
-          dot.addEventListener("click", () => {
-            const cur = Number(optionsDraft.levels?.[p.id] || 0);
-            if (cur === L) delete optionsDraft.levels[p.id];
-            else optionsDraft.levels[p.id] = L;
-            renderOptionsTableInto(optTableEl, selectedCountEl, packs);
-          });
-
-          cell.appendChild(dot);
-          row.appendChild(cell);
-        }
-
-        optTableEl.appendChild(row);
-      }
-
+    function countSelectedPacks(o, regionFilterFn) {
+      const packs = getAllPacks().filter(regionFilterFn);
       let sel = 0;
       for (const p of packs) {
-        const lvl = Number(optionsDraft.levels?.[p.id] || 0);
-        if (lvl >= 1 && lvl <= 4) sel++;
+        const cfg = ensurePackCfg(o, p.id);
+        if (packIsPlayable(cfg)) sel++;
+      }
+      return sel;
+    }
+
+    let optionsDraft = loadOptions();
+
+    function renderOptionsBlocks(containerEl, selectedCountEl, packs) {
+      containerEl.innerHTML = "";
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+
+        const packDiv = document.createElement("div");
+        packDiv.className = "optPack";
+
+        const head = document.createElement("div");
+        head.className = "optPackHead";
+        const activeTxt = packIsPlayable(cfg) ? "Ativo" : "Inativo";
+        head.innerHTML = `<div>${p.label}<div class="sub">${activeTxt}</div></div>`;
+        packDiv.appendChild(head);
+
+        const catHead = document.createElement("div");
+        catHead.className = "optCatHead";
+        catHead.innerHTML = `
+          <div class="c">Categoria</div>
+          <div class="c">1</div>
+          <div class="c">2</div>
+          <div class="c">3</div>
+          <div class="c">4</div>
+        `;
+        packDiv.appendChild(catHead);
+
+        for (const cat of CATEGORIES) {
+          if (cat.id === "flags") continue; // apenas previsto
+
+          const row = document.createElement("div");
+          row.className = "optCatRow";
+          row.dataset.pack = p.id;
+          row.dataset.cat = cat.id;
+
+          const labelCell = document.createElement("div");
+          labelCell.className = "c";
+          labelCell.textContent = cat.label;
+          row.appendChild(labelCell);
+
+          const cur = Number(cfg[cat.id] || 0);
+
+          for (let L = 1; L <= 4; L++) {
+            const cell = document.createElement("div");
+            cell.className = "c dotCell";
+
+            const dot = document.createElement("span");
+            dot.className = "dot" + (cur === L ? " on" : "");
+            dot.title = `Nível ${L}`;
+
+            dot.addEventListener("click", () => {
+              const cfg2 = ensurePackCfg(optionsDraft, p.id);
+              const cur2 = Number(cfg2[cat.id] || 0);
+              if (cur2 === L) cfg2[cat.id] = 0;
+              else cfg2[cat.id] = L;
+              renderOptionsBlocks(containerEl, selectedCountEl, packs);
+            });
+
+            cell.appendChild(dot);
+            row.appendChild(cell);
+          }
+
+          packDiv.appendChild(row);
+        }
+
+        containerEl.appendChild(packDiv);
+      }
+
+      // update counter
+      let sel = 0;
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+        if (packIsPlayable(cfg)) sel++;
       }
       selectedCountEl.textContent = `Selecionados: ${sel}`;
     }
 
     // DISTRITOS SCREEN
-    const optTableDistricts = document.getElementById("optTableDistricts");
+    const optDistrictsBlocks = document.getElementById("optDistrictsBlocks");
     const optSelectedCountDistricts = document.getElementById("optSelectedCountDistricts");
     const btnOptBackDistricts = document.getElementById("btnOptBackDistricts");
     const btnOptBackTopDistricts = document.getElementById("btnOptBackTopDistricts");
@@ -1085,7 +1196,7 @@
     function openOptionsDistricts() {
       optionsDraft = loadOptions();
       const packs = getAllPacks().filter(p => p.region === "pt");
-      renderOptionsTableInto(optTableDistricts, optSelectedCountDistricts, packs);
+      renderOptionsBlocks(optDistrictsBlocks, optSelectedCountDistricts, packs);
       showScreen(screenOptionsDistricts);
     }
     function closeDistrictsToOptionsMenu() { showScreen(screenOptionsMenu); }
@@ -1094,18 +1205,18 @@
     btnOptBackTopDistricts.addEventListener("click", () => closeDistrictsToOptionsMenu());
 
     btnOptResetDistricts.addEventListener("click", () => {
-      const base = loadOptions();
-      optionsDraft = base;
+      optionsDraft = defaultOptions();
+      // limpar tudo nos distritos, depois reativar porto identify=3
       const packs = getAllPacks().filter(p => p.region === "pt");
-      for (const p of packs) delete optionsDraft.levels[p.id];
-      optionsDraft.levels["pt:porto"] = 3;
-      renderOptionsTableInto(optTableDistricts, optSelectedCountDistricts, packs);
+      for (const p of packs) optionsDraft.cfg[p.id] = makeEmptyCfg();
+      optionsDraft.cfg["pt:porto"] = { ...makeEmptyCfg(), identify: 3 };
+      renderOptionsBlocks(optDistrictsBlocks, optSelectedCountDistricts, packs);
     });
 
     btnOptSaveDistricts.addEventListener("click", () => {
       const selected = getSelectedPacksFromOptions(optionsDraft);
       if (selected.length === 0) {
-        alert("Seleciona pelo menos 1 distrito/região para jogar.");
+        alert("Seleciona pelo menos 1 distrito/região com alguma categoria ativa.");
         return;
       }
       saveOptions(optionsDraft);
@@ -1113,7 +1224,7 @@
     });
 
     // REGIÕES AUTÓNOMAS SCREEN
-    const optTableRA = document.getElementById("optTableRA");
+    const optRABlocks = document.getElementById("optRABlocks");
     const optSelectedCountRA = document.getElementById("optSelectedCountRA");
     const btnOptBackRA = document.getElementById("btnOptBackRA");
     const btnOptBackTopRA = document.getElementById("btnOptBackTopRA");
@@ -1123,7 +1234,7 @@
     function openOptionsRA() {
       optionsDraft = loadOptions();
       const packs = getAllPacks().filter(p => (p.region === "az" || p.region === "md"));
-      renderOptionsTableInto(optTableRA, optSelectedCountRA, packs);
+      renderOptionsBlocks(optRABlocks, optSelectedCountRA, packs);
       showScreen(screenOptionsRA);
     }
     function closeRAToOptionsMenu() { showScreen(screenOptionsMenu); }
@@ -1134,19 +1245,93 @@
     btnOptResetRA.addEventListener("click", () => {
       optionsDraft = loadOptions();
       const packs = getAllPacks().filter(p => (p.region === "az" || p.region === "md"));
-      for (const p of packs) delete optionsDraft.levels[p.id];
-      renderOptionsTableInto(optTableRA, optSelectedCountRA, packs);
+      for (const p of packs) optionsDraft.cfg[p.id] = makeEmptyCfg();
+      renderOptionsBlocks(optRABlocks, optSelectedCountRA, packs);
     });
 
     btnOptSaveRA.addEventListener("click", () => {
       const selected = getSelectedPacksFromOptions(optionsDraft);
       if (selected.length === 0) {
-        alert("Seleciona pelo menos 1 distrito/região para jogar.");
+        alert("Seleciona pelo menos 1 distrito/região com alguma categoria ativa.");
         return;
       }
       saveOptions(optionsDraft);
       closeRAToOptionsMenu();
     });
+
+    /* =========================
+       DEMOGRAFIA
+       ========================= */
+    let demografiaByNmKey = null; // { "nm:porto": { municipio, pop, area_km2, dens_pop_km2 }, ... }
+
+    async function ensureDemografiaLoaded() {
+      if (demografiaByNmKey) return demografiaByNmKey;
+      demografiaByNmKey = await loadJSON(FILES.demografia);
+      return demografiaByNmKey;
+    }
+
+    function getDemoNmKeyForMunicipalityName(name) {
+      return `nm:${normalize(name)}`;
+    }
+
+    function fmtInt(n) {
+      const x = Math.round(Number(n) || 0);
+      return x.toLocaleString("pt-PT");
+    }
+    function fmtFloat(n, digits=2) {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return "—";
+      return x.toFixed(digits).replace(".", ",");
+    }
+
+    function parseUserNumber(s) {
+      const raw = (s || "").trim();
+      if (!raw) return NaN;
+      // aceitar vírgula e ponto; remover espaços
+      let t = raw.replace(/\s+/g, "");
+      // se tiver ambos, assume que o último separador é decimal e remove o outro como separador de milhar
+      const hasDot = t.includes(".");
+      const hasComma = t.includes(",");
+      if (hasDot && hasComma) {
+        const lastDot = t.lastIndexOf(".");
+        const lastComma = t.lastIndexOf(",");
+        const decIsComma = lastComma > lastDot;
+        const dec = decIsComma ? "," : ".";
+        const thou = decIsComma ? "." : ",";
+        t = t.split(thou).join("");
+        t = t.replace(dec, ".");
+      } else {
+        t = t.replace(",", ".");
+      }
+      return Number(t);
+    }
+
+    function withinPct(userVal, realVal, pct=0.10) {
+      const u = Number(userVal);
+      const r = Number(realVal);
+      if (!Number.isFinite(u) || !Number.isFinite(r)) return false;
+      if (r === 0) return Math.abs(u - r) <= 0.0001;
+      return (Math.abs(u - r) / Math.abs(r)) <= pct;
+    }
+
+    // População: escalões fixos
+    const POP_BINS = [
+      { max: 2000, label: "< 2 000" },
+      { max: 5000, label: "< 5 000" },
+      { max: 10000, label: "< 10 000" },
+      { max: 20000, label: "< 20 000" },
+      { max: 50000, label: "< 50 000" },
+      { max: 100000, label: "< 100 000" },
+      { max: 200000, label: "< 200 000" },
+      { max: Infinity, label: "> 200 000" },
+    ];
+    function popBinForValue(v) {
+      const n = Number(v);
+      for (const b of POP_BINS) {
+        if (n < b.max) return b.label;
+      }
+      return POP_BINS[POP_BINS.length-1].label;
+    }
 
     /* =========================
        LEAFLET
@@ -1169,21 +1354,17 @@
 
     let keyToBounds = new Map();
 
-    
-function resetLeafletContainer(containerId) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
+    function resetLeafletContainer(containerId) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
 
-  // Leaflet sets a private _leaflet_id on the container; if it remains, re-init can fail or render blank.
-  if (el._leaflet_id) {
-    try { delete el._leaflet_id; } catch { el._leaflet_id = null; }
-  }
+      if (el._leaflet_id) {
+        try { delete el._leaflet_id; } catch { el._leaflet_id = null; }
+      }
+      if (el.innerHTML && el.innerHTML.length) el.innerHTML = "";
+    }
 
-  // Remove any old panes/controls left behind
-  if (el.innerHTML && el.innerHTML.length) el.innerHTML = "";
-}
-
-function ensureMapReady() {
+    function ensureMapReady() {
       if (map) return;
       resetLeafletContainer("map");
       map = L.map("map", {
@@ -1215,26 +1396,22 @@ function ensureMapReady() {
       insetMap.setView([39.5, -8.0], 7);
     }
 
+    function destroyMaps() {
+      try { if (fillLayer) { fillLayer.remove(); } } catch {}
+      try { if (insetLayer) { insetLayer.remove(); } } catch {}
+      try { if (insetRect) { insetRect.remove(); } } catch {}
+      fillLayer = null;
+      insetLayer = null;
+      insetRect = null;
 
-function destroyMaps() {
-  // Clean layers first
-  try { if (fillLayer) { fillLayer.remove(); } } catch {}
-  try { if (insetLayer) { insetLayer.remove(); } } catch {}
-  try { if (insetRect) { insetRect.remove(); } } catch {}
-  fillLayer = null;
-  insetLayer = null;
-  insetRect = null;
+      try { if (map) { map.remove(); } } catch {}
+      try { if (insetMap) { insetMap.remove(); } } catch {}
+      map = null;
+      insetMap = null;
 
-  // Destroy Leaflet map instances (fixes occasional blank render on re-enter)
-  try { if (map) { map.remove(); } } catch {}
-  try { if (insetMap) { insetMap.remove(); } } catch {}
-  map = null;
-  insetMap = null;
-
-  // Clear containers to avoid stale panes
-  resetLeafletContainer("map");
-  resetLeafletContainer("insetMap");
-}
+      resetLeafletContainer("map");
+      resetLeafletContainer("insetMap");
+    }
 
     function invalidateMapSizeHard() {
       if (!map) return;
@@ -1308,11 +1485,18 @@ function destroyMaps() {
     let selectedPacks = [];
     let currentPack = null;
 
-    let playPackLevel = 3;
+    // current question
+    let currentCategory = "identify"; // identify|pop|area|dens
+    let playLevel = 3;
+
     let playPoolKeys = [];
     let playRemainingKeys = [];
     let currentTargetKey = "";
-    let currentChoicesKeys = [];
+
+    // generic choices
+    let currentChoiceItems = []; // {id,label}
+    let correctChoiceId = "";
+
     let hintUsedThisRound = false;
 
     let roundStartedAt = 0;
@@ -1334,6 +1518,12 @@ function destroyMaps() {
     let lvl4Typed = "";
     let lvl4Suggest = [];
     let level4HintChoiceMode = false;
+    let lvl4KeyboardMode = "text"; // text|num
+
+    // demografia target
+    let currentDemoRealValue = null; // number
+    let currentDemoUnit = "";
+    let currentDemoLabel = "";
 
     function stopTimer() {
       if (timerHandle) clearInterval(timerHandle);
@@ -1457,20 +1647,27 @@ function destroyMaps() {
       }, 100);
     }
 
-    function computeXPForCorrect(elapsedSec, packLevel, usedHint) {
+    function computeXPForCorrect(elapsedSec, level, usedHint) {
       const t = Math.max(0, Math.min(PLAY.TIME_LIMIT_SEC, elapsedSec));
       const timeFactor = (PLAY.TIME_LIMIT_SEC - t) / PLAY.TIME_LIMIT_SEC;
       const base = 10;
       const bonus = Math.round(40 * timeFactor);
       let xp = base + bonus;
-      const eff = (packLevel === 4 ? 3 : packLevel);
-      xp = xp * PLAY.difficultyMultByPackLevel(eff);
+      const eff = (level === 4 ? 3 : level);
+      xp = xp * PLAY.difficultyMultByLevel(eff);
       if (usedHint) xp = xp * PLAY.hintMult;
       return Math.max(0, Math.floor(xp));
     }
 
-    function pickPackForRound() {
-      return selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
+    function pickPackAndCategoryForRound() {
+      const pack = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
+      const enabled = [];
+      for (const cat of ["identify","pop","area","dens"]) {
+        const L = Number(pack.cfg?.[cat] || 0);
+        if (L >= 1 && L <= 4) enabled.push(cat);
+      }
+      const cat = enabled[Math.floor(Math.random() * enabled.length)] || "identify";
+      return { pack, cat, level: Number(pack.cfg?.[cat] || 3) };
     }
 
     function pickNewTargetKey() {
@@ -1478,12 +1675,128 @@ function destroyMaps() {
       return playRemainingKeys.pop() || "";
     }
 
-    function prepareChoicesForRound(overrideN = null) {
-      const effectiveLevel = (playPackLevel === 4) ? 3 : playPackLevel;
-      const n = (overrideN != null) ? overrideN : PLAY.optionsByPackLevel(effectiveLevel);
+    function setQuestionBarText() {
+      if (currentCategory === "identify") {
+        questionBar.textContent = "Qual é o município a vermelho?";
+        return;
+      }
+      const mun = keyToOfficial.get(currentTargetKey) || "—";
+      questionBar.textContent = `${mun} — ${currentDemoLabel}`;
+    }
+
+    function buildChoiceItemsForIdentify(level) {
+      const effectiveLevel = (level === 4) ? 3 : level;
+      const n = PLAY.optionsByLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
       const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
-      currentChoicesKeys = shuffle([currentTargetKey, ...wrong]);
+      const keys = shuffle([currentTargetKey, ...wrong]);
+      currentChoiceItems = keys.map(k => ({ id: k, label: keyToOfficial.get(k) || k }));
+      correctChoiceId = currentTargetKey;
+    }
+
+    async function buildChoiceItemsForDemografia(cat, level) {
+      await ensureDemografiaLoaded();
+
+      const munName = keyToOfficial.get(currentTargetKey) || "";
+      const nmKey = getDemoNmKeyForMunicipalityName(munName);
+      const rec = demografiaByNmKey?.[nmKey];
+
+      if (!rec) {
+        // fallback: se não houver demografia, volta a identificação
+        currentCategory = "identify";
+        currentDemoRealValue = null;
+        currentDemoUnit = "";
+        currentDemoLabel = "";
+        buildChoiceItemsForIdentify(level);
+        return;
+      }
+
+      let realVal = null;
+      let unit = "";
+      let label = "";
+
+      if (cat === "pop") { realVal = Number(rec.pop); unit = "habitantes"; label = "População (habitantes)"; }
+      if (cat === "area") { realVal = Number(rec.area_km2); unit = "km²"; label = "Área (km²)"; }
+      if (cat === "dens") { realVal = Number(rec.dens_pop_km2); unit = "hab/km²"; label = "Densidade (hab/km²)"; }
+
+      currentDemoRealValue = realVal;
+      currentDemoUnit = unit;
+      currentDemoLabel = label;
+
+      if (level === 4) {
+        // modo de escrita numérica: sem escolhas (exceto confirmar)
+        currentChoiceItems = [];
+        correctChoiceId = "";
+        return;
+      }
+
+      const n = PLAY.optionsByLevel(level);
+
+      if (cat === "pop") {
+        const correct = popBinForValue(realVal);
+        // nível 3: podemos mostrar tudo (8 bins)
+        let pool = POP_BINS.map(b => b.label);
+        if (n < pool.length) {
+          // manter o correto e escolher (n-1) outros
+          const others = pool.filter(x => x !== correct);
+          const picked = shuffle(others).slice(0, Math.max(0, n-1));
+          pool = shuffle([correct, ...picked]);
+        } else {
+          pool = shuffle(pool);
+        }
+        currentChoiceItems = pool.slice(0, n).map(lbl => ({ id: lbl, label: lbl }));
+        correctChoiceId = correct;
+        return;
+      }
+
+      // area / dens: usar valores reais de outros municípios como distrações
+      const forbid = new Set([currentTargetKey]);
+      const wrongKeys = sampleDistinct(playPoolKeys, Math.max(0, n-1), forbid);
+      const allKeys = shuffle([currentTargetKey, ...wrongKeys]);
+
+      function valueForKey(k) {
+        const nm = getDemoNmKeyForMunicipalityName(keyToOfficial.get(k) || "");
+        const r = demografiaByNmKey?.[nm];
+        if (!r) return null;
+        if (cat === "area") return Number(r.area_km2);
+        if (cat === "dens") return Number(r.dens_pop_km2);
+        return null;
+      }
+
+      const items = [];
+      for (const k of allKeys) {
+        const v = valueForKey(k);
+        if (!Number.isFinite(v)) continue;
+        const digits = (cat === "area") ? 2 : 1;
+        const lbl = `${fmtFloat(v, digits)} ${unit}`;
+        items.push({ id: String(v), label: lbl, _k:k });
+      }
+
+      // garantir que temos n opções; se faltarem, amostrar mais
+      if (items.length < n) {
+        const need = n - items.length;
+        const extra = sampleDistinct(playPoolKeys, need + 8, new Set(allKeys));
+        for (const k of extra) {
+          if (items.length >= n) break;
+          const v = valueForKey(k);
+          if (!Number.isFinite(v)) continue;
+          const digits = (cat === "area") ? 2 : 1;
+          const lbl = `${fmtFloat(v, digits)} ${unit}`;
+          items.push({ id: String(v), label: lbl, _k:k });
+        }
+      }
+
+      const unique = [];
+      const seen = new Set();
+      for (const it of items) {
+        if (seen.has(it.label)) continue;
+        seen.add(it.label);
+        unique.push(it);
+        if (unique.length >= n) break;
+      }
+
+      currentChoiceItems = shuffle(unique.map(it => ({ id: it.id, label: it.label })));
+      correctChoiceId = String(realVal);
     }
 
     function renderHUD() {
@@ -1495,21 +1808,21 @@ function destroyMaps() {
       btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound || transitioning;
     }
 
-    function renderChoices() {
+    function renderChoicesFromItems() {
       choicesEl.innerHTML = "";
-      for (const k of currentChoicesKeys) {
+      for (const it of currentChoiceItems) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "choiceBtn";
-        b.dataset.key = k;
-        b.textContent = keyToOfficial.get(k) || k;
+        b.dataset.id = it.id;
+        b.textContent = it.label;
 
         b.addEventListener("click", (e) => {
           e.stopPropagation();
           if (Date.now() < suppressChoiceUntil) return;
           if (Date.now() < inputBlockedUntil) return;
           if (transitioning) return;
-          submitAnswerChoice(k);
+          submitAnswerChoice(it.id);
         });
 
         choicesEl.appendChild(b);
@@ -1525,6 +1838,12 @@ function destroyMaps() {
     function setLevel4TypedText(s) {
       const t = (s && s.length) ? s.toUpperCase() : "—";
       lvl4TypedEl.textContent = t;
+    }
+
+    function setKeyboardMode(mode) {
+      if (lvl4KeyboardMode === mode) return;
+      lvl4KeyboardMode = mode;
+      buildKeyboard(mode);
     }
 
     function getLevel4Suggestions() {
@@ -1557,7 +1876,7 @@ function destroyMaps() {
           b.disabled = true;
           b.textContent = "";
         } else {
-          b.dataset.key = item.key;
+          b.dataset.id = item.key;
           b.textContent = item.name;
           b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
 
@@ -1566,7 +1885,7 @@ function destroyMaps() {
             if (Date.now() < suppressChoiceUntil) return;
             if (Date.now() < inputBlockedUntil) return;
             if (transitioning) return;
-            submitLevel4Pick(item.key);
+            submitAnswerChoice(item.key);
           });
         }
 
@@ -1574,7 +1893,35 @@ function destroyMaps() {
       }
     }
 
-    function submitLevel4Pick(chosenKey) {
+    function renderLevel4NumericConfirm() {
+      setLevel4TypedText(lvl4Typed ? `${lvl4Typed} ${currentDemoUnit}` : "—");
+      choicesEl.innerHTML = "";
+
+      const confirm = document.createElement("button");
+      confirm.type = "button";
+      confirm.className = "choiceBtn";
+      confirm.textContent = "Confirmar";
+      confirm.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (Date.now() < suppressChoiceUntil) return;
+        if (Date.now() < inputBlockedUntil) return;
+        if (transitioning) return;
+        submitLevel4Numeric();
+      });
+      choicesEl.appendChild(confirm);
+
+      // manter o grid "limpo" (sem ocupar espaço)
+      for (let i=0;i<3;i++){
+        const g = document.createElement("button");
+        g.type="button";
+        g.className="choiceBtn ghost";
+        g.disabled=true;
+        g.textContent="";
+        choicesEl.appendChild(g);
+      }
+    }
+
+    function submitLevel4Numeric() {
       if (!playActive || awaitingTap || transitioning) return;
       if (Date.now() < suppressChoiceUntil) return;
       if (Date.now() < inputBlockedUntil) return;
@@ -1584,7 +1931,8 @@ function destroyMaps() {
 
       sessionIndex++;
 
-      const isCorrect = (chosenKey === currentTargetKey);
+      const userVal = parseUserNumber(lvl4Typed);
+      const isCorrect = withinPct(userVal, currentDemoRealValue, 0.10);
 
       if (isCorrect) {
         sessionCorrect++;
@@ -1598,46 +1946,59 @@ function destroyMaps() {
 
       lvl4Keyboard.classList.add("disabled");
 
-      const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
-      let chosenBtn = null;
-
-      for (const b of btns) {
-        const k = b.dataset.key || "";
-        if (k === chosenKey) chosenBtn = b;
-        if (k === chosenKey && !isCorrect) b.classList.add("wrong");
-        if (k === chosenKey && isCorrect) b.classList.add("correct");
-        b.disabled = true;
+      const btn = choicesEl.querySelector("button.choiceBtn");
+      if (btn) {
+        btn.classList.add(isCorrect ? "correct" : "wrong");
+        btn.disabled = true;
       }
 
-      if (!isCorrect && chosenBtn) {
-        const correctName = keyToOfficial.get(currentTargetKey) || "";
+      if (!isCorrect) {
+        const digits = (currentCategory === "area") ? 2 : (currentCategory === "dens" ? 1 : 0);
+        const realText = (currentCategory === "pop")
+          ? `${fmtInt(currentDemoRealValue)} ${currentDemoUnit}`
+          : `${fmtFloat(currentDemoRealValue, digits)} ${currentDemoUnit}`;
 
         const pill = document.createElement("button");
         pill.type = "button";
         pill.className = "choiceBtn correct";
         pill.disabled = true;
         pill.style.cursor = "default";
-        pill.textContent = correctName;
+        pill.textContent = realText;
 
-        chosenBtn.insertAdjacentElement("afterend", pill);
+        btn?.insertAdjacentElement("afterend", pill);
       }
 
       renderHUD();
     }
 
-    function level4HandleKey(key) {
+    function level4HandleKey(code) {
       if (!playActive || awaitingTap || transitioning) return;
       if (level4HintChoiceMode) return;
 
-      if (key === "BACK") {
-        lvl4Typed = lvl4Typed.slice(0, -1);
-      } else if (key === "SPACE") {
-        if (lvl4Typed.length && !lvl4Typed.endsWith(" ")) lvl4Typed += " ";
-      } else {
-        if (lvl4Typed.length < 28) lvl4Typed += key;
+      if (lvl4KeyboardMode === "text") {
+        if (code === "BACK") {
+          lvl4Typed = lvl4Typed.slice(0, -1);
+        } else if (code === "SPACE") {
+          if (lvl4Typed.length && !lvl4Typed.endsWith(" ")) lvl4Typed += " ";
+        } else {
+          if (lvl4Typed.length < 28) lvl4Typed += code;
+        }
+        renderLevel4Suggestions();
+        return;
       }
 
-      renderLevel4Suggestions();
+      // numérico
+      if (code === "BACK") {
+        lvl4Typed = lvl4Typed.slice(0, -1);
+      } else if (code === "." || code === ",") {
+        if (!lvl4Typed.includes(".") && !lvl4Typed.includes(",")) {
+          lvl4Typed = (lvl4Typed.length ? lvl4Typed : "0") + code;
+        }
+      } else {
+        // digits
+        if (lvl4Typed.length < 14) lvl4Typed += code;
+      }
+      renderLevel4NumericConfirm();
     }
 
     function onTimeout() {
@@ -1649,43 +2010,53 @@ function destroyMaps() {
       awaitingTap = true;
       inputBlockedUntil = Date.now() + 250;
 
-      if (playPackLevel === 4 && !level4HintChoiceMode) {
+      if (playLevel === 4 && !level4HintChoiceMode) {
         lvl4Keyboard.classList.add("disabled");
         choicesEl.innerHTML = "";
 
-        const correctName = keyToOfficial.get(currentTargetKey) || "";
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "choiceBtn correct";
-        b.disabled = true;
-        b.textContent = correctName;
+        if (currentCategory === "identify") {
+          const correctName = keyToOfficial.get(currentTargetKey) || "";
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "choiceBtn correct";
+          b.disabled = true;
+          b.textContent = correctName;
+          choicesEl.appendChild(b);
+        } else {
+          const digits = (currentCategory === "area") ? 2 : (currentCategory === "dens" ? 1 : 0);
+          const realText = (currentCategory === "pop")
+            ? `${fmtInt(currentDemoRealValue)} ${currentDemoUnit}`
+            : `${fmtFloat(currentDemoRealValue, digits)} ${currentDemoUnit}`;
 
-        choicesEl.appendChild(b);
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "choiceBtn correct";
+          b.disabled = true;
+          b.textContent = realText;
+          choicesEl.appendChild(b);
+        }
+
         renderHUD();
         return;
       }
 
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
       for (const b of btns) {
-        const k = b.dataset.key || "";
-        if (k === currentTargetKey) b.classList.add("correct");
+        const id = b.dataset.id || "";
+        if (id === correctChoiceId) b.classList.add("correct");
       }
       lockChoices(true);
       renderHUD();
     }
 
     async function ensurePackLoaded(pack) {
-      if (currentPack && currentPack.id === pack.id) {
-        playPackLevel = pack.level;
-        return;
-      }
+      if (currentPack && currentPack.id === pack.id) return;
 
       transitioning = true;
       lockChoices(true);
       stopTimer();
 
       currentPack = pack;
-      playPackLevel = pack.level;
 
       setLoading(`A preparar: ${pack.label}`, 65);
       const fc = await loadConcelhosFCForPack(pack);
@@ -1774,23 +2145,50 @@ function destroyMaps() {
       inputBlockedUntil = Date.now() + 220;
       suppressChoiceUntil = Date.now() + 320;
 
-      const pack = pickPackForRound();
-      await ensurePackLoaded(pack);
+      const pick = pickPackAndCategoryForRound();
+      await ensurePackLoaded(pick.pack);
+
+      currentCategory = pick.cat;
+      playLevel = pick.level;
 
       currentTargetKey = pickNewTargetKey();
 
-      if (playPackLevel === 4) {
-        setLevel4UI(true);
-        lvl4Keyboard.classList.remove("disabled");
-        lvl4Typed = "";
-        setLevel4TypedText(lvl4Typed);
-        renderLevel4Suggestions();
+      // reset lvl4 typed
+      lvl4Typed = "";
+
+      if (currentCategory === "identify") {
+        currentDemoRealValue = null;
+        currentDemoUnit = "";
+        currentDemoLabel = "";
+
+        if (playLevel === 4) {
+          setLevel4UI(true);
+          setKeyboardMode("text");
+          lvl4Keyboard.classList.remove("disabled");
+          setLevel4TypedText(lvl4Typed);
+          renderLevel4Suggestions();
+        } else {
+          setLevel4UI(false);
+          buildChoiceItemsForIdentify(playLevel);
+          renderChoicesFromItems();
+          lockChoices(false);
+        }
       } else {
-        setLevel4UI(false);
-        prepareChoicesForRound();
-        renderChoices();
-        lockChoices(false);
+        await buildChoiceItemsForDemografia(currentCategory, playLevel);
+
+        if (playLevel === 4 && !level4HintChoiceMode && currentCategory !== "identify") {
+          setLevel4UI(true);
+          setKeyboardMode("num");
+          lvl4Keyboard.classList.remove("disabled");
+          renderLevel4NumericConfirm();
+        } else {
+          setLevel4UI(false);
+          renderChoicesFromItems();
+          lockChoices(false);
+        }
       }
+
+      setQuestionBarText();
 
       refreshStyles();
       updateAzoresInsetForCurrentTarget();
@@ -1812,7 +2210,7 @@ function destroyMaps() {
       finalOverlay.classList.add("show");
     }
 
-    function submitAnswerChoice(chosenKey) {
+    function submitAnswerChoice(chosenId) {
       if (!playActive || awaitingTap || transitioning) return;
       if (Date.now() < suppressChoiceUntil) return;
       if (Date.now() < inputBlockedUntil) return;
@@ -1822,10 +2220,11 @@ function destroyMaps() {
 
       sessionIndex++;
 
-      if (chosenKey === currentTargetKey) {
+      const isCorrect = (chosenId === correctChoiceId);
+
+      if (isCorrect) {
         sessionCorrect++;
-        const xp = computeXPForCorrect(elapsed, (playPackLevel === 4 ? 3 : playPackLevel), hintUsedThisRound);
-        sessionXP += xp;
+        sessionXP += computeXPForCorrect(elapsed, (playLevel === 4 ? 3 : playLevel), hintUsedThisRound);
       } else {
         sessionWrong++;
       }
@@ -1835,9 +2234,9 @@ function destroyMaps() {
 
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
       for (const b of btns) {
-        const k = b.dataset.key || "";
-        if (k === currentTargetKey) b.classList.add("correct");
-        if (k === chosenKey && chosenKey !== currentTargetKey) b.classList.add("wrong");
+        const id = b.dataset.id || "";
+        if (id === correctChoiceId) b.classList.add("correct");
+        if (id === chosenId && !isCorrect) b.classList.add("wrong");
         b.disabled = true;
       }
 
@@ -1850,25 +2249,44 @@ function destroyMaps() {
 
       hintUsedThisRound = true;
 
-      if (playPackLevel === 4) {
+      if (playLevel === 4) {
+        // no nível 4, a ajuda troca para multi-escolha (8 opções)
         level4HintChoiceMode = true;
         setLevel4UI(false);
 
-        prepareChoicesForRound(8);
-        renderChoices();
-        lockChoices(false);
-        renderHUD();
+        if (currentCategory === "identify") {
+          buildChoiceItemsForIdentify(3);
+          // forçar 8 opções (nível 3)
+          const n = 8;
+          const forbid = new Set([currentTargetKey]);
+          const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+          const keys = shuffle([currentTargetKey, ...wrong]);
+          currentChoiceItems = keys.map(k => ({ id: k, label: keyToOfficial.get(k) || k }));
+          correctChoiceId = currentTargetKey;
+          renderChoicesFromItems();
+          lockChoices(false);
+          renderHUD();
+          return;
+        }
+
+        // demografia: construir como nível 3 (8 opções)
+        buildChoiceItemsForDemografia(currentCategory, 3).then(() => {
+          renderChoicesFromItems();
+          lockChoices(false);
+          renderHUD();
+        });
         return;
       }
 
-      const wrong = currentChoicesKeys.filter(k => k !== currentTargetKey);
-      const removeCount = Math.min(2, Math.max(0, wrong.length - 1));
-      const toHide = sampleDistinct(wrong, removeCount);
+      // níveis 1–3: remover 2 erradas (se possível), igual ao comportamento anterior
+      const wrongIds = currentChoiceItems.map(x => x.id).filter(id => id !== correctChoiceId);
+      const removeCount = Math.min(2, Math.max(0, wrongIds.length - 1));
+      const toHide = sampleDistinct(wrongIds, removeCount);
 
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
       for (const b of btns) {
-        const k = b.dataset.key || "";
-        if (toHide.includes(k)) {
+        const id = b.dataset.id || "";
+        if (toHide.includes(id)) {
           b.classList.add("hidden");
           b.disabled = true;
         }
@@ -1898,13 +2316,7 @@ function destroyMaps() {
       }
     }
 
-    function buildKeyboard() {
-      const rows = [
-        ["Q","W","E","R","T","Y","U","I","O","P"],
-        ["A","S","D","F","G","H","J","K","L"],
-        ["Z","X","C","V","B","N","M"],
-      ];
-
+    function buildKeyboard(mode="text") {
       const r1 = lvl4Keyboard.querySelector('.kbRow[data-row="1"]');
       const r2 = lvl4Keyboard.querySelector('.kbRow[data-row="2"]');
       const r3 = lvl4Keyboard.querySelector('.kbRow[data-row="3"]');
@@ -1930,15 +2342,33 @@ function destroyMaps() {
         return b;
       }
 
-      rows[0].forEach(k => r1.appendChild(mkKey(k, k)));
-      rows[1].forEach(k => r2.appendChild(mkKey(k, k)));
-      rows[2].forEach(k => r3.appendChild(mkKey(k, k)));
+      if (mode === "text") {
+        const rows = [
+          ["Q","W","E","R","T","Y","U","I","O","P"],
+          ["A","S","D","F","G","H","J","K","L"],
+          ["Z","X","C","V","B","N","M"],
+        ];
 
+        rows[0].forEach(k => r1.appendChild(mkKey(k, k)));
+        rows[1].forEach(k => r2.appendChild(mkKey(k, k)));
+        rows[2].forEach(k => r3.appendChild(mkKey(k, k)));
+
+        r4.appendChild(mkKey("⌫", "BACK", "wide"));
+        r4.appendChild(mkKey("␣", "SPACE", "space"));
+        return;
+      }
+
+      // numérico: apenas números + vírgula + ponto + backspace
+      ["1","2","3"].forEach(k => r1.appendChild(mkKey(k, k)));
+      ["4","5","6"].forEach(k => r2.appendChild(mkKey(k, k)));
+      ["7","8","9"].forEach(k => r3.appendChild(mkKey(k, k)));
       r4.appendChild(mkKey("⌫", "BACK", "wide"));
-      r4.appendChild(mkKey("␣", "SPACE", "space"));
+      r4.appendChild(mkKey("0", "0"));
+      r4.appendChild(mkKey(",", ","));
+      r4.appendChild(mkKey(".", "."));
     }
 
-    buildKeyboard();
+    buildKeyboard("text");
 
     document.addEventListener("pointerup", async (e) => {
       if (!screenGame.classList.contains("active")) return;
@@ -1973,13 +2403,16 @@ function destroyMaps() {
 
       playActive = false;
       currentTargetKey = "";
-      currentChoicesKeys = [];
+      currentChoiceItems = [];
+      correctChoiceId = "";
 
       finalOverlay.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
+
+      questionBar.textContent = "—";
 
       setLevel4UI(false);
       lvl4Typed = "";
@@ -2020,12 +2453,16 @@ function destroyMaps() {
         selectedPacks = getSelectedPacksFromOptions(opts);
         if (selectedPacks.length === 0) selectedPacks = getSelectedPacksFromOptions(defaultOptions());
 
+        // garantir que demografia está disponível quando necessário (carrega em background)
+        ensureDemografiaLoaded().catch(() => {});
+
         resetSession();
         setLoading("A preparar ecrã…", 25);
 
         showScreen(screenGame);
         await new Promise(resolve => afterNextPaint(resolve));
 
+        // robustez extra: destruir + reinit sempre ao entrar no jogo
         destroyMaps();
         ensureMapReady();
         setMapInteractive(false);
@@ -2073,3 +2510,4 @@ function destroyMaps() {
   </script>
 </body>
 </html>
+
