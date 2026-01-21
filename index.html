@@ -1169,8 +1169,23 @@
 
     let keyToBounds = new Map();
 
-    function ensureMapReady() {
+    
+function resetLeafletContainer(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  // Leaflet sets a private _leaflet_id on the container; if it remains, re-init can fail or render blank.
+  if (el._leaflet_id) {
+    try { delete el._leaflet_id; } catch { el._leaflet_id = null; }
+  }
+
+  // Remove any old panes/controls left behind
+  if (el.innerHTML && el.innerHTML.length) el.innerHTML = "";
+}
+
+function ensureMapReady() {
       if (map) return;
+      resetLeafletContainer("map");
       map = L.map("map", {
         zoomControl: false,
         attributionControl: false,
@@ -1183,6 +1198,7 @@
 
     function ensureInsetReady() {
       if (insetMap) return;
+      resetLeafletContainer("insetMap");
       insetMap = L.map("insetMap", {
         zoomControl: false,
         attributionControl: false,
@@ -1198,6 +1214,27 @@
       });
       insetMap.setView([39.5, -8.0], 7);
     }
+
+
+function destroyMaps() {
+  // Clean layers first
+  try { if (fillLayer) { fillLayer.remove(); } } catch {}
+  try { if (insetLayer) { insetLayer.remove(); } } catch {}
+  try { if (insetRect) { insetRect.remove(); } } catch {}
+  fillLayer = null;
+  insetLayer = null;
+  insetRect = null;
+
+  // Destroy Leaflet map instances (fixes occasional blank render on re-enter)
+  try { if (map) { map.remove(); } } catch {}
+  try { if (insetMap) { insetMap.remove(); } } catch {}
+  map = null;
+  insetMap = null;
+
+  // Clear containers to avoid stale panes
+  resetLeafletContainer("map");
+  resetLeafletContainer("insetMap");
+}
 
     function invalidateMapSizeHard() {
       if (!map) return;
@@ -1989,6 +2026,7 @@
         showScreen(screenGame);
         await new Promise(resolve => afterNextPaint(resolve));
 
+        destroyMaps();
         ensureMapReady();
         setMapInteractive(false);
         invalidateMapSizeHard();
@@ -2009,6 +2047,7 @@
 
     function backToMenu() {
       resetSession();
+      destroyMaps();
       clearLayer();
       currentPack = null;
 
