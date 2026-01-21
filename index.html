@@ -763,9 +763,47 @@
       }
       return "";
     }
-    function getMunicipalityName(props) {
-      return pickProp(props, ["Concelho","CONCELHO","MUNICIPIO","Municipio","MUNICÍPIO","municipio","NAME_2","NAME2","NAME"]);
+
+    /* =========================
+       NAME EXTRACTION (FIX: LEVEL 4 SUGGESTIONS)
+       ========================= */
+    function guessNameFromProps(props) {
+      if (!props || typeof props !== "object") return "";
+
+      // chaves que tipicamente são códigos / ids (não queremos como "nome")
+      const badKeys = new Set([
+        "DICOFRE","dicofre","CODIGO","codigo","COD_MUN","cod_mun","ID","id","OBJECTID","objectid",
+        "FID","fid","GID","gid","CODE","code","COD","cod"
+      ]);
+
+      const hasLetters = (s) => /[A-Za-zÀ-ÿ]/.test(s);
+
+      for (const [k, v] of Object.entries(props)) {
+        if (badKeys.has(k)) continue;
+        if (typeof v !== "string") continue;
+        const s = v.trim();
+        if (!s) continue;
+        if (!hasLetters(s)) continue;
+        if (s.length > 60) continue;
+        return s;
+      }
+      return "";
     }
+
+    function getMunicipalityName(props) {
+      const direct = pickProp(props, [
+        "Concelho","CONCELHO",
+        "MUNICIPIO","Municipio","MUNICÍPIO","municipio",
+        "NOME","Nome","nome",
+        "NAME_2","NAME2","NAME",
+        "NAME_1","NAME1"
+      ]);
+      if (direct) return direct;
+
+      // fallback: procura um campo textual qualquer
+      return guessNameFromProps(props);
+    }
+
     function getIslandName(props) {
       return pickProp(props, ["ILHA","Ilha","ilha","ILHA_1","Ilha_1","ISLAND","Island","island"]);
     }
@@ -1333,7 +1371,8 @@
       fillLayer = L.geoJSON(cleaned, {
         style: styleFill,
         onEachFeature: (feature, layer) => {
-          const raw = getMunicipalityName(feature.properties || {});
+          // FIX: garantir que nunca fica string vazia (e usar fallback inteligente acima)
+          const raw = getMunicipalityName(feature.properties || {}) || "(sem nome)";
           const key = getMunicipalityKey(feature.properties || {});
           if (!key) return;
 
@@ -1489,37 +1528,44 @@
       return out;
     }
 
+    // FIX: torna o comportamento visível quando não há sugestões
     function renderLevel4Suggestions() {
       lvl4Suggest = getLevel4Suggestions();
       setLevel4TypedText(lvl4Typed);
 
-      const slots = lvl4Suggest.slice(0,4);
-      while (slots.length < 4) slots.push(null);
-
       choicesEl.innerHTML = "";
 
-      for (const item of slots) {
+      // sem texto -> não mostra nada (evita "ghosts" invisíveis)
+      if (!normalize(lvl4Typed)) return;
+
+      // sem matches -> mostra feedback
+      if (lvl4Suggest.length === 0) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "choiceBtn";
+        b.disabled = true;
+        b.style.cursor = "default";
+        b.textContent = "Sem sugestões";
+        choicesEl.appendChild(b);
+        return;
+      }
 
-        if (!item) {
-          b.classList.add("ghost");
-          b.disabled = true;
-          b.textContent = "";
-        } else {
-          b.dataset.key = item.key;
-          b.textContent = item.name;
-          b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
+      for (const item of lvl4Suggest.slice(0, 4)) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "choiceBtn";
+        b.dataset.key = item.key;
+        b.textContent = item.name;
 
-          b.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (Date.now() < suppressChoiceUntil) return;
-            if (Date.now() < inputBlockedUntil) return;
-            if (transitioning) return;
-            submitLevel4Pick(item.key);
-          });
-        }
+        b.disabled = awaitingTap || transitioning || (Date.now() < suppressChoiceUntil) || (Date.now() < inputBlockedUntil);
+
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (Date.now() < suppressChoiceUntil) return;
+          if (Date.now() < inputBlockedUntil) return;
+          if (transitioning) return;
+          submitLevel4Pick(item.key);
+        });
 
         choicesEl.appendChild(b);
       }
@@ -2022,3 +2068,4 @@
   </script>
 </body>
 </html>
+
