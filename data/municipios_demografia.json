@@ -1,0 +1,1850 @@
+{
+  "nm:amadora": {
+    "municipio": "Amadora",
+    "pop": 181607,
+    "area_km2": 23.78,
+    "dens_pop_km2": 7636.963835
+  },
+  "nm:porto": {
+    "municipio": "Porto",
+    "pop": 252687,
+    "area_km2": 41.42,
+    "dens_pop_km2": 6100.603573
+  },
+  "nm:odivelas": {
+    "municipio": "Odivelas",
+    "pop": 156278,
+    "area_km2": 26.54,
+    "dens_pop_km2": 5888.394876
+  },
+  "nm:lisboa": {
+    "municipio": "Lisboa",
+    "pop": 575739,
+    "area_km2": 100.05,
+    "dens_pop_km2": 5754.512744
+  },
+  "nm:oeiras": {
+    "municipio": "Oeiras",
+    "pop": 177866,
+    "area_km2": 45.88,
+    "dens_pop_km2": 3876.765475
+  },
+  "nm:sao joao da madeira": {
+    "municipio": "São João da Madeira",
+    "pop": 24247,
+    "area_km2": 7.94,
+    "dens_pop_km2": 3053.778338
+  },
+  "nm:matosinhos": {
+    "municipio": "Matosinhos",
+    "pop": 181046,
+    "area_km2": 62.42,
+    "dens_pop_km2": 2900.448574
+  },
+  "nm:almada": {
+    "municipio": "Almada",
+    "pop": 183643,
+    "area_km2": 70.01,
+    "dens_pop_km2": 2623.0967
+  },
+  "nm:cascais": {
+    "municipio": "Cascais",
+    "pop": 222339,
+    "area_km2": 97.4,
+    "dens_pop_km2": 2282.741273
+  },
+  "nm:barreiro": {
+    "municipio": "Barreiro",
+    "pop": 81131,
+    "area_km2": 36.39,
+    "dens_pop_km2": 2229.486123
+  },
+  "nm:vila nova de gaia": {
+    "municipio": "Vila Nova de Gaia",
+    "pop": 312984,
+    "area_km2": 168.46,
+    "dens_pop_km2": 1857.912858
+  },
+  "nm:seixal": {
+    "municipio": "Seixal",
+    "pop": 176883,
+    "area_km2": 95.45,
+    "dens_pop_km2": 1853.148245
+  },
+  "nm:maia": {
+    "municipio": "Maia",
+    "pop": 144664,
+    "area_km2": 82.95,
+    "dens_pop_km2": 1743.990356
+  },
+  "nm:entroncamento": {
+    "municipio": "Entroncamento",
+    "pop": 22604,
+    "area_km2": 13.73,
+    "dens_pop_km2": 1646.321923
+  },
+  "nm:espinho": {
+    "municipio": "Espinho",
+    "pop": 32736,
+    "area_km2": 21.06,
+    "dens_pop_km2": 1554.415954
+  },
+  "nm:funchal": {
+    "municipio": "Funchal",
+    "pop": 108129,
+    "area_km2": 76.22,
+    "dens_pop_km2": 1418.643401
+  },
+  "nm:valongo": {
+    "municipio": "Valongo",
+    "pop": 101464,
+    "area_km2": 75.12,
+    "dens_pop_km2": 1350.692226
+  },
+  "nm:gondomar": {
+    "municipio": "Gondomar",
+    "pop": 169388,
+    "area_km2": 131.92,
+    "dens_pop_km2": 1284.020619
+  },
+  "nm:moita": {
+    "municipio": "Moita",
+    "pop": 70399,
+    "area_km2": 55.26,
+    "dens_pop_km2": 1273.959464
+  },
+  "nm:sintra": {
+    "municipio": "Sintra",
+    "pop": 400947,
+    "area_km2": 319.23,
+    "dens_pop_km2": 1255.981581
+  },
+  "nm:loures": {
+    "municipio": "Loures",
+    "pop": 209877,
+    "area_km2": 167.24,
+    "dens_pop_km2": 1254.944989
+  },
+  "nm:braga": {
+    "municipio": "Braga",
+    "pop": 203519,
+    "area_km2": 183.4,
+    "dens_pop_km2": 1109.700109
+  },
+  "nm:vizela": {
+    "municipio": "Vizela",
+    "pop": 24688,
+    "area_km2": 24.7,
+    "dens_pop_km2": 999.51417
+  },
+  "nm:povoa de varzim": {
+    "municipio": "Póvoa de Varzim",
+    "pop": 68459,
+    "area_km2": 82.21,
+    "dens_pop_km2": 832.733244
+  },
+  "nm:pacos de ferreira": {
+    "municipio": "Paços de Ferreira",
+    "pop": 56071,
+    "area_km2": 70.99,
+    "dens_pop_km2": 789.84364
+  },
+  "nm:vila nova de famalicao": {
+    "municipio": "Vila Nova de Famalicão",
+    "pop": 136704,
+    "area_km2": 201.59,
+    "dens_pop_km2": 678.128875
+  },
+  "nm:santa maria da feira": {
+    "municipio": "Santa Maria da Feira",
+    "pop": 140568,
+    "area_km2": 215.88,
+    "dens_pop_km2": 651.139522
+  },
+  "nm:guimaraes": {
+    "municipio": "Guimarães",
+    "pop": 156513,
+    "area_km2": 241.0,
+    "dens_pop_km2": 649.431535
+  },
+  "nm:camara de lobos": {
+    "municipio": "Câmara de Lobos",
+    "pop": 33243,
+    "area_km2": 52.17,
+    "dens_pop_km2": 637.20529
+  },
+  "nm:ilhavo": {
+    "municipio": "Ílhavo",
+    "pop": 43210,
+    "area_km2": 73.48,
+    "dens_pop_km2": 588.05117
+  },
+  "nm:vila do conde": {
+    "municipio": "Vila do Conde",
+    "pop": 85871,
+    "area_km2": 149.03,
+    "dens_pop_km2": 576.199423
+  },
+  "nm:trofa": {
+    "municipio": "Trofa",
+    "pop": 40294,
+    "area_km2": 72.0,
+    "dens_pop_km2": 559.638889
+  },
+  "nm:paredes": {
+    "municipio": "Paredes",
+    "pop": 86560,
+    "area_km2": 156.76,
+    "dens_pop_km2": 552.181679
+  },
+  "nm:santa cruz": {
+    "municipio": "Santa Cruz",
+    "pop": 44816,
+    "area_km2": 81.31,
+    "dens_pop_km2": 551.174517
+  },
+  "nm:setubal": {
+    "municipio": "Setúbal",
+    "pop": 124339,
+    "area_km2": 230.33,
+    "dens_pop_km2": 539.829809
+  },
+  "nm:lousada": {
+    "municipio": "Lousada",
+    "pop": 48652,
+    "area_km2": 96.08,
+    "dens_pop_km2": 506.369692
+  },
+  "nm:santo tirso": {
+    "municipio": "Santo Tirso",
+    "pop": 67713,
+    "area_km2": 136.56,
+    "dens_pop_km2": 495.847979
+  },
+  "nm:felgueiras": {
+    "municipio": "Felgueiras",
+    "pop": 55223,
+    "area_km2": 115.74,
+    "dens_pop_km2": 477.129774
+  },
+  "nm:coimbra": {
+    "municipio": "Coimbra",
+    "pop": 146899,
+    "area_km2": 319.4,
+    "dens_pop_km2": 459.921728
+  },
+  "nm:aveiro": {
+    "municipio": "Aveiro",
+    "pop": 88154,
+    "area_km2": 197.58,
+    "dens_pop_km2": 446.168641
+  },
+  "nm:vila franca de xira": {
+    "municipio": "Vila Franca de Xira",
+    "pop": 140711,
+    "area_km2": 318.19,
+    "dens_pop_km2": 442.2232
+  },
+  "nm:oliveira de azemeis": {
+    "municipio": "Oliveira de Azeméis",
+    "pop": 67471,
+    "area_km2": 161.1,
+    "dens_pop_km2": 418.814401
+  },
+  "nm:esposende": {
+    "municipio": "Esposende",
+    "pop": 37722,
+    "area_km2": 95.41,
+    "dens_pop_km2": 395.367362
+  },
+  "nm:ovar": {
+    "municipio": "Ovar",
+    "pop": 57680,
+    "area_km2": 147.7,
+    "dens_pop_km2": 390.521327
+  },
+  "nm:peniche": {
+    "municipio": "Peniche",
+    "pop": 27792,
+    "area_km2": 77.55,
+    "dens_pop_km2": 358.375242
+  },
+  "nm:portimao": {
+    "municipio": "Portimão",
+    "pop": 64466,
+    "area_km2": 182.06,
+    "dens_pop_km2": 354.092058
+  },
+  "nm:olhao": {
+    "municipio": "Olhão",
+    "pop": 45452,
+    "area_km2": 130.86,
+    "dens_pop_km2": 347.333028
+  },
+  "nm:faro": {
+    "municipio": "Faro",
+    "pop": 70347,
+    "area_km2": 202.57,
+    "dens_pop_km2": 347.272548
+  },
+  "nm:albufeira": {
+    "municipio": "Albufeira",
+    "pop": 48807,
+    "area_km2": 140.66,
+    "dens_pop_km2": 346.985639
+  },
+  "nm:lagoa [r.a.a.]": {
+    "municipio": "Lagoa [R.A.A.]",
+    "pop": 15130,
+    "area_km2": 45.59,
+    "dens_pop_km2": 331.871024
+  },
+  "nm:penafiel": {
+    "municipio": "Penafiel",
+    "pop": 70421,
+    "area_km2": 212.24,
+    "dens_pop_km2": 331.798907
+  },
+  "nm:vila real de santo antonio": {
+    "municipio": "Vila Real de Santo António",
+    "pop": 19546,
+    "area_km2": 61.25,
+    "dens_pop_km2": 319.118367
+  },
+  "nm:mafra": {
+    "municipio": "Mafra",
+    "pop": 91248,
+    "area_km2": 291.66,
+    "dens_pop_km2": 312.857437
+  },
+  "nm:barcelos": {
+    "municipio": "Barcelos",
+    "pop": 116959,
+    "area_km2": 378.9,
+    "dens_pop_km2": 308.680391
+  },
+  "nm:ponta delgada": {
+    "municipio": "Ponta Delgada",
+    "pop": 69038,
+    "area_km2": 232.99,
+    "dens_pop_km2": 296.313146
+  },
+  "nm:oliveira do bairro": {
+    "municipio": "Oliveira do Bairro",
+    "pop": 25779,
+    "area_km2": 87.32,
+    "dens_pop_km2": 295.224462
+  },
+  "nm:lagoa": {
+    "municipio": "Lagoa",
+    "pop": 25535,
+    "area_km2": 88.25,
+    "dens_pop_km2": 289.348442
+  },
+  "nm:sesimbra": {
+    "municipio": "Sesimbra",
+    "pop": 56576,
+    "area_km2": 195.72,
+    "dens_pop_km2": 289.066013
+  },
+  "nm:machico": {
+    "municipio": "Machico",
+    "pop": 19679,
+    "area_km2": 68.25,
+    "dens_pop_km2": 288.336996
+  },
+  "nm:viana do castelo": {
+    "municipio": "Viana do Castelo",
+    "pop": 86975,
+    "area_km2": 319.02,
+    "dens_pop_km2": 272.63181
+  },
+  "nm:estarreja": {
+    "municipio": "Estarreja",
+    "pop": 27474,
+    "area_km2": 108.17,
+    "dens_pop_km2": 253.989091
+  },
+  "nm:marco de canaveses": {
+    "municipio": "Marco de Canaveses",
+    "pop": 49501,
+    "area_km2": 201.89,
+    "dens_pop_km2": 245.187974
+  },
+  "nm:amares": {
+    "municipio": "Amares",
+    "pop": 19782,
+    "area_km2": 81.95,
+    "dens_pop_km2": 241.391092
+  },
+  "nm:leiria": {
+    "municipio": "Leiria",
+    "pop": 136006,
+    "area_km2": 565.09,
+    "dens_pop_km2": 240.680246
+  },
+  "nm:sobral de monte agraco": {
+    "municipio": "Sobral de Monte Agraço",
+    "pop": 12214,
+    "area_km2": 52.1,
+    "dens_pop_km2": 234.433781
+  },
+  "nm:marinha grande": {
+    "municipio": "Marinha Grande",
+    "pop": 41773,
+    "area_km2": 187.25,
+    "dens_pop_km2": 223.086782
+  },
+  "nm:fafe": {
+    "municipio": "Fafe",
+    "pop": 48420,
+    "area_km2": 219.08,
+    "dens_pop_km2": 221.015154
+  },
+  "nm:torres vedras": {
+    "municipio": "Torres Vedras",
+    "pop": 89526,
+    "area_km2": 407.15,
+    "dens_pop_km2": 219.884563
+  },
+  "nm:caldas da rainha": {
+    "municipio": "Caldas da Rainha",
+    "pop": 55206,
+    "area_km2": 255.69,
+    "dens_pop_km2": 215.909891
+  },
+  "nm:vila verde": {
+    "municipio": "Vila Verde",
+    "pop": 48701,
+    "area_km2": 228.67,
+    "dens_pop_km2": 212.97503
+  },
+  "nm:viseu": {
+    "municipio": "Viseu",
+    "pop": 103502,
+    "area_km2": 507.1,
+    "dens_pop_km2": 204.105699
+  },
+  "nm:ribeira brava": {
+    "municipio": "Ribeira Brava",
+    "pop": 13322,
+    "area_km2": 65.46,
+    "dens_pop_km2": 203.513596
+  },
+  "nm:arruda dos vinhos": {
+    "municipio": "Arruda dos Vinhos",
+    "pop": 15752,
+    "area_km2": 77.96,
+    "dens_pop_km2": 202.052335
+  },
+  "nm:lourinha": {
+    "municipio": "Lourinhã",
+    "pop": 28978,
+    "area_km2": 147.17,
+    "dens_pop_km2": 196.901542
+  },
+  "nm:ponta do sol": {
+    "municipio": "Ponta do Sol",
+    "pop": 8920,
+    "area_km2": 46.26,
+    "dens_pop_km2": 192.823173
+  },
+  "nm:nazare": {
+    "municipio": "Nazaré",
+    "pop": 15856,
+    "area_km2": 82.43,
+    "dens_pop_km2": 192.357152
+  },
+  "nm:mealhada": {
+    "municipio": "Mealhada",
+    "pop": 20023,
+    "area_km2": 110.66,
+    "dens_pop_km2": 180.941623
+  },
+  "nm:ribeira grande": {
+    "municipio": "Ribeira Grande",
+    "pop": 32397,
+    "area_km2": 180.15,
+    "dens_pop_km2": 179.833472
+  },
+  "nm:montijo": {
+    "municipio": "Montijo",
+    "pop": 60612,
+    "area_km2": 348.62,
+    "dens_pop_km2": 173.862658
+  },
+  "nm:amarante": {
+    "municipio": "Amarante",
+    "pop": 52169,
+    "area_km2": 301.33,
+    "dens_pop_km2": 173.129128
+  },
+  "nm:povoa de lanhoso": {
+    "municipio": "Póvoa de Lanhoso",
+    "pop": 22931,
+    "area_km2": 134.65,
+    "dens_pop_km2": 170.30078
+  },
+  "nm:lagos": {
+    "municipio": "Lagos",
+    "pop": 35241,
+    "area_km2": 212.99,
+    "dens_pop_km2": 165.458472
+  },
+  "nm:albergaria-a-velha": {
+    "municipio": "Albergaria-a-Velha",
+    "pop": 26171,
+    "area_km2": 158.83,
+    "dens_pop_km2": 164.773657
+  },
+  "nm:batalha": {
+    "municipio": "Batalha",
+    "pop": 16894,
+    "area_km2": 103.42,
+    "dens_pop_km2": 163.353317
+  },
+  "nm:alenquer": {
+    "municipio": "Alenquer",
+    "pop": 49474,
+    "area_km2": 304.22,
+    "dens_pop_km2": 162.625731
+  },
+  "nm:vila nova da barquinha": {
+    "municipio": "Vila Nova da Barquinha",
+    "pop": 8032,
+    "area_km2": 49.53,
+    "dens_pop_km2": 162.164345
+  },
+  "nm:figueira da foz": {
+    "municipio": "Figueira da Foz",
+    "pop": 61397,
+    "area_km2": 379.05,
+    "dens_pop_km2": 161.975993
+  },
+  "nm:palmela": {
+    "municipio": "Palmela",
+    "pop": 74462,
+    "area_km2": 465.12,
+    "dens_pop_km2": 160.092019
+  },
+  "nm:alcochete": {
+    "municipio": "Alcochete",
+    "pop": 20462,
+    "area_km2": 128.36,
+    "dens_pop_km2": 159.411031
+  },
+  "nm:bombarral": {
+    "municipio": "Bombarral",
+    "pop": 14272,
+    "area_km2": 91.29,
+    "dens_pop_km2": 156.336948
+  },
+  "nm:cartaxo": {
+    "municipio": "Cartaxo",
+    "pop": 24711,
+    "area_km2": 158.17,
+    "dens_pop_km2": 156.230638
+  },
+  "nm:murtosa": {
+    "municipio": "Murtosa",
+    "pop": 11360,
+    "area_km2": 73.09,
+    "dens_pop_km2": 155.424819
+  },
+  "nm:vagos": {
+    "municipio": "Vagos",
+    "pop": 25167,
+    "area_km2": 164.92,
+    "dens_pop_km2": 152.601261
+  },
+  "nm:peso da regua": {
+    "municipio": "Peso da Régua",
+    "pop": 14275,
+    "area_km2": 94.86,
+    "dens_pop_km2": 150.484925
+  },
+  "nm:lamego": {
+    "municipio": "Lamego",
+    "pop": 24037,
+    "area_km2": 165.42,
+    "dens_pop_km2": 145.308911
+  },
+  "nm:vale de cambra": {
+    "municipio": "Vale de Cambra",
+    "pop": 21239,
+    "area_km2": 147.33,
+    "dens_pop_km2": 144.15937
+  },
+  "nm:agueda": {
+    "municipio": "Águeda",
+    "pop": 47727,
+    "area_km2": 335.27,
+    "dens_pop_km2": 142.353924
+  },
+  "nm:alcobaca": {
+    "municipio": "Alcobaça",
+    "pop": 57973,
+    "area_km2": 408.14,
+    "dens_pop_km2": 142.041946
+  },
+  "nm:angra do heroismo": {
+    "municipio": "Angra do Heroísmo",
+    "pop": 33701,
+    "area_km2": 239.0,
+    "dens_pop_km2": 141.008368
+  },
+  "nm:porto santo": {
+    "municipio": "Porto Santo",
+    "pop": 5717,
+    "area_km2": 42.68,
+    "dens_pop_km2": 133.950328
+  },
+  "nm:castelo de paiva": {
+    "municipio": "Castelo de Paiva",
+    "pop": 15395,
+    "area_km2": 115.01,
+    "dens_pop_km2": 133.857925
+  },
+  "nm:vila franca do campo": {
+    "municipio": "Vila Franca do Campo",
+    "pop": 10368,
+    "area_km2": 77.97,
+    "dens_pop_km2": 132.974221
+  },
+  "nm:vila real": {
+    "municipio": "Vila Real",
+    "pop": 50043,
+    "area_km2": 378.8,
+    "dens_pop_km2": 132.109293
+  },
+  "nm:anadia": {
+    "municipio": "Anadia",
+    "pop": 28512,
+    "area_km2": 216.63,
+    "dens_pop_km2": 131.61612
+  },
+  "nm:torres novas": {
+    "municipio": "Torres Novas",
+    "pop": 34986,
+    "area_km2": 270.0,
+    "dens_pop_km2": 129.577778
+  },
+  "nm:mesao frio": {
+    "municipio": "Mesão Frio",
+    "pop": 3449,
+    "area_km2": 26.65,
+    "dens_pop_km2": 129.418386
+  },
+  "nm:condeixa-a-nova": {
+    "municipio": "Condeixa-a-Nova",
+    "pop": 17882,
+    "area_km2": 138.67,
+    "dens_pop_km2": 128.953631
+  },
+  "nm:ponte de lima": {
+    "municipio": "Ponte de Lima",
+    "pop": 41066,
+    "area_km2": 320.25,
+    "dens_pop_km2": 128.231069
+  },
+  "nm:lousa": {
+    "municipio": "Lousã",
+    "pop": 17662,
+    "area_km2": 138.4,
+    "dens_pop_km2": 127.615607
+  },
+  "nm:vila da praia da vitoria": {
+    "municipio": "Vila da Praia da Vitória",
+    "pop": 19862,
+    "area_km2": 161.27,
+    "dens_pop_km2": 123.159918
+  },
+  "nm:valenca": {
+    "municipio": "Valença",
+    "pop": 14297,
+    "area_km2": 117.13,
+    "dens_pop_km2": 122.060958
+  },
+  "nm:caminha": {
+    "municipio": "Caminha",
+    "pop": 16604,
+    "area_km2": 136.52,
+    "dens_pop_km2": 121.623205
+  },
+  "nm:ourem": {
+    "municipio": "Ourém",
+    "pop": 46988,
+    "area_km2": 416.68,
+    "dens_pop_km2": 112.767591
+  },
+  "nm:santarem": {
+    "municipio": "Santarém",
+    "pop": 61664,
+    "area_km2": 552.54,
+    "dens_pop_km2": 111.60097
+  },
+  "nm:montemor-o-velho": {
+    "municipio": "Montemor-o-Velho",
+    "pop": 25131,
+    "area_km2": 228.96,
+    "dens_pop_km2": 109.76153
+  },
+  "nm:nelas": {
+    "municipio": "Nelas",
+    "pop": 13508,
+    "area_km2": 125.71,
+    "dens_pop_km2": 107.453663
+  },
+  "nm:tomar": {
+    "municipio": "Tomar",
+    "pop": 37039,
+    "area_km2": 351.2,
+    "dens_pop_km2": 105.464123
+  },
+  "nm:almeirim": {
+    "municipio": "Almeirim",
+    "pop": 23087,
+    "area_km2": 222.12,
+    "dens_pop_km2": 103.939312
+  },
+  "nm:mira": {
+    "municipio": "Mira",
+    "pop": 12720,
+    "area_km2": 124.03,
+    "dens_pop_km2": 102.555833
+  },
+  "nm:calheta [r.a.m.]": {
+    "municipio": "Calheta [R.A.M.]",
+    "pop": 11377,
+    "area_km2": 111.51,
+    "dens_pop_km2": 102.026724
+  },
+  "nm:alcanena": {
+    "municipio": "Alcanena",
+    "pop": 12876,
+    "area_km2": 127.33,
+    "dens_pop_km2": 101.123066
+  },
+  "nm:loule": {
+    "municipio": "Loulé",
+    "pop": 75764,
+    "area_km2": 763.67,
+    "dens_pop_km2": 99.210392
+  },
+  "nm:santa comba dao": {
+    "municipio": "Santa Comba Dão",
+    "pop": 11022,
+    "area_km2": 111.95,
+    "dens_pop_km2": 98.454667
+  },
+  "nm:baiao": {
+    "municipio": "Baião",
+    "pop": 17088,
+    "area_km2": 174.53,
+    "dens_pop_km2": 97.908669
+  },
+  "nm:salvaterra de magos": {
+    "municipio": "Salvaterra de Magos",
+    "pop": 23827,
+    "area_km2": 243.93,
+    "dens_pop_km2": 97.679662
+  },
+  "nm:celorico de basto": {
+    "municipio": "Celorico de Basto",
+    "pop": 17637,
+    "area_km2": 181.07,
+    "dens_pop_km2": 97.404319
+  },
+  "nm:miranda do corvo": {
+    "municipio": "Miranda do Corvo",
+    "pop": 12269,
+    "area_km2": 126.38,
+    "dens_pop_km2": 97.080234
+  },
+  "nm:obidos": {
+    "municipio": "Óbidos",
+    "pop": 13720,
+    "area_km2": 141.55,
+    "dens_pop_km2": 96.926881
+  },
+  "nm:porto de mos": {
+    "municipio": "Porto de Mós",
+    "pop": 24310,
+    "area_km2": 261.83,
+    "dens_pop_km2": 92.846503
+  },
+  "nm:cantanhede": {
+    "municipio": "Cantanhede",
+    "pop": 35399,
+    "area_km2": 390.88,
+    "dens_pop_km2": 90.562321
+  },
+  "nm:azambuja": {
+    "municipio": "Azambuja",
+    "pop": 23448,
+    "area_km2": 262.66,
+    "dens_pop_km2": 89.271301
+  },
+  "nm:vila nova de cerveira": {
+    "municipio": "Vila Nova de Cerveira",
+    "pop": 9425,
+    "area_km2": 108.47,
+    "dens_pop_km2": 86.890384
+  },
+  "nm:vila nova de poiares": {
+    "municipio": "Vila Nova de Poiares",
+    "pop": 7261,
+    "area_km2": 84.45,
+    "dens_pop_km2": 85.97987
+  },
+  "nm:santa marta de penaguiao": {
+    "municipio": "Santa Marta de Penaguião",
+    "pop": 5949,
+    "area_km2": 69.28,
+    "dens_pop_km2": 85.868938
+  },
+  "nm:mangualde": {
+    "municipio": "Mangualde",
+    "pop": 18766,
+    "area_km2": 219.26,
+    "dens_pop_km2": 85.587887
+  },
+  "nm:moncao": {
+    "municipio": "Monção",
+    "pop": 18004,
+    "area_km2": 211.31,
+    "dens_pop_km2": 85.201836
+  },
+  "nm:sever do vouga": {
+    "municipio": "Sever do Vouga",
+    "pop": 11023,
+    "area_km2": 129.88,
+    "dens_pop_km2": 84.87065
+  },
+  "nm:cadaval": {
+    "municipio": "Cadaval",
+    "pop": 14711,
+    "area_km2": 174.89,
+    "dens_pop_km2": 84.11573
+  },
+  "nm:pombal": {
+    "municipio": "Pombal",
+    "pop": 52573,
+    "area_km2": 626.0,
+    "dens_pop_km2": 83.982428
+  },
+  "nm:covilha": {
+    "municipio": "Covilhã",
+    "pop": 46606,
+    "area_km2": 555.6,
+    "dens_pop_km2": 83.884089
+  },
+  "nm:oliveira do hospital": {
+    "municipio": "Oliveira do Hospital",
+    "pop": 19610,
+    "area_km2": 234.52,
+    "dens_pop_km2": 83.617602
+  },
+  "nm:horta": {
+    "municipio": "Horta",
+    "pop": 14466,
+    "area_km2": 173.06,
+    "dens_pop_km2": 83.589507
+  },
+  "nm:rio maior": {
+    "municipio": "Rio Maior",
+    "pop": 22678,
+    "area_km2": 272.76,
+    "dens_pop_km2": 83.14269
+  },
+  "nm:carregal do sal": {
+    "municipio": "Carregal do Sal",
+    "pop": 9261,
+    "area_km2": 116.89,
+    "dens_pop_km2": 79.228334
+  },
+  "nm:alpiarca": {
+    "municipio": "Alpiarça",
+    "pop": 7493,
+    "area_km2": 95.36,
+    "dens_pop_km2": 78.575923
+  },
+  "nm:resende": {
+    "municipio": "Resende",
+    "pop": 9628,
+    "area_km2": 123.35,
+    "dens_pop_km2": 78.054317
+  },
+  "nm:tarouca": {
+    "municipio": "Tarouca",
+    "pop": 7704,
+    "area_km2": 100.08,
+    "dens_pop_km2": 76.978417
+  },
+  "nm:sao bras de alportel": {
+    "municipio": "São Brás de Alportel",
+    "pop": 11730,
+    "area_km2": 153.37,
+    "dens_pop_km2": 76.481711
+  },
+  "nm:sines": {
+    "municipio": "Sines",
+    "pop": 14796,
+    "area_km2": 203.3,
+    "dens_pop_km2": 72.779144
+  },
+  "nm:cinfaes": {
+    "municipio": "Cinfães",
+    "pop": 17293,
+    "area_km2": 239.29,
+    "dens_pop_km2": 72.267959
+  },
+  "nm:tondela": {
+    "municipio": "Tondela",
+    "pop": 25957,
+    "area_km2": 371.22,
+    "dens_pop_km2": 69.923496
+  },
+  "nm:santana": {
+    "municipio": "Santana",
+    "pop": 6516,
+    "area_km2": 95.47,
+    "dens_pop_km2": 68.251807
+  },
+  "nm:ansiao": {
+    "municipio": "Ansião",
+    "pop": 11930,
+    "area_km2": 176.09,
+    "dens_pop_km2": 67.749446
+  },
+  "nm:oliveira de frades": {
+    "municipio": "Oliveira de Frades",
+    "pop": 9840,
+    "area_km2": 145.35,
+    "dens_pop_km2": 67.698658
+  },
+  "nm:santa cruz da graciosa": {
+    "municipio": "Santa Cruz da Graciosa",
+    "pop": 4070,
+    "area_km2": 60.66,
+    "dens_pop_km2": 67.095285
+  },
+  "nm:soure": {
+    "municipio": "Soure",
+    "pop": 17302,
+    "area_km2": 265.06,
+    "dens_pop_km2": 65.275787
+  },
+  "nm:golega": {
+    "municipio": "Golegã",
+    "pop": 5488,
+    "area_km2": 84.32,
+    "dens_pop_km2": 65.085389
+  },
+  "nm:sao vicente": {
+    "municipio": "São Vicente",
+    "pop": 5123,
+    "area_km2": 78.84,
+    "dens_pop_km2": 64.979706
+  },
+  "nm:cabeceiras de basto": {
+    "municipio": "Cabeceiras de Basto",
+    "pop": 15538,
+    "area_km2": 241.82,
+    "dens_pop_km2": 64.254404
+  },
+  "nm:benavente": {
+    "municipio": "Benavente",
+    "pop": 33131,
+    "area_km2": 521.38,
+    "dens_pop_km2": 63.544823
+  },
+  "nm:arouca": {
+    "municipio": "Arouca",
+    "pop": 20826,
+    "area_km2": 329.11,
+    "dens_pop_km2": 63.279754
+  },
+  "nm:chaves": {
+    "municipio": "Chaves",
+    "pop": 37322,
+    "area_km2": 591.23,
+    "dens_pop_km2": 63.126025
+  },
+  "nm:paredes de coura": {
+    "municipio": "Paredes de Coura",
+    "pop": 8688,
+    "area_km2": 138.19,
+    "dens_pop_km2": 62.869962
+  },
+  "nm:ponte da barca": {
+    "municipio": "Ponte da Barca",
+    "pop": 11210,
+    "area_km2": 182.11,
+    "dens_pop_km2": 61.556202
+  },
+  "nm:penacova": {
+    "municipio": "Penacova",
+    "pop": 12951,
+    "area_km2": 216.73,
+    "dens_pop_km2": 59.756379
+  },
+  "nm:silves": {
+    "municipio": "Silves",
+    "pop": 40309,
+    "area_km2": 680.06,
+    "dens_pop_km2": 59.272711
+  },
+  "nm:tabua": {
+    "municipio": "Tábua",
+    "pop": 11784,
+    "area_km2": 199.79,
+    "dens_pop_km2": 58.981931
+  },
+  "nm:vila do porto": {
+    "municipio": "Vila do Porto",
+    "pop": 5504,
+    "area_km2": 96.89,
+    "dens_pop_km2": 56.806688
+  },
+  "nm:guarda": {
+    "municipio": "Guarda",
+    "pop": 40046,
+    "area_km2": 712.1,
+    "dens_pop_km2": 56.236484
+  },
+  "nm:satao": {
+    "municipio": "Sátão",
+    "pop": 11265,
+    "area_km2": 201.94,
+    "dens_pop_km2": 55.783896
+  },
+  "nm:vieira do minho": {
+    "municipio": "Vieira do Minho",
+    "pop": 12067,
+    "area_km2": 216.44,
+    "dens_pop_km2": 55.752172
+  },
+  "nm:povoacao": {
+    "municipio": "Povoação",
+    "pop": 5883,
+    "area_km2": 106.41,
+    "dens_pop_km2": 55.286157
+  },
+  "nm:penalva do castelo": {
+    "municipio": "Penalva do Castelo",
+    "pop": 7414,
+    "area_km2": 134.34,
+    "dens_pop_km2": 55.188328
+  },
+  "nm:belmonte": {
+    "municipio": "Belmonte",
+    "pop": 6265,
+    "area_km2": 118.76,
+    "dens_pop_km2": 52.753452
+  },
+  "nm:vendas novas": {
+    "municipio": "Vendas Novas",
+    "pop": 11591,
+    "area_km2": 222.39,
+    "dens_pop_km2": 52.120149
+  },
+  "nm:vouzela": {
+    "municipio": "Vouzela",
+    "pop": 9807,
+    "area_km2": 193.69,
+    "dens_pop_km2": 50.632454
+  },
+  "nm:constancia": {
+    "municipio": "Constância",
+    "pop": 4020,
+    "area_km2": 80.37,
+    "dens_pop_km2": 50.018664
+  },
+  "nm:seia": {
+    "municipio": "Seia",
+    "pop": 21410,
+    "area_km2": 435.69,
+    "dens_pop_km2": 49.140444
+  },
+  "nm:portalegre": {
+    "municipio": "Portalegre",
+    "pop": 21754,
+    "area_km2": 447.14,
+    "dens_pop_km2": 48.651429
+  },
+  "nm:armamar": {
+    "municipio": "Armamar",
+    "pop": 5635,
+    "area_km2": 117.24,
+    "dens_pop_km2": 48.063801
+  },
+  "nm:abrantes": {
+    "municipio": "Abrantes",
+    "pop": 33770,
+    "area_km2": 714.69,
+    "dens_pop_km2": 47.251256
+  },
+  "nm:tavira": {
+    "municipio": "Tavira",
+    "pop": 28280,
+    "area_km2": 606.97,
+    "dens_pop_km2": 46.592089
+  },
+  "nm:arcos de valdevez": {
+    "municipio": "Arcos de Valdevez",
+    "pop": 20819,
+    "area_km2": 447.6,
+    "dens_pop_km2": 46.512511
+  },
+  "nm:madalena": {
+    "municipio": "Madalena",
+    "pop": 6559,
+    "area_km2": 147.12,
+    "dens_pop_km2": 44.582654
+  },
+  "nm:moimenta da beira": {
+    "municipio": "Moimenta da Beira",
+    "pop": 9776,
+    "area_km2": 219.97,
+    "dens_pop_km2": 44.442424
+  },
+  "nm:borba": {
+    "municipio": "Borba",
+    "pop": 6378,
+    "area_km2": 145.19,
+    "dens_pop_km2": 43.928645
+  },
+  "nm:sao pedro do sul": {
+    "municipio": "São Pedro do Sul",
+    "pop": 15296,
+    "area_km2": 348.95,
+    "dens_pop_km2": 43.83436
+  },
+  "nm:nordeste": {
+    "municipio": "Nordeste",
+    "pop": 4439,
+    "area_km2": 101.47,
+    "dens_pop_km2": 43.74692
+  },
+  "nm:ferreira do zezere": {
+    "municipio": "Ferreira do Zêzere",
+    "pop": 8115,
+    "area_km2": 190.38,
+    "dens_pop_km2": 42.625276
+  },
+  "nm:penela": {
+    "municipio": "Penela",
+    "pop": 5714,
+    "area_km2": 134.8,
+    "dens_pop_km2": 42.388724
+  },
+  "nm:velas": {
+    "municipio": "Velas",
+    "pop": 4949,
+    "area_km2": 117.38,
+    "dens_pop_km2": 42.162208
+  },
+  "nm:castanheira de pera": {
+    "municipio": "Castanheira de Pêra",
+    "pop": 2756,
+    "area_km2": 66.77,
+    "dens_pop_km2": 41.276022
+  },
+  "nm:evora": {
+    "municipio": "Évora",
+    "pop": 53908,
+    "area_km2": 1307.08,
+    "dens_pop_km2": 41.243076
+  },
+  "nm:gouveia": {
+    "municipio": "Gouveia",
+    "pop": 12301,
+    "area_km2": 300.61,
+    "dens_pop_km2": 40.920129
+  },
+  "nm:alvaiazere": {
+    "municipio": "Alvaiázere",
+    "pop": 6479,
+    "area_km2": 160.48,
+    "dens_pop_km2": 40.372632
+  },
+  "nm:sardoal": {
+    "municipio": "Sardoal",
+    "pop": 3638,
+    "area_km2": 92.15,
+    "dens_pop_km2": 39.47911
+  },
+  "nm:fundao": {
+    "municipio": "Fundão",
+    "pop": 27285,
+    "area_km2": 700.2,
+    "dens_pop_km2": 38.967438
+  },
+  "nm:tabuaco": {
+    "municipio": "Tabuaço",
+    "pop": 5031,
+    "area_km2": 133.86,
+    "dens_pop_km2": 37.584043
+  },
+  "nm:vila vicosa": {
+    "municipio": "Vila Viçosa",
+    "pop": 7267,
+    "area_km2": 194.86,
+    "dens_pop_km2": 37.293441
+  },
+  "nm:mondim de basto": {
+    "municipio": "Mondim de Basto",
+    "pop": 6394,
+    "area_km2": 172.08,
+    "dens_pop_km2": 37.157136
+  },
+  "nm:castelo branco": {
+    "municipio": "Castelo Branco",
+    "pop": 53342,
+    "area_km2": 1438.19,
+    "dens_pop_km2": 37.089675
+  },
+  "nm:castro daire": {
+    "municipio": "Castro Daire",
+    "pop": 13790,
+    "area_km2": 379.04,
+    "dens_pop_km2": 36.381385
+  },
+  "nm:mortagua": {
+    "municipio": "Mortágua",
+    "pop": 9104,
+    "area_km2": 251.18,
+    "dens_pop_km2": 36.244924
+  },
+  "nm:sabrosa": {
+    "municipio": "Sabrosa",
+    "pop": 5627,
+    "area_km2": 156.92,
+    "dens_pop_km2": 35.859036
+  },
+  "nm:alijo": {
+    "municipio": "Alijó",
+    "pop": 10296,
+    "area_km2": 297.6,
+    "dens_pop_km2": 34.596774
+  },
+  "nm:arganil": {
+    "municipio": "Arganil",
+    "pop": 11447,
+    "area_km2": 332.84,
+    "dens_pop_km2": 34.3919
+  },
+  "nm:vila do bispo": {
+    "municipio": "Vila do Bispo",
+    "pop": 6048,
+    "area_km2": 179.06,
+    "dens_pop_km2": 33.776388
+  },
+  "nm:serta": {
+    "municipio": "Sertã",
+    "pop": 14983,
+    "area_km2": 446.73,
+    "dens_pop_km2": 33.539274
+  },
+  "nm:fornos de algodres": {
+    "municipio": "Fornos de Algodres",
+    "pop": 4400,
+    "area_km2": 131.45,
+    "dens_pop_km2": 33.472803
+  },
+  "nm:mirandela": {
+    "municipio": "Mirandela",
+    "pop": 21344,
+    "area_km2": 658.96,
+    "dens_pop_km2": 32.390433
+  },
+  "nm:elvas": {
+    "municipio": "Elvas",
+    "pop": 20325,
+    "area_km2": 631.29,
+    "dens_pop_km2": 32.19598
+  },
+  "nm:campo maior": {
+    "municipio": "Campo Maior",
+    "pop": 7877,
+    "area_km2": 247.2,
+    "dens_pop_km2": 31.864887
+  },
+  "nm:melgaco": {
+    "municipio": "Melgaço",
+    "pop": 7557,
+    "area_km2": 238.25,
+    "dens_pop_km2": 31.718783
+  },
+  "nm:porto moniz": {
+    "municipio": "Porto Moniz",
+    "pop": 2598,
+    "area_km2": 82.92,
+    "dens_pop_km2": 31.331404
+  },
+  "nm:figueiro dos vinhos": {
+    "municipio": "Figueiró dos Vinhos",
+    "pop": 5325,
+    "area_km2": 173.44,
+    "dens_pop_km2": 30.70226
+  },
+  "nm:braganca": {
+    "municipio": "Bragança",
+    "pop": 35581,
+    "area_km2": 1173.57,
+    "dens_pop_km2": 30.318601
+  },
+  "nm:santa cruz das flores": {
+    "municipio": "Santa Cruz das Flores",
+    "pop": 2114,
+    "area_km2": 70.91,
+    "dens_pop_km2": 29.812438
+  },
+  "nm:beja": {
+    "municipio": "Beja",
+    "pop": 33954,
+    "area_km2": 1146.48,
+    "dens_pop_km2": 29.615868
+  },
+  "nm:pedrogao grande": {
+    "municipio": "Pedrógão Grande",
+    "pop": 3718,
+    "area_km2": 128.75,
+    "dens_pop_km2": 28.87767
+  },
+  "nm:lajes do pico": {
+    "municipio": "Lajes do Pico",
+    "pop": 4398,
+    "area_km2": 155.31,
+    "dens_pop_km2": 28.317558
+  },
+  "nm:murca": {
+    "municipio": "Murça",
+    "pop": 5229,
+    "area_km2": 189.37,
+    "dens_pop_km2": 27.61261
+  },
+  "nm:calheta [r.a.a.]": {
+    "municipio": "Calheta [R.A.A.]",
+    "pop": 3486,
+    "area_km2": 126.26,
+    "dens_pop_km2": 27.609694
+  },
+  "nm:vila nova de paiva": {
+    "municipio": "Vila Nova de Paiva",
+    "pop": 4836,
+    "area_km2": 175.53,
+    "dens_pop_km2": 27.550846
+  },
+  "nm:vila pouca de aguiar": {
+    "municipio": "Vila Pouca de Aguiar",
+    "pop": 11819,
+    "area_km2": 437.07,
+    "dens_pop_km2": 27.041435
+  },
+  "nm:ribeira de pena": {
+    "municipio": "Ribeira de Pena",
+    "pop": 5840,
+    "area_km2": 217.46,
+    "dens_pop_km2": 26.855514
+  },
+  "nm:celorico da beira": {
+    "municipio": "Celorico da Beira",
+    "pop": 6635,
+    "area_km2": 247.22,
+    "dens_pop_km2": 26.838443
+  },
+  "nm:santiago do cacem": {
+    "municipio": "Santiago do Cacém",
+    "pop": 28294,
+    "area_km2": 1059.69,
+    "dens_pop_km2": 26.700261
+  },
+  "nm:valpacos": {
+    "municipio": "Valpaços",
+    "pop": 14532,
+    "area_km2": 548.74,
+    "dens_pop_km2": 26.482487
+  },
+  "nm:cuba": {
+    "municipio": "Cuba",
+    "pop": 4469,
+    "area_km2": 172.09,
+    "dens_pop_km2": 25.96897
+  },
+  "nm:aguiar da beira": {
+    "municipio": "Aguiar da Beira",
+    "pop": 5326,
+    "area_km2": 206.77,
+    "dens_pop_km2": 25.758089
+  },
+  "nm:corvo": {
+    "municipio": "Corvo",
+    "pop": 437,
+    "area_km2": 17.11,
+    "dens_pop_km2": 25.54062
+  },
+  "nm:sernancelhe": {
+    "municipio": "Sernancelhe",
+    "pop": 5818,
+    "area_km2": 228.61,
+    "dens_pop_km2": 25.449455
+  },
+  "nm:sao joao da pesqueira": {
+    "municipio": "São João da Pesqueira",
+    "pop": 6743,
+    "area_km2": 266.11,
+    "dens_pop_km2": 25.339145
+  },
+  "nm:sao roque do pico": {
+    "municipio": "São Roque do Pico",
+    "pop": 3461,
+    "area_km2": 142.36,
+    "dens_pop_km2": 24.311604
+  },
+  "nm:estremoz": {
+    "municipio": "Estremoz",
+    "pop": 12482,
+    "area_km2": 513.8,
+    "dens_pop_km2": 24.293499
+  },
+  "nm:manteigas": {
+    "municipio": "Manteigas",
+    "pop": 2951,
+    "area_km2": 121.98,
+    "dens_pop_km2": 24.192491
+  },
+  "nm:trancoso": {
+    "municipio": "Trancoso",
+    "pop": 8402,
+    "area_km2": 361.52,
+    "dens_pop_km2": 23.240761
+  },
+  "nm:castro marim": {
+    "municipio": "Castro Marim",
+    "pop": 6983,
+    "area_km2": 300.84,
+    "dens_pop_km2": 23.211674
+  },
+  "nm:terras de bouro": {
+    "municipio": "Terras de Bouro",
+    "pop": 6356,
+    "area_km2": 277.46,
+    "dens_pop_km2": 22.907807
+  },
+  "nm:vila flor": {
+    "municipio": "Vila Flor",
+    "pop": 6022,
+    "area_km2": 265.81,
+    "dens_pop_km2": 22.65528
+  },
+  "nm:reguengos de monsaraz": {
+    "municipio": "Reguengos de Monsaraz",
+    "pop": 9840,
+    "area_km2": 464.0,
+    "dens_pop_km2": 21.206897
+  },
+  "nm:penedono": {
+    "municipio": "Penedono",
+    "pop": 2808,
+    "area_km2": 133.71,
+    "dens_pop_km2": 21.000673
+  },
+  "nm:lajes das flores": {
+    "municipio": "Lajes das Flores",
+    "pop": 1456,
+    "area_km2": 70.05,
+    "dens_pop_km2": 20.785153
+  },
+  "nm:macedo de cavaleiros": {
+    "municipio": "Macedo de Cavaleiros",
+    "pop": 14253,
+    "area_km2": 699.14,
+    "dens_pop_km2": 20.386475
+  },
+  "nm:aljezur": {
+    "municipio": "Aljezur",
+    "pop": 6501,
+    "area_km2": 323.5,
+    "dens_pop_km2": 20.095827
+  },
+  "nm:odemira": {
+    "municipio": "Odemira",
+    "pop": 33866,
+    "area_km2": 1720.6,
+    "dens_pop_km2": 19.682669
+  },
+  "nm:marvao": {
+    "municipio": "Marvão",
+    "pop": 3020,
+    "area_km2": 154.9,
+    "dens_pop_km2": 19.496449
+  },
+  "nm:aljustrel": {
+    "municipio": "Aljustrel",
+    "pop": 8923,
+    "area_km2": 458.47,
+    "dens_pop_km2": 19.46256
+  },
+  "nm:carrazeda de ansiaes": {
+    "municipio": "Carrazeda de Ansiães",
+    "pop": 5368,
+    "area_km2": 279.24,
+    "dens_pop_km2": 19.223607
+  },
+  "nm:vila de rei": {
+    "municipio": "Vila de Rei",
+    "pop": 3455,
+    "area_km2": 191.55,
+    "dens_pop_km2": 18.037066
+  },
+  "nm:ponte de sor": {
+    "municipio": "Ponte de Sor",
+    "pop": 15123,
+    "area_km2": 839.82,
+    "dens_pop_km2": 18.00743
+  },
+  "nm:proenca-a-nova": {
+    "municipio": "Proença-a-Nova",
+    "pop": 7102,
+    "area_km2": 395.4,
+    "dens_pop_km2": 17.961558
+  },
+  "nm:grandola": {
+    "municipio": "Grândola",
+    "pop": 14226,
+    "area_km2": 825.94,
+    "dens_pop_km2": 17.224011
+  },
+  "nm:redondo": {
+    "municipio": "Redondo",
+    "pop": 6290,
+    "area_km2": 369.51,
+    "dens_pop_km2": 17.022543
+  },
+  "nm:vidigueira": {
+    "municipio": "Vidigueira",
+    "pop": 5261,
+    "area_km2": 316.61,
+    "dens_pop_km2": 16.616658
+  },
+  "nm:pinhel": {
+    "municipio": "Pinhel",
+    "pop": 7817,
+    "area_km2": 484.52,
+    "dens_pop_km2": 16.133493
+  },
+  "nm:meda": {
+    "municipio": "Mêda",
+    "pop": 4594,
+    "area_km2": 286.05,
+    "dens_pop_km2": 16.060129
+  },
+  "nm:vila nova de foz coa": {
+    "municipio": "Vila Nova de Foz Côa",
+    "pop": 6383,
+    "area_km2": 398.15,
+    "dens_pop_km2": 16.031646
+  },
+  "nm:macao": {
+    "municipio": "Mação",
+    "pop": 6399,
+    "area_km2": 399.98,
+    "dens_pop_km2": 15.9983
+  },
+  "nm:sousel": {
+    "municipio": "Sousel",
+    "pop": 4403,
+    "area_km2": 279.32,
+    "dens_pop_km2": 15.763282
+  },
+  "nm:coruche": {
+    "municipio": "Coruche",
+    "pop": 17298,
+    "area_km2": 1115.72,
+    "dens_pop_km2": 15.50389
+  },
+  "nm:boticas": {
+    "municipio": "Boticas",
+    "pop": 4832,
+    "area_km2": 321.96,
+    "dens_pop_km2": 15.008076
+  },
+  "nm:gois": {
+    "municipio": "Góis",
+    "pop": 3822,
+    "area_km2": 263.3,
+    "dens_pop_km2": 14.515761
+  },
+  "nm:viana do alentejo": {
+    "municipio": "Viana do Alentejo",
+    "pop": 5592,
+    "area_km2": 393.67,
+    "dens_pop_km2": 14.204791
+  },
+  "nm:moura": {
+    "municipio": "Moura",
+    "pop": 13331,
+    "area_km2": 958.46,
+    "dens_pop_km2": 13.90877
+  },
+  "nm:sabugal": {
+    "municipio": "Sabugal",
+    "pop": 11290,
+    "area_km2": 822.7,
+    "dens_pop_km2": 13.723107
+  },
+  "nm:monchique": {
+    "municipio": "Monchique",
+    "pop": 5337,
+    "area_km2": 395.3,
+    "dens_pop_km2": 13.501138
+  },
+  "nm:alfandega da fe": {
+    "municipio": "Alfândega da Fé",
+    "pop": 4178,
+    "area_km2": 321.95,
+    "dens_pop_km2": 12.97717
+  },
+  "nm:montemor-o-novo": {
+    "municipio": "Montemor-o-Novo",
+    "pop": 15912,
+    "area_km2": 1232.97,
+    "dens_pop_km2": 12.905423
+  },
+  "nm:miranda do douro": {
+    "municipio": "Miranda do Douro",
+    "pop": 6220,
+    "area_km2": 487.18,
+    "dens_pop_km2": 12.767355
+  },
+  "nm:freixo de espada a cinta": {
+    "municipio": "Freixo de Espada à Cinta",
+    "pop": 3058,
+    "area_km2": 244.14,
+    "dens_pop_km2": 12.5256
+  },
+  "nm:torre de moncorvo": {
+    "municipio": "Torre de Moncorvo",
+    "pop": 6638,
+    "area_km2": 531.56,
+    "dens_pop_km2": 12.487772
+  },
+  "nm:serpa": {
+    "municipio": "Serpa",
+    "pop": 13673,
+    "area_km2": 1105.63,
+    "dens_pop_km2": 12.366705
+  },
+  "nm:castro verde": {
+    "municipio": "Castro Verde",
+    "pop": 6946,
+    "area_km2": 569.44,
+    "dens_pop_km2": 12.197949
+  },
+  "nm:ferreira do alentejo": {
+    "municipio": "Ferreira do Alentejo",
+    "pop": 7902,
+    "area_km2": 648.21,
+    "dens_pop_km2": 12.190494
+  },
+  "nm:castelo de vide": {
+    "municipio": "Castelo de Vide",
+    "pop": 3180,
+    "area_km2": 264.91,
+    "dens_pop_km2": 12.004077
+  },
+  "nm:fronteira": {
+    "municipio": "Fronteira",
+    "pop": 2974,
+    "area_km2": 248.6,
+    "dens_pop_km2": 11.962993
+  },
+  "nm:chamusca": {
+    "municipio": "Chamusca",
+    "pop": 8549,
+    "area_km2": 745.9,
+    "dens_pop_km2": 11.461322
+  },
+  "nm:montalegre": {
+    "municipio": "Montalegre",
+    "pop": 9100,
+    "area_km2": 805.46,
+    "dens_pop_km2": 11.297892
+  },
+  "nm:gaviao": {
+    "municipio": "Gavião",
+    "pop": 3263,
+    "area_km2": 294.59,
+    "dens_pop_km2": 11.076411
+  },
+  "nm:almeida": {
+    "municipio": "Almeida",
+    "pop": 5634,
+    "area_km2": 517.98,
+    "dens_pop_km2": 10.876868
+  },
+  "nm:vila velha de rodao": {
+    "municipio": "Vila Velha de Ródão",
+    "pop": 3577,
+    "area_km2": 329.91,
+    "dens_pop_km2": 10.842351
+  },
+  "nm:mogadouro": {
+    "municipio": "Mogadouro",
+    "pop": 8169,
+    "area_km2": 760.65,
+    "dens_pop_km2": 10.739499
+  },
+  "nm:vinhais": {
+    "municipio": "Vinhais",
+    "pop": 7355,
+    "area_km2": 694.75,
+    "dens_pop_km2": 10.586542
+  },
+  "nm:pampilhosa da serra": {
+    "municipio": "Pampilhosa da Serra",
+    "pop": 4182,
+    "area_km2": 396.46,
+    "dens_pop_km2": 10.548353
+  },
+  "nm:oleiros": {
+    "municipio": "Oleiros",
+    "pop": 4912,
+    "area_km2": 471.09,
+    "dens_pop_km2": 10.426882
+  },
+  "nm:arraiolos": {
+    "municipio": "Arraiolos",
+    "pop": 6870,
+    "area_km2": 683.75,
+    "dens_pop_km2": 10.047532
+  },
+  "nm:figueira de castelo rodrigo": {
+    "municipio": "Figueira de Castelo Rodrigo",
+    "pop": 5021,
+    "area_km2": 508.57,
+    "dens_pop_km2": 9.872781
+  },
+  "nm:nisa": {
+    "municipio": "Nisa",
+    "pop": 5633,
+    "area_km2": 575.68,
+    "dens_pop_km2": 9.78495
+  },
+  "nm:portel": {
+    "municipio": "Portel",
+    "pop": 5734,
+    "area_km2": 601.01,
+    "dens_pop_km2": 9.540607
+  },
+  "nm:mora": {
+    "municipio": "Mora",
+    "pop": 4161,
+    "area_km2": 443.95,
+    "dens_pop_km2": 9.372677
+  },
+  "nm:alandroal": {
+    "municipio": "Alandroal",
+    "pop": 4973,
+    "area_km2": 542.68,
+    "dens_pop_km2": 9.16378
+  },
+  "nm:alter do chao": {
+    "municipio": "Alter do Chão",
+    "pop": 3222,
+    "area_km2": 362.07,
+    "dens_pop_km2": 8.898832
+  },
+  "nm:arronches": {
+    "municipio": "Arronches",
+    "pop": 2767,
+    "area_km2": 314.65,
+    "dens_pop_km2": 8.793898
+  },
+  "nm:mourao": {
+    "municipio": "Mourão",
+    "pop": 2432,
+    "area_km2": 278.63,
+    "dens_pop_km2": 8.728421
+  },
+  "nm:alvito": {
+    "municipio": "Alvito",
+    "pop": 2303,
+    "area_km2": 264.85,
+    "dens_pop_km2": 8.695488
+  },
+  "nm:vimioso": {
+    "municipio": "Vimioso",
+    "pop": 4174,
+    "area_km2": 481.59,
+    "dens_pop_km2": 8.667123
+  },
+  "nm:penamacor": {
+    "municipio": "Penamacor",
+    "pop": 4821,
+    "area_km2": 563.71,
+    "dens_pop_km2": 8.55227
+  },
+  "nm:almodovar": {
+    "municipio": "Almodôvar",
+    "pop": 6652,
+    "area_km2": 777.88,
+    "dens_pop_km2": 8.551448
+  },
+  "nm:barrancos": {
+    "municipio": "Barrancos",
+    "pop": 1415,
+    "area_km2": 168.42,
+    "dens_pop_km2": 8.401615
+  },
+  "nm:crato": {
+    "municipio": "Crato",
+    "pop": 3249,
+    "area_km2": 398.07,
+    "dens_pop_km2": 8.161881
+  },
+  "nm:alcacer do sal": {
+    "municipio": "Alcácer do Sal",
+    "pop": 11036,
+    "area_km2": 1499.87,
+    "dens_pop_km2": 7.357971
+  },
+  "nm:ourique": {
+    "municipio": "Ourique",
+    "pop": 4785,
+    "area_km2": 663.31,
+    "dens_pop_km2": 7.213822
+  },
+  "nm:monforte": {
+    "municipio": "Monforte",
+    "pop": 3017,
+    "area_km2": 420.25,
+    "dens_pop_km2": 7.17906
+  },
+  "nm:avis": {
+    "municipio": "Avis",
+    "pop": 3759,
+    "area_km2": 605.97,
+    "dens_pop_km2": 6.203277
+  },
+  "nm:idanha-a-nova": {
+    "municipio": "Idanha-a-Nova",
+    "pop": 8541,
+    "area_km2": 1416.34,
+    "dens_pop_km2": 6.030332
+  },
+  "nm:mertola": {
+    "municipio": "Mértola",
+    "pop": 6066,
+    "area_km2": 1292.87,
+    "dens_pop_km2": 4.691887
+  },
+  "nm:alcoutim": {
+    "municipio": "Alcoutim",
+    "pop": 2401,
+    "area_km2": 575.36,
+    "dens_pop_km2": 4.173039
+  }
+}
