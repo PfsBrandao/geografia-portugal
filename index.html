@@ -240,6 +240,21 @@
       min-width: 0;
     }
 
+    .questionBar{
+      background:#efefef;
+      border:2px solid #cfcfcf;
+      border-radius: 14px;
+      padding: 8px 10px;
+      color:#111;
+      font-weight: 900;
+      text-align:center;
+      user-select:none;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     #choicesBlock{
       min-height: 0;
       overflow-y: auto;
@@ -779,7 +794,9 @@
       </div>
 
       <div class="gameBottom">
-<!-- NÍVEL 4 -->
+        <div id="questionBar" class="questionBar">—</div>
+
+        <!-- NÍVEL 4 -->
         <div id="lvl4Bar" class="lvl4Bar" style="display:none;">
           <span id="lvl4Typed">—</span>
         </div>
@@ -1057,7 +1074,8 @@
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
     const insetWrap = document.getElementById("insetWrap");
-    
+    const questionBar = document.getElementById("questionBar");
+
     const gameStageEl = document.querySelector(".gameStage");
     const stageText = document.getElementById("stageText");
     const stageMunicipio = document.getElementById("stageMunicipio");
@@ -1734,7 +1752,12 @@
       if (stageTipo) stageTipo.textContent = currentDemoLabel || "—";
     }
 
-          questionBar.textContent = `${currentDemoLabel}`;
+    function setQuestionBarText() {
+      if (currentCategory === "identify") {
+        questionBar.textContent = "Qual é o município a vermelho?";
+        return;
+      }
+      questionBar.textContent = `${currentDemoLabel}`;
     }
 
     function buildChoiceItemsForIdentify(level) {
@@ -2262,7 +2285,9 @@ function renderChoicesFromItems() {
       }
 
       if (currentCategory !== "identify") updateStageTextForDemografia();
-refreshStyles();
+      setQuestionBarText();
+
+      refreshStyles();
       if (currentCategory === "identify") updateAzoresInsetForCurrentTarget();
       else insetWrap.classList.remove("show");
 
@@ -2494,7 +2519,7 @@ refreshStyles();
       sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
 
-      
+      questionBar.textContent = "—";
 
       setStageMode("map");
       if (stageMunicipio) stageMunicipio.textContent = "—";
@@ -2596,4 +2621,3 @@ refreshStyles();
   </script>
 </body>
 </html>
-
