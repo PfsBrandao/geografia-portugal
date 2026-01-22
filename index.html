@@ -91,6 +91,14 @@
     .menuBtn:active { transform: translateY(1px); }
     .menuBtn.disabled { opacity: .55; cursor: not-allowed; }
     .menuBtn.small { font-size: 26px; }
+    .menuBtn.compact{
+      min-height: 52px;
+      font-size: 22px;
+    }
+
+    @media (max-width: 420px){
+      .menuBtn.compact{ min-height: 48px; font-size: 20px; }
+    }
 
     :root {
       --bg: #0b0b0f;
@@ -660,6 +668,26 @@
     </div>
   </div>
 
+  <!-- OPTIONS: ESCOLHER DISTRITO (layout igual ao menu, com paginação) -->
+  <div id="screenPickDistrict" class="screen">
+    <div class="menuWrap">
+      <div class="menuPhone">
+        <div class="menuLogo hasTitle" aria-label="Distritos">
+          <img alt="Geo-PT" src="/geografia-portugal/icons/icon-192.png" onerror="this.style.display='none'">
+          <div class="menuTitleOverlay">Escolher Distrito</div>
+        </div>
+
+        <div class="menuBtns" id="districtPickerBtns"></div>
+
+        <div class="menuBtns" style="margin-top:12px;">
+          <button id="btnDistrictPrev" class="menuBtn compact" type="button">⟵ Anterior</button>
+          <button id="btnDistrictNext" class="menuBtn compact" type="button">Seguinte ⟶</button>
+          <button id="btnDistrictBack" class="menuBtn compact" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- OPTIONS: DISTRITOS -->
   <div id="screenOptionsDistricts" class="screen">
     <div class="optWrap">
@@ -682,9 +710,7 @@
         <div id="optDistrictsBlocks"></div>
 
         <div class="optFooter">
-          <button id="btnOptResetDistricts" class="optBtn" type="button">Reset</button>
-          <button id="btnOptSaveDistricts" class="optBtn primary" type="button">Guardar</button>
-          <button id="btnOptBackDistricts" class="optBtn" type="button">Voltar</button>
+          <button id="btnOptBackDistricts" class="optBtn primary" type="button">Voltar</button>
         </div>
       </div>
     </div>
@@ -999,6 +1025,7 @@
     const screenMenu = document.getElementById("screenMenu");
     const screenSessionLen = document.getElementById("screenSessionLen");
     const screenOptionsMenu = document.getElementById("screenOptionsMenu");
+    const screenPickDistrict = document.getElementById("screenPickDistrict");
     const screenOptionsDistricts = document.getElementById("screenOptionsDistricts");
     const screenOptionsRA = document.getElementById("screenOptionsRA");
     const screenLoading = document.getElementById("screenLoading");
@@ -1009,7 +1036,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenOptionsDistricts, screenOptionsRA, screenLoading, screenGame];
+      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenPickDistrict, screenOptionsDistricts, screenOptionsRA, screenLoading, screenGame];
       for (const s of all) s.classList.remove("active");
       el.classList.add("active");
     }
@@ -1045,7 +1072,7 @@
     document.getElementById("btnOptMenuBack").addEventListener("click", () => showScreen(screenMenu));
 
     // OPTIONS CATEGORY BUTTONS
-    document.getElementById("btnOptCatDistricts").addEventListener("click", () => openOptionsDistricts());
+    document.getElementById("btnOptCatDistricts").addEventListener("click", () => openPickDistrict());
     document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
 
     // GAME UI
@@ -1152,6 +1179,72 @@
 
     let optionsDraft = loadOptions();
 
+    // =========================
+    // PICKER DE DISTRITOS (menu paginado)
+    // =========================
+    const districtPickerBtns = document.getElementById("districtPickerBtns");
+    const btnDistrictPrev = document.getElementById("btnDistrictPrev");
+    const btnDistrictNext = document.getElementById("btnDistrictNext");
+    const btnDistrictBack = document.getElementById("btnDistrictBack");
+
+    let districtPage = 0;
+    const DISTRICTS_PAGE_SIZE = 10; // ajusta se quiseres (ex: 9, 10, 12)
+
+    function openPickDistrict() {
+      districtPage = 0;
+      renderDistrictPage();
+      showScreen(screenPickDistrict);
+    }
+
+    function renderDistrictPage() {
+      if (!districtPickerBtns) return;
+      districtPickerBtns.innerHTML = "";
+
+      const packs = getAllPacks().filter(p => p.region === "pt");
+      const totalPages = Math.max(1, Math.ceil(packs.length / DISTRICTS_PAGE_SIZE));
+
+      districtPage = Math.max(0, Math.min(districtPage, totalPages - 1));
+
+      const start = districtPage * DISTRICTS_PAGE_SIZE;
+      const pageItems = packs.slice(start, start + DISTRICTS_PAGE_SIZE);
+
+      for (const p of pageItems) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "menuBtn compact";
+        b.textContent = p.short;        // "Aveiro", "Beja", etc.
+
+        b.addEventListener("click", () => {
+          openOptionsDistrictsForPack(p.id);
+        });
+
+        districtPickerBtns.appendChild(b);
+      }
+
+      if (btnDistrictPrev) btnDistrictPrev.disabled = (districtPage === 0);
+      if (btnDistrictNext) btnDistrictNext.disabled = (districtPage >= totalPages - 1);
+    }
+
+    if (btnDistrictPrev) {
+      btnDistrictPrev.addEventListener("click", () => {
+        districtPage--;
+        renderDistrictPage();
+      });
+    }
+
+    if (btnDistrictNext) {
+      btnDistrictNext.addEventListener("click", () => {
+        districtPage++;
+        renderDistrictPage();
+      });
+    }
+
+    if (btnDistrictBack) {
+      btnDistrictBack.addEventListener("click", () => {
+        showScreen(screenOptionsMenu);
+      });
+    }
+
     function renderOptionsBlocks(containerEl, selectedCountEl, packs) {
       containerEl.innerHTML = "";
       for (const p of packs) {
@@ -1232,38 +1325,29 @@
     const optSelectedCountDistricts = document.getElementById("optSelectedCountDistricts");
     const btnOptBackDistricts = document.getElementById("btnOptBackDistricts");
     const btnOptBackTopDistricts = document.getElementById("btnOptBackTopDistricts");
-    const btnOptSaveDistricts = document.getElementById("btnOptSaveDistricts");
-    const btnOptResetDistricts = document.getElementById("btnOptResetDistricts");
 
     function openOptionsDistricts() {
+      // (opcional) manter como "todos" se algum dia voltares a querer
       optionsDraft = loadOptions();
       const packs = getAllPacks().filter(p => p.region === "pt");
       renderOptionsBlocks(optDistrictsBlocks, optSelectedCountDistricts, packs);
       showScreen(screenOptionsDistricts);
     }
-    function closeDistrictsToOptionsMenu() { showScreen(screenOptionsMenu); }
+
+    function openOptionsDistrictsForPack(packId) {
+      optionsDraft = loadOptions();
+      const packs = getAllPacks().filter(p => p.id === packId);
+      renderOptionsBlocks(optDistrictsBlocks, optSelectedCountDistricts, packs);
+      showScreen(screenOptionsDistricts);
+    }
+
+    function closeDistrictsToOptionsMenu() {
+      saveOptions(optionsDraft);
+      showScreen(screenPickDistrict);
+    }
 
     btnOptBackDistricts.addEventListener("click", () => closeDistrictsToOptionsMenu());
     btnOptBackTopDistricts.addEventListener("click", () => closeDistrictsToOptionsMenu());
-
-    btnOptResetDistricts.addEventListener("click", () => {
-      optionsDraft = defaultOptions();
-      // limpar tudo nos distritos, depois reativar porto identify=3
-      const packs = getAllPacks().filter(p => p.region === "pt");
-      for (const p of packs) optionsDraft.cfg[p.id] = makeEmptyCfg();
-      optionsDraft.cfg["pt:porto"] = { ...makeEmptyCfg(), identify: 3 };
-      renderOptionsBlocks(optDistrictsBlocks, optSelectedCountDistricts, packs);
-    });
-
-    btnOptSaveDistricts.addEventListener("click", () => {
-      const selected = getSelectedPacksFromOptions(optionsDraft);
-      if (selected.length === 0) {
-        alert("Seleciona pelo menos 1 distrito/região com alguma categoria ativa.");
-        return;
-      }
-      saveOptions(optionsDraft);
-      closeDistrictsToOptionsMenu();
-    });
 
     // REGIÕES AUTÓNOMAS SCREEN
     const optRABlocks = document.getElementById("optRABlocks");
