@@ -2308,6 +2308,50 @@ function renderChoicesFromItems() {
       awaitingTap = true;
       inputBlockedUntil = Date.now() + 250;
 
+      if (playLevel === 4 && currentCategory === "identify") {
+        const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
+
+        let correctBtn = null;
+        let chosenBtn = null;
+
+        for (const b of btns) {
+          const id = b.dataset.id || "";
+          if (id === chosenId) chosenBtn = b;
+          if (id === correctChoiceId) correctBtn = b;
+          b.disabled = true;
+        }
+
+        if (isCorrect) {
+          // correta escolhida → fica verde
+          if (chosenBtn) chosenBtn.classList.add("correct");
+        } else {
+          // errada escolhida → fica vermelha
+          if (chosenBtn) chosenBtn.classList.add("wrong");
+
+          if (correctBtn) {
+            // a correta já estava visível → pinta a verde
+            correctBtn.classList.add("correct");
+          } else {
+            // a correta NÃO estava nas 4 → substituir uma errada
+            const replaceTarget =
+              btns.find(b => b !== chosenBtn && (b.dataset.id || "")) ||
+              btns.find(b => (b.dataset.id || "")) ||
+              chosenBtn;
+
+            if (replaceTarget) {
+              replaceTarget.classList.remove("wrong");
+              replaceTarget.classList.add("correct");
+              replaceTarget.dataset.id = correctChoiceId; // importante
+              replaceTarget.textContent = keyToOfficial.get(correctChoiceId) || "—";
+            }
+          }
+        }
+
+        renderHUD();
+        return;
+      }
+
+      // ===== COMPORTAMENTO NORMAL (níveis 1–3 e demografia) =====
       const btns = Array.from(choicesEl.querySelectorAll("button.choiceBtn"));
       for (const b of btns) {
         const id = b.dataset.id || "";
