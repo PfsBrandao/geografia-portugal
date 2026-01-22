@@ -240,21 +240,6 @@
       min-width: 0;
     }
 
-    .questionBar{
-      background:#efefef;
-      border:2px solid #cfcfcf;
-      border-radius: 14px;
-      padding: 8px 10px;
-      color:#111;
-      font-weight: 900;
-      text-align:center;
-      user-select:none;
-
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
     #choicesBlock{
       min-height: 0;
       overflow-y: auto;
@@ -1073,7 +1058,6 @@
     const finalCorrect = document.getElementById("finalCorrect");
     const finalXP = document.getElementById("finalXP");
     const insetWrap = document.getElementById("insetWrap");
-    const questionBar = document.getElementById("questionBar");
 
     const gameStageEl = document.querySelector(".gameStage");
     const stageText = document.getElementById("stageText");
@@ -1751,16 +1735,6 @@
       if (stageTipo) stageTipo.textContent = currentDemoLabel || "—";
     }
 
-    function setQuestionBarText() {
-      if (currentCategory === "identify") {
-        questionBar.style.display = "block";
-        questionBar.textContent = "Qual é o município a vermelho?";
-      } else {
-        questionBar.style.display = "none";
-        questionBar.textContent = "";
-      }
-    }
-
     function buildChoiceItemsForIdentify(level) {
       const effectiveLevel = (level === 4) ? 3 : level;
       const n = PLAY.optionsByLevel(effectiveLevel);
@@ -2290,7 +2264,6 @@ function renderChoicesFromItems() {
       }
 
       if (currentCategory !== "identify") updateStageTextForDemografia();
-      setQuestionBarText();
 
       refreshStyles();
       if (currentCategory === "identify") updateAzoresInsetForCurrentTarget();
@@ -2524,9 +2497,6 @@ function renderChoicesFromItems() {
       sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
 
-      questionBar.style.display = "block";
-      questionBar.textContent = "—";
-
       setStageMode("map");
       if (stageMunicipio) stageMunicipio.textContent = "—";
       if (stageTipo) stageTipo.textContent = "—";
@@ -2627,4 +2597,3 @@ function renderChoicesFromItems() {
   </script>
 </body>
 </html>
-
