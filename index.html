@@ -1862,18 +1862,43 @@
     
     function sortNumericChoicesIfNeeded() {
       if (!currentCategory || currentCategory === "identify") return;
-      // detect numeric labels
       if (!currentChoiceItems || currentChoiceItems.length < 2) return;
+
+      // POP: ordenar escalões, com "> X" sempre no fim
+      if (currentCategory === "pop") {
+        const scored = currentChoiceItems.map(it => {
+          const s = String(it.label).trim();
+
+          // "> 200 000" -> vai para o fim
+          if (s.startsWith(">")) return { it, v: Number.POSITIVE_INFINITY };
+
+          // "< 200 000" (ou outros) -> ordenar pelo número
+          const m = s.match(/([-\d.,]+)/);
+          const v = m ? parseUserNumber(m[1]) : Number.NaN;
+          return { it, v };
+        });
+
+        // só ordena se conseguir dar score a todos
+        if (scored.every(x => Number.isFinite(x.v) || x.v === Number.POSITIVE_INFINITY)) {
+          scored.sort((a, b) => a.v - b.v);
+          currentChoiceItems = scored.map(x => x.it);
+        }
+        return;
+      }
+
+      // OUTRAS NUMÉRICAS (area/dens): ordenar pelo valor no label
       const parsed = currentChoiceItems.map(it => {
         const m = String(it.label).match(/([-\d.,]+)/);
         const v = m ? parseUserNumber(m[1]) : NaN;
         return { it, v };
       });
+
       if (parsed.every(x => Number.isFinite(x.v))) {
-        parsed.sort((a,b) => a.v - b.v);
+        parsed.sort((a, b) => a.v - b.v);
         currentChoiceItems = parsed.map(x => x.it);
       }
     }
+
 
 function renderChoicesFromItems() {
       sortNumericChoicesIfNeeded();
