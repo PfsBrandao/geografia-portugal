@@ -1884,7 +1884,24 @@
       btnHint.disabled = (!playActive) || awaitingTap || hintUsedThisRound || transitioning;
     }
 
-    function renderChoicesFromItems() {
+    
+    function sortNumericChoicesIfNeeded() {
+      if (!currentCategory || currentCategory === "identify") return;
+      // detect numeric labels
+      if (!currentChoiceItems || currentChoiceItems.length < 2) return;
+      const parsed = currentChoiceItems.map(it => {
+        const m = String(it.label).match(/([-\d.,]+)/);
+        const v = m ? parseUserNumber(m[1]) : NaN;
+        return { it, v };
+      });
+      if (parsed.every(x => Number.isFinite(x.v))) {
+        parsed.sort((a,b) => a.v - b.v);
+        currentChoiceItems = parsed.map(x => x.it);
+      }
+    }
+
+function renderChoicesFromItems() {
+      sortNumericChoicesIfNeeded();
       choicesEl.innerHTML = "";
       for (const it of currentChoiceItems) {
         const b = document.createElement("button");
