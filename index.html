@@ -1754,10 +1754,12 @@
 
     function setQuestionBarText() {
       if (currentCategory === "identify") {
+        questionBar.style.display = "block";
         questionBar.textContent = "Qual é o município a vermelho?";
-        return;
+      } else {
+        questionBar.style.display = "none";
+        questionBar.textContent = "";
       }
-      questionBar.textContent = `${currentDemoLabel}`;
     }
 
     function buildChoiceItemsForIdentify(level) {
@@ -2039,30 +2041,33 @@ function renderChoicesFromItems() {
 
       lvl4Keyboard.classList.add("disabled");
 
+      const digits = (currentCategory === "area") ? 2 : (currentCategory === "dens" ? 1 : 0);
+      const realText = (currentCategory === "pop")
+        ? `${fmtInt(currentDemoRealValue)} ${currentDemoUnit}`
+        : `${fmtFloat(currentDemoRealValue, digits)} ${currentDemoUnit}`;
+
       const btn = choicesEl.querySelector("button.choiceBtn");
       if (btn) {
         btn.classList.add(isCorrect ? "correct" : "wrong");
         btn.disabled = true;
+
+        if (isCorrect) {
+          // quando acerta, o botão fica verde e mostra o valor real
+          btn.textContent = realText;
+        } else {
+          // quando erra, mostra o valor real a verde abaixo
+          const pill = document.createElement("button");
+          pill.type = "button";
+          pill.className = "choiceBtn correct";
+          pill.disabled = true;
+          pill.style.cursor = "default";
+          pill.textContent = realText;
+          btn.insertAdjacentElement("afterend", pill);
+        }
       }
 
-      if (!isCorrect) {
-        const digits = (currentCategory === "area") ? 2 : (currentCategory === "dens" ? 1 : 0);
-        const realText = (currentCategory === "pop")
-          ? `${fmtInt(currentDemoRealValue)} ${currentDemoUnit}`
-          : `${fmtFloat(currentDemoRealValue, digits)} ${currentDemoUnit}`;
-
-        const pill = document.createElement("button");
-        pill.type = "button";
-        pill.className = "choiceBtn correct";
-        pill.disabled = true;
-        pill.style.cursor = "default";
-        pill.textContent = realText;
-
-        btn?.insertAdjacentElement("afterend", pill);
-      }
-
-      renderHUD();
-    }
+  renderHUD();
+}
 
     function level4HandleKey(code) {
       if (!playActive || awaitingTap || transitioning) return;
@@ -2258,6 +2263,7 @@ function renderChoicesFromItems() {
         currentDemoLabel = "";
 
         if (playLevel === 4) {
+          correctChoiceId = currentTargetKey;
           setLevel4UI(true);
           setKeyboardMode("text");
           lvl4Keyboard.classList.remove("disabled");
@@ -2519,6 +2525,7 @@ function renderChoicesFromItems() {
       sessionLine.textContent = `1/${QUESTIONS_PER_SESSION}`;
       choicesEl.innerHTML = "";
 
+      questionBar.style.display = "block";
       questionBar.textContent = "—";
 
       setStageMode("map");
