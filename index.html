@@ -567,6 +567,53 @@
     @media (min-width: 900px) {
       .gameShell { max-width: 1100px; margin: 0 auto; }
     }
+  
+    /* =========================
+       STAGE TEXT MODE (DEMOGRAFIA)
+       ========================= */
+    .gameStage.textMode #map{
+      opacity: 0;
+      pointer-events: none;
+      user-select: none;
+    }
+    .gameStage.textMode .insetWrap{ display:none !important; }
+    .stageText{
+      position:absolute;
+      inset: 0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 16px;
+      box-sizing:border-box;
+      z-index: 30;
+    }
+    .stageMunicipio{
+      font-size: 32px;
+      font-weight: 900;
+      color:#111;
+      margin-bottom: 8px;
+    }
+    .stageTipo{
+      font-size: 18px;
+      font-weight: 900;
+      color:#111;
+      opacity: .85;
+    }
+
+    /* teclado numérico maior */
+    .kbWrap.num{
+      --kbKeyH: clamp(44px, 7.2dvh, 62px);
+      --kbGap: 8px;
+      padding: 10px;
+    }
+    .kbWrap.num .kbKey{
+      font-size: 18px;
+      border-radius: 12px;
+      min-width: 34px;
+    }
+
   </style>
 </head>
 
@@ -711,6 +758,12 @@
       <div class="gameStage">
         <div id="map"></div>
 
+        <div id="stageText" class="stageText" aria-live="polite" style="display:none;">
+          <div id="stageMunicipio" class="stageMunicipio">—</div>
+          <div id="stageTipo" class="stageTipo">—</div>
+        </div>
+
+
         <!-- INSET (AÇORES) -->
         <div id="insetWrap" class="insetWrap" aria-hidden="true">
           <div id="insetMap"></div>
@@ -757,6 +810,7 @@
           <div class="kbRow" data-row="2"></div>
           <div class="kbRow" data-row="3"></div>
           <div class="kbRow" data-row="4"></div>
+          <div class="kbRow" data-row="5"></div>
         </div>
       </div>
     </div>
@@ -1021,6 +1075,11 @@
     const finalXP = document.getElementById("finalXP");
     const insetWrap = document.getElementById("insetWrap");
     const questionBar = document.getElementById("questionBar");
+
+    const gameStageEl = document.querySelector(".gameStage");
+    const stageText = document.getElementById("stageText");
+    const stageMunicipio = document.getElementById("stageMunicipio");
+    const stageTipo = document.getElementById("stageTipo");
 
     // NÍVEL 4 UI
     const lvl4Bar = document.getElementById("lvl4Bar");
@@ -1675,13 +1734,30 @@
       return playRemainingKeys.pop() || "";
     }
 
+    function setStageMode(mode) {
+      // mode: "map" | "text"
+      if (!gameStageEl) return;
+      const isText = (mode === "text");
+      gameStageEl.classList.toggle("textMode", isText);
+      if (stageText) stageText.style.display = isText ? "flex" : "none";
+      if (!isText) {
+        setTimeout(invalidateMapSizeHard, 0);
+        setTimeout(invalidateMapSizeHard, 120);
+      }
+    }
+
+    function updateStageTextForDemografia() {
+      const mun = keyToOfficial.get(currentTargetKey) || "—";
+      if (stageMunicipio) stageMunicipio.textContent = mun;
+      if (stageTipo) stageTipo.textContent = currentDemoLabel || "—";
+    }
+
     function setQuestionBarText() {
       if (currentCategory === "identify") {
         questionBar.textContent = "Qual é o município a vermelho?";
         return;
       }
-      const mun = keyToOfficial.get(currentTargetKey) || "—";
-      questionBar.textContent = `${mun} — ${currentDemoLabel}`;
+      questionBar.textContent = `${currentDemoLabel}`;
     }
 
     function buildChoiceItemsForIdentify(level) {
@@ -1995,8 +2071,8 @@
           lvl4Typed = (lvl4Typed.length ? lvl4Typed : "0") + code;
         }
       } else {
-        // digits
-        if (lvl4Typed.length < 14) lvl4Typed += code;
+        // digits (inclui 00 / 000)
+        if ((lvl4Typed.length + String(code).length) <= 14) lvl4Typed += String(code);
       }
       renderLevel4NumericConfirm();
     }
@@ -2151,6 +2227,9 @@
       currentCategory = pick.cat;
       playLevel = pick.level;
 
+      // Toggle stage presentation: map only for identify; text for demografia
+      setStageMode(currentCategory === "identify" ? "map" : "text");
+
       currentTargetKey = pickNewTargetKey();
 
       // reset lvl4 typed
@@ -2188,10 +2267,12 @@
         }
       }
 
+      if (currentCategory !== "identify") updateStageTextForDemografia();
       setQuestionBarText();
 
       refreshStyles();
-      updateAzoresInsetForCurrentTarget();
+      if (currentCategory === "identify") updateAzoresInsetForCurrentTarget();
+      else insetWrap.classList.remove("show");
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       startTimer();
@@ -2316,13 +2397,17 @@
       }
     }
 
+    
     function buildKeyboard(mode="text") {
       const r1 = lvl4Keyboard.querySelector('.kbRow[data-row="1"]');
       const r2 = lvl4Keyboard.querySelector('.kbRow[data-row="2"]');
       const r3 = lvl4Keyboard.querySelector('.kbRow[data-row="3"]');
       const r4 = lvl4Keyboard.querySelector('.kbRow[data-row="4"]');
+      const r5 = lvl4Keyboard.querySelector('.kbRow[data-row="5"]');
 
-      r1.innerHTML = ""; r2.innerHTML = ""; r3.innerHTML = ""; r4.innerHTML = "";
+      r1.innerHTML = ""; r2.innerHTML = ""; r3.innerHTML = ""; r4.innerHTML = ""; if (r5) r5.innerHTML = "";
+
+      lvl4Keyboard.classList.toggle("num", mode === "num");
 
       function mkKey(label, code, cls="") {
         const b = document.createElement("button");
@@ -2355,20 +2440,25 @@
 
         r4.appendChild(mkKey("⌫", "BACK", "wide"));
         r4.appendChild(mkKey("␣", "SPACE", "space"));
+        if (r5) r5.innerHTML = "";
         return;
       }
 
-      // numérico: apenas números + vírgula + ponto + backspace
       ["1","2","3"].forEach(k => r1.appendChild(mkKey(k, k)));
       ["4","5","6"].forEach(k => r2.appendChild(mkKey(k, k)));
       ["7","8","9"].forEach(k => r3.appendChild(mkKey(k, k)));
-      r4.appendChild(mkKey("⌫", "BACK", "wide"));
-      r4.appendChild(mkKey("0", "0"));
-      r4.appendChild(mkKey(",", ","));
-      r4.appendChild(mkKey(".", "."));
+      ["0","00","000"].forEach(k => r4.appendChild(mkKey(k, k)));
+      if (r5) {
+        r5.appendChild(mkKey(",", ","));
+        r5.appendChild(mkKey(".", "."));
+        r5.appendChild(mkKey("⌫", "BACK", "wide"));
+      } else {
+        r4.appendChild(mkKey("⌫", "BACK", "wide"));
+      }
     }
 
     buildKeyboard("text");
+
 
     document.addEventListener("pointerup", async (e) => {
       if (!screenGame.classList.contains("active")) return;
@@ -2413,6 +2503,10 @@
       choicesEl.innerHTML = "";
 
       questionBar.textContent = "—";
+
+      setStageMode("map");
+      if (stageMunicipio) stageMunicipio.textContent = "—";
+      if (stageTipo) stageTipo.textContent = "—";
 
       setLevel4UI(false);
       lvl4Typed = "";
