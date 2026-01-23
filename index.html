@@ -737,9 +737,7 @@
         <div id="optRABlocks"></div>
 
         <div class="optFooter">
-          <button id="btnOptResetRA" class="optBtn" type="button">Reset</button>
-          <button id="btnOptSaveRA" class="optBtn primary" type="button">Guardar</button>
-          <button id="btnOptBackRA" class="optBtn" type="button">Voltar</button>
+          <button id="btnOptBackRA" class="optBtn primary" type="button">Voltar</button>
         </div>
       </div>
     </div>
@@ -1354,8 +1352,6 @@
     const optSelectedCountRA = document.getElementById("optSelectedCountRA");
     const btnOptBackRA = document.getElementById("btnOptBackRA");
     const btnOptBackTopRA = document.getElementById("btnOptBackTopRA");
-    const btnOptSaveRA = document.getElementById("btnOptSaveRA");
-    const btnOptResetRA = document.getElementById("btnOptResetRA");
 
     function openOptionsRA() {
       optionsDraft = loadOptions();
@@ -1363,27 +1359,13 @@
       renderOptionsBlocks(optRABlocks, optSelectedCountRA, packs);
       showScreen(screenOptionsRA);
     }
-    function closeRAToOptionsMenu() { showScreen(screenOptionsMenu); }
+    function closeRAToOptionsMenu() {
+      saveOptions(optionsDraft);
+      showScreen(screenOptionsMenu);
+    }
 
     btnOptBackRA.addEventListener("click", () => closeRAToOptionsMenu());
     btnOptBackTopRA.addEventListener("click", () => closeRAToOptionsMenu());
-
-    btnOptResetRA.addEventListener("click", () => {
-      optionsDraft = loadOptions();
-      const packs = getAllPacks().filter(p => (p.region === "az" || p.region === "md"));
-      for (const p of packs) optionsDraft.cfg[p.id] = makeEmptyCfg();
-      renderOptionsBlocks(optRABlocks, optSelectedCountRA, packs);
-    });
-
-    btnOptSaveRA.addEventListener("click", () => {
-      const selected = getSelectedPacksFromOptions(optionsDraft);
-      if (selected.length === 0) {
-        alert("Seleciona pelo menos 1 distrito/região com alguma categoria ativa.");
-        return;
-      }
-      saveOptions(optionsDraft);
-      closeRAToOptionsMenu();
-    });
 
     /* =========================
        DEMOGRAFIA
@@ -1898,40 +1880,64 @@
         return null;
       }
 
+      // 🔒 garantir valor válido
+      if (!Number.isFinite(realVal)) {
+        currentCategory = "identify";
+        currentDemoRealValue = null;
+        currentDemoUnit = "";
+        currentDemoLabel = "";
+        buildChoiceItemsForIdentify(level);
+        return;
+      }
+
+      const digits = (cat === "area") ? 2 : 1;
+
       const items = [];
-      for (const k of allKeys) {
+      const triedKeys = new Set();
+
+      function pushIfValid(k) {
+        if (triedKeys.has(k)) return;
+        triedKeys.add(k);
+
         const v = valueForKey(k);
-        if (!Number.isFinite(v)) continue;
-        const digits = (cat === "area") ? 2 : 1;
-        const lbl = `${fmtFloat(v, digits)} ${unit}`;
-        items.push({ id: String(v), label: lbl, _k:k });
+        if (!Number.isFinite(v)) return;
+
+        const vShown = Number(v.toFixed(digits));
+        const lbl = `${fmtFloat(vShown, digits)} ${unit}`;
+        items.push({ id: String(vShown), label: lbl, _k: k, _v: vShown });
       }
 
-      // garantir que temos n opções; se faltarem, amostrar mais
-      if (items.length < n) {
-        const need = n - items.length;
-        const extra = sampleDistinct(playPoolKeys, need + 8, new Set(allKeys));
-        for (const k of extra) {
-          if (items.length >= n) break;
-          const v = valueForKey(k);
-          if (!Number.isFinite(v)) continue;
-          const digits = (cat === "area") ? 2 : 1;
-          const lbl = `${fmtFloat(v, digits)} ${unit}`;
-          items.push({ id: String(v), label: lbl, _k:k });
-        }
+      // primeira leva
+      for (const k of allKeys) pushIfValid(k);
+
+      // ir buscar mais até termos variedade suficiente
+      let guard = 0;
+      while (items.length < n * 3 && guard++ < 10) {
+        const extra = sampleDistinct(playPoolKeys, n * 2, triedKeys);
+        for (const k of extra) pushIfValid(k);
+        if (extra.length === 0) break;
       }
 
+      // dedupe por valor mostrado
       const unique = [];
-      const seen = new Set();
+      const seenVal = new Set();
+
       for (const it of items) {
-        if (seen.has(it.label)) continue;
-        seen.add(it.label);
+        if (seenVal.has(it._v)) continue;
+        seenVal.add(it._v);
         unique.push(it);
         if (unique.length >= n) break;
       }
 
-      currentChoiceItems = shuffle(unique.map(it => ({ id: it.id, label: it.label })));
-      correctChoiceId = String(realVal);
+      // fallback final
+      while (unique.length < n && items.length) {
+        unique.push(items[Math.floor(Math.random() * items.length)]);
+      }
+
+      currentChoiceItems = shuffle(
+        unique.slice(0, n).map(it => ({ id: it.id, label: it.label }))
+      );
+      correctChoiceId = String(Number(realVal.toFixed(digits)));
     }
 
     function renderHUD() {
@@ -2331,7 +2337,7 @@ function renderChoicesFromItems() {
       currentCategory = pick.cat;
       playLevel = pick.level;
 
-      // Toggle stage presentation: map only for identify; text for demografia
+      // modo inicial (pode ser ajustado depois se houver fallback)
       setStageMode(currentCategory === "identify" ? "map" : "text");
 
       currentTargetKey = pickNewTargetKey();
@@ -2359,6 +2365,9 @@ function renderChoicesFromItems() {
         }
       } else {
         await buildChoiceItemsForDemografia(currentCategory, playLevel);
+
+        // ✅ se houve fallback para identify dentro de buildChoiceItemsForDemografia, sincronizar stage
+        setStageMode(currentCategory === "identify" ? "map" : "text");
 
         if (playLevel === 4 && !level4HintChoiceMode && currentCategory !== "identify") {
           setLevel4UI(true);
