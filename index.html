@@ -1949,11 +1949,11 @@
       removeRiverLayers();
 
       riverHaloLayer = L.geoJSON(feature, {
-        style: () => ({ color: "#9ad7ff", weight: 10, opacity: 1 })
+        style: () => ({ color: "#9ad7ff", weight: 6, opacity: 0.95 })
       }).addTo(map);
 
       riverTargetLayer = L.geoJSON(feature, {
-        style: () => ({ color: "#0c79d6", weight: 5, opacity: 1 })
+        style: () => ({ color: "#0c79d6", weight: 3, opacity: 1 })
       }).addTo(map);
     }
 
@@ -2670,11 +2670,12 @@ function renderChoicesFromItems() {
               safeZoomToBounds(map, b, { padding: [18, 18], animate: false, maxZoom: 13 }, 0.20);
             }
           } else {
-            // garantir que vemos Portugal inteiro
+            // ✅ Rios 1: Portugal inteiro, mas maior (menos espaço branco)
             try {
               const bb = basePortugalLayer?.getBounds?.();
               if (bb && bb.isValid && bb.isValid()) {
-                map.fitBounds(bb, { padding: [8, 8], animate: false });
+                const tighter = bb.pad(-0.08); // aproxima ~8% (aumenta o país no ecrã)
+                map.fitBounds(tighter, { padding: [2, 2], animate: false });
               }
             } catch {}
           }
