@@ -2661,12 +2661,26 @@ function renderChoicesFromItems() {
 
         if (chosenFeature) {
           const b = featureBounds(chosenFeature);
-          if (b && b.isValid && b.isValid()) {
-            safeZoomToBounds(map, b, { padding: [18, 18], animate: false, maxZoom: 13 }, 0.20);
+
+          // ✅ NOVO: Rios 1 não fazem zoom
+          const packNum = Number(currentPack.slug || 0);
+
+          if (packNum !== 1) {
+            if (b && b.isValid && b.isValid()) {
+              safeZoomToBounds(map, b, { padding: [18, 18], animate: false, maxZoom: 13 }, 0.20);
+            }
+          } else {
+            // garantir que vemos Portugal inteiro
+            try {
+              const bb = basePortugalLayer?.getBounds?.();
+              if (bb && bb.isValid && bb.isValid()) {
+                map.fitBounds(bb, { padding: [8, 8], animate: false });
+              }
+            } catch {}
           }
+
           drawRiverTarget(chosenFeature);
 
-          // para rios pequenos, desenhar também rio-mãe (discreto)
           if (b && boundsLooksTiny(b)) {
             drawRiverParentIfAny(chosenFeature);
           }
