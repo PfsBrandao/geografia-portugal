@@ -206,7 +206,8 @@
        ============== */
     .insetWrap{
       position:absolute;
-      left: 10px;
+      right: 10px;
+      left: auto;
       bottom: 10px;
       width: min(29vw, 154px);
       height: min(29vw, 154px);
@@ -2002,12 +2003,9 @@
       ensureInsetReady();
       removeRiverInsetLayers();
 
-      riverInsetHaloLayer = L.geoJSON(feature, {
-        style: () => ({ color: "#9ad7ff", weight: 10, opacity: 1 })
-      }).addTo(insetMap);
-
+      // sem "halo" no inset; linha mais fina
       riverInsetTargetLayer = L.geoJSON(feature, {
-        style: () => ({ color: "#0c79d6", weight: 5, opacity: 1 })
+        style: () => ({ color: "#0c79d6", weight: 3, opacity: 1 })
       }).addTo(insetMap);
     }
 
