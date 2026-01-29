@@ -2773,30 +2773,35 @@ function renderChoicesFromItems() {
 
           if (needsInset) {
             insetWrap.classList.add("show");
-            ensureInsetReady();
-            await ensurePortugalInsetBaseLoaded();
 
-            // Limpar e desenhar alvo no inset
-            drawRiverTargetInset(chosenFeature);
+            afterNextPaint(async () => {
+              ensureInsetReady();
+              await ensurePortugalInsetBaseLoaded();
 
-            // Zoom inteligente no INSET
-            // tiny -> zoom mais forte
-            // medium -> zoom moderado
-            const maxZ = boundsLooksTiny(b) ? 13 : 11;
+              // Limpar e desenhar alvo no inset
+              drawRiverTargetInset(chosenFeature);
 
-            safeZoomToBounds(
-              insetMap,
-              b,
-              { padding: [10, 10], animate: false, maxZoom: maxZ },
-              0.20
-            );
+              // Zoom inteligente no INSET
+              const maxZ = boundsLooksTiny(b) ? 13 : 11;
 
-            // tiny: desenhar também rio-mãe (discreto) NO INSET
-            if (boundsLooksTiny(b)) {
-              drawRiverParentIfAnyInset(chosenFeature);
-            }
+              safeZoomToBounds(
+                insetMap,
+                b,
+                { padding: [10, 10], animate: false, maxZoom: maxZ },
+                0.20
+              );
 
-            invalidateInsetSizeHard();
+              // tiny: desenhar também rio-mãe (discreto) NO INSET
+              if (boundsLooksTiny(b)) {
+                drawRiverParentIfAnyInset(chosenFeature);
+              }
+
+              // invalidar tamanho depois do paint (robusto em mobile)
+              invalidateInsetSizeHard();
+              setTimeout(invalidateInsetSizeHard, 80);
+              setTimeout(invalidateInsetSizeHard, 200);
+            });
+
           } else {
             insetWrap.classList.remove("show");
           }
