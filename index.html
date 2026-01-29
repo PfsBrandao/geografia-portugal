@@ -2043,6 +2043,12 @@
       return (s >= 0.04 && s < 0.12);
     }
 
+    function boundsLooksTiny(b) {
+      // tiny = rio tão pequeno que no mapa de Portugal quase não se percebe
+      const s = boundsSpan(b);
+      return (s < 0.04);
+    }
+
     function drawRiverParentIfAny(targetFeature) {
       const dest = (destinationName(targetFeature?.properties || {}) || "").trim();
       const destCanon = canonicalRiverName(dest.replace(/^Rio\s+/i, ""));
