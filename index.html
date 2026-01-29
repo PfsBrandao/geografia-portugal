@@ -127,11 +127,12 @@
       padding-bottom: calc(10px + env(safe-area-inset-bottom));
       box-sizing: border-box;
 
+      /*   TOPO   MAPA     HUD    OPÇÕES  */
       grid-template-rows:
         40px
-        minmax(0, 0.80fr)
-        64px
-        minmax(0, 1.20fr);
+        minmax(0, 1.15fr)   /* ⬅️ MAPA MAIOR */
+        60px
+        minmax(0, 0.85fr);  /* ⬅️ OPÇÕES MAIS BAIXO */
     }
 
     .gameTop { display:flex; align-items:center; justify-content:flex-start; }
@@ -187,7 +188,7 @@
       border: 3px solid var(--panelBorder);
       overflow: hidden;
       position: relative;
-      min-height: 200px;
+      min-height: 260px;
       min-width: 0;
     }
     #map { height: 100%; width: 100%; background: #fff; }
