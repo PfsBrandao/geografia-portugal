@@ -1943,14 +1943,6 @@
         })
       }).addTo(insetMap);
 
-      try {
-        const b = basePortugalInsetLayer.getBounds();
-        if (b && b.isValid && b.isValid()) {
-          insetMap.fitBounds(b, { padding: [8, 8], animate: false });
-        }
-      } catch {}
-    }
-
     async function ensureRiversIndexLoaded() {
       if (riversIndexByCanon) return riversIndexByCanon;
 
@@ -2601,6 +2593,9 @@ function renderChoicesFromItems() {
         clearLayer();
 
         await ensurePortugalBaseLoaded();
+        // ✅ pré-carregar inset (evita atraso a aparecer)
+        ensureInsetReady();
+        await ensurePortugalInsetBaseLoaded();
         await ensureRiversIndexLoaded();
 
         const fc = await loadJSON(FILES.rios(pack.slug));
@@ -2784,9 +2779,25 @@ function renderChoicesFromItems() {
               // Zoom inteligente no INSET
               const maxZ = boundsLooksTiny(b) ? 13 : 11;
 
+              // ✅ Expandir bounds para ver "rio + contexto" (Portugal por trás)
+              const sw = b.getSouthWest();
+              const ne = b.getNorthEast();
+
+              const spanLat = Math.abs(ne.lat - sw.lat);
+              const spanLng = Math.abs(ne.lng - sw.lng);
+
+              // margem proporcional + um mínimo em graus (para nunca ficar colado ao rio)
+              const padLat = Math.max(spanLat * 1.2, boundsLooksTiny(b) ? 0.18 : 0.12);
+              const padLng = Math.max(spanLng * 1.2, boundsLooksTiny(b) ? 0.18 : 0.12);
+
+              const bExpanded = L.latLngBounds(
+                [sw.lat - padLat, sw.lng - padLng],
+                [ne.lat + padLat, ne.lng + padLng]
+              );
+
               safeZoomToBounds(
                 insetMap,
-                b,
+                bExpanded,
                 { padding: [10, 10], animate: false, maxZoom: maxZ },
                 0.20
               );
