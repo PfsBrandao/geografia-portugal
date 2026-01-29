@@ -1587,11 +1587,17 @@
     let insetLayer = null;
     let insetRect = null;
 
-    // RIOS layers
+    // RIOS layers (mapa principal)
     let basePortugalLayer = null;
     let riverHaloLayer = null;
     let riverTargetLayer = null;
     let riverParentLayer = null;
+
+    // RIOS layers (INSET)
+    let basePortugalInsetLayer = null;
+    let riverInsetHaloLayer = null;
+    let riverInsetTargetLayer = null;
+    let riverInsetParentLayer = null;
 
     // índice global para encontrar rio-mãe por nome (canon)
     let riversIndexByCanon = null;
@@ -1729,7 +1735,7 @@
       islandToBounds.clear();
       keyToBounds.clear();
 
-      // limpar rios
+      // limpar rios (mapa principal)
       try { if (riverHaloLayer) riverHaloLayer.remove(); } catch {}
       try { if (riverTargetLayer) riverTargetLayer.remove(); } catch {}
       try { if (riverParentLayer) riverParentLayer.remove(); } catch {}
@@ -1738,6 +1744,16 @@
       riverTargetLayer = null;
       riverParentLayer = null;
       basePortugalLayer = null;
+
+      // limpar rios (INSET)
+      try { if (riverInsetHaloLayer) riverInsetHaloLayer.remove(); } catch {}
+      try { if (riverInsetTargetLayer) riverInsetTargetLayer.remove(); } catch {}
+      try { if (riverInsetParentLayer) riverInsetParentLayer.remove(); } catch {}
+      try { if (basePortugalInsetLayer) basePortugalInsetLayer.remove(); } catch {}
+      riverInsetHaloLayer = null;
+      riverInsetTargetLayer = null;
+      riverInsetParentLayer = null;
+      basePortugalInsetLayer = null;
     }
 
     /* =========================
@@ -1913,6 +1929,28 @@
       } catch {}
     }
 
+    async function ensurePortugalInsetBaseLoaded() {
+      if (basePortugalInsetLayer) return;
+      ensureInsetReady();
+      const fc = await loadJSON(FILES.portugal);
+
+      basePortugalInsetLayer = L.geoJSON(fc, {
+        style: () => ({
+          color: "#000",
+          weight: 1.0,
+          fillColor: "#fff",
+          fillOpacity: 1
+        })
+      }).addTo(insetMap);
+
+      try {
+        const b = basePortugalInsetLayer.getBounds();
+        if (b && b.isValid && b.isValid()) {
+          insetMap.fitBounds(b, { padding: [8, 8], animate: false });
+        }
+      } catch {}
+    }
+
     async function ensureRiversIndexLoaded() {
       if (riversIndexByCanon) return riversIndexByCanon;
 
@@ -1958,6 +1996,28 @@
       }).addTo(map);
     }
 
+    function removeRiverInsetLayers() {
+      try { if (riverInsetHaloLayer) riverInsetHaloLayer.remove(); } catch {}
+      try { if (riverInsetTargetLayer) riverInsetTargetLayer.remove(); } catch {}
+      try { if (riverInsetParentLayer) riverInsetParentLayer.remove(); } catch {}
+      riverInsetHaloLayer = null;
+      riverInsetTargetLayer = null;
+      riverInsetParentLayer = null;
+    }
+
+    function drawRiverTargetInset(feature) {
+      ensureInsetReady();
+      removeRiverInsetLayers();
+
+      riverInsetHaloLayer = L.geoJSON(feature, {
+        style: () => ({ color: "#9ad7ff", weight: 10, opacity: 1 })
+      }).addTo(insetMap);
+
+      riverInsetTargetLayer = L.geoJSON(feature, {
+        style: () => ({ color: "#0c79d6", weight: 5, opacity: 1 })
+      }).addTo(insetMap);
+    }
+
     function featureBounds(feature) {
       try {
         const tmp = L.geoJSON(feature);
@@ -1969,12 +2029,18 @@
       }
     }
 
-    function boundsLooksTiny(b) {
-      if (!b || !b.isValid || !b.isValid()) return false;
+    function boundsSpan(b) {
+      if (!b || !b.isValid || !b.isValid()) return Infinity;
       const sw = b.getSouthWest(), ne = b.getNorthEast();
       const dLat = Math.abs(ne.lat - sw.lat);
       const dLng = Math.abs(ne.lng - sw.lng);
-      return (dLat < 0.04 && dLng < 0.04);
+      return Math.max(dLat, dLng);
+    }
+
+    function boundsLooksMedium(b) {
+      // “médio” = precisa de inset, mas sem zoom agressivo
+      const s = boundsSpan(b);
+      return (s >= 0.04 && s < 0.12);
     }
 
     function drawRiverParentIfAny(targetFeature) {
@@ -1991,6 +2057,23 @@
 
       try { riverParentLayer.bringToBack(); } catch {}
       try { riverHaloLayer?.bringToFront(); riverTargetLayer?.bringToFront(); } catch {}
+    }
+    function drawRiverParentIfAnyInset(targetFeature) {
+      const dest = (destinationName(targetFeature?.properties || {}) || "").trim();
+      const destCanon = canonicalRiverName(dest.replace(/^Rio\s+/i, ""));
+      if (!destCanon) return;
+
+      const parent = riversIndexByCanon?.get(destCanon);
+      if (!parent?.feature) return;
+
+      ensureInsetReady();
+
+      riverInsetParentLayer = L.geoJSON(parent.feature, {
+        style: () => ({ color: "#6c8aa3", weight: 3, opacity: 0.65 })
+      }).addTo(insetMap);
+
+      try { riverInsetParentLayer.bringToBack(); } catch {}
+      try { riverInsetHaloLayer?.bringToFront(); riverInsetTargetLayer?.bringToFront(); } catch {}
     }
 
     function startTimer() {
@@ -2653,7 +2736,17 @@ function renderChoicesFromItems() {
       // ===== RONDA: RIOS =====
       if (currentPack && currentPack.region === "rv") {
         setStageMode("map");
+
+        // Mapa principal: SEMPRE Portugal inteiro (overview)
         insetWrap.classList.remove("show");
+        removeRiverInsetLayers();
+
+        try {
+          const bPT = basePortugalLayer?.getBounds?.();
+          if (bPT && bPT.isValid && bPT.isValid()) {
+            map.fitBounds(bPT, { padding: [8, 14], animate: false });
+          }
+        } catch {}
 
         const byCanon = ensurePackLoaded._riverFeaturesByCanon;
         const rec = byCanon?.get(currentTargetKey);
@@ -2663,28 +2756,43 @@ function renderChoicesFromItems() {
         if (chosenFeature) {
           const b = featureBounds(chosenFeature);
 
-          // ✅ NOVO: Rios 1 não fazem zoom
-          const packNum = Number(currentPack.slug || 0);
-
-          if (packNum !== 1) {
-            if (b && b.isValid && b.isValid()) {
-              safeZoomToBounds(map, b, { padding: [18, 18], animate: false, maxZoom: 13 }, 0.20);
-            }
-          } else {
-            // ✅ Rios 1: Portugal inteiro, mas maior (menos espaço branco)
-            try {
-              const bb = basePortugalLayer?.getBounds?.();
-              if (bb && bb.isValid && bb.isValid()) {
-                const tighter = bb.pad(-0.08); // aproxima ~8% (aumenta o país no ecrã)
-                map.fitBounds(tighter, { padding: [2, 2], animate: false });
-              }
-            } catch {}
-          }
-
+          // Desenhar alvo no mapa principal (overview)
           drawRiverTarget(chosenFeature);
 
-          if (b && boundsLooksTiny(b)) {
-            drawRiverParentIfAny(chosenFeature);
+          // Decidir se mostramos inset com zoom inteligente:
+          // - Rios 1: NUNCA inset/zoom (como pediste)
+          // - Rios 2-4: inset apenas se for “tiny” ou “medium”
+          const isPack1 = (String(currentPack.slug) === "1");
+          const needsInset = (!isPack1) && b && b.isValid && b.isValid() && (boundsLooksTiny(b) || boundsLooksMedium(b));
+
+          if (needsInset) {
+            insetWrap.classList.add("show");
+            ensureInsetReady();
+            await ensurePortugalInsetBaseLoaded();
+
+            // Limpar e desenhar alvo no inset
+            drawRiverTargetInset(chosenFeature);
+
+            // Zoom inteligente no INSET
+            // tiny -> zoom mais forte
+            // medium -> zoom moderado
+            const maxZ = boundsLooksTiny(b) ? 13 : 11;
+
+            safeZoomToBounds(
+              insetMap,
+              b,
+              { padding: [10, 10], animate: false, maxZoom: maxZ },
+              0.20
+            );
+
+            // tiny: desenhar também rio-mãe (discreto) NO INSET
+            if (boundsLooksTiny(b)) {
+              drawRiverParentIfAnyInset(chosenFeature);
+            }
+
+            invalidateInsetSizeHard();
+          } else {
+            insetWrap.classList.remove("show");
           }
         }
 
