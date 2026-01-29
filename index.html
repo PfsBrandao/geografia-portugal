@@ -658,7 +658,7 @@
         </div>
         <div class="menuBtns">
           <button id="btnOptCatDistricts" class="menuBtn">Distritos</button>
-          <button id="btnOptCatRivers" class="menuBtn disabled" disabled>Rios</button>
+          <button id="btnOptCatRivers" class="menuBtn">Rios</button>
           <button id="btnOptCatRA" class="menuBtn">Regiões Autónomas</button>
           <button id="btnOptCatMountains" class="menuBtn disabled" disabled>Serras</button>
           <button id="btnOptCatFlags" class="menuBtn disabled" disabled>Bandeiras</button>
@@ -738,6 +738,33 @@
 
         <div class="optFooter">
           <button id="btnOptBackRA" class="optBtn primary" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTIONS: RIOS -->
+  <div id="screenOptionsRivers" class="screen">
+    <div class="optWrap">
+      <div class="optPhone">
+        <div class="optHeader">
+          <div>
+            <div class="optTitle">Rios</div>
+            <div class="optMeta" id="optSelectedCountRivers">Selecionados: 0</div>
+          </div>
+          <button id="btnOptBackTopRivers" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+        </div>
+
+        <div class="optHint">
+          Escolhe o nível (1–4) para cada pack de rios.
+          Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
+          Nível 4 = escrever o nome do rio.
+        </div>
+
+        <div id="optRiversBlocks"></div>
+
+        <div class="optFooter">
+          <button id="btnOptBackRivers" class="optBtn primary" type="button">Voltar</button>
         </div>
       </div>
     </div>
@@ -835,6 +862,10 @@
       concelhosAZ: `${BASE}data/concelhos_acores.geojson`,
       concelhosMD: `${BASE}data/concelhos_madeira.geojson`,
       demografia: `${BASE}data/municipios_demografia.json`,
+
+      // modo rios
+      portugal: `${BASE}data/Portugal.json`,
+      rios: (n) => `${BASE}data/rios_${n}.json`,
     };
 
     const DISTRICTS_PT = [
@@ -850,6 +881,13 @@
       const arr = DISTRICTS_PT.map(([name, slug]) => ({ id:`pt:${slug}`, label:`Distrito — ${name}`, region:"pt", slug, short:name }));
       arr.push({ id:"az", label:"Região — Açores", region:"az", slug:"acores", short:"Açores" });
       arr.push({ id:"md", label:"Região — Madeira", region:"md", slug:"madeira", short:"Madeira" });
+
+      // RIOS (4 packs)
+      arr.push({ id:"rv:1", label:"Rios 1", region:"rv", slug:"1", short:"Rios 1" });
+      arr.push({ id:"rv:2", label:"Rios 2", region:"rv", slug:"2", short:"Rios 2" });
+      arr.push({ id:"rv:3", label:"Rios 3", region:"rv", slug:"3", short:"Rios 3" });
+      arr.push({ id:"rv:4", label:"Rios 4", region:"rv", slug:"4", short:"Rios 4" });
+
       return arr;
     }
 
@@ -873,6 +911,20 @@
     function normalize(s) {
       return (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
+
+    // RIOS: nome canónico (para não repetir e aceitar homónimos)
+    function canonicalRiverName(s) {
+      const n = normalize(s);
+      return n.replace(/^rio\s+/, "").trim();
+    }
+    function displayRiverName(props) {
+      const raw = pickProp(props, ["name", "NAME", "Name"]);
+      return (raw || "").trim().replace(/^Rio\s+/i, "").trim();
+    }
+    function destinationName(props) {
+      return pickProp(props, ["destination", "DESTINATION"]);
+    }
+
     function pickProp(props, keys) {
       for (const k of keys) {
         if (props && props[k] != null && String(props[k]).trim() !== "") return String(props[k]);
@@ -1026,6 +1078,7 @@
     const screenPickDistrict = document.getElementById("screenPickDistrict");
     const screenOptionsDistricts = document.getElementById("screenOptionsDistricts");
     const screenOptionsRA = document.getElementById("screenOptionsRA");
+    const screenOptionsRivers = document.getElementById("screenOptionsRivers");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -1034,7 +1087,7 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenPickDistrict, screenOptionsDistricts, screenOptionsRA, screenLoading, screenGame];
+      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenPickDistrict, screenOptionsDistricts, screenOptionsRA, screenOptionsRivers, screenLoading, screenGame];
       for (const s of all) s.classList.remove("active");
       el.classList.add("active");
     }
@@ -1072,6 +1125,7 @@
     // OPTIONS CATEGORY BUTTONS
     document.getElementById("btnOptCatDistricts").addEventListener("click", () => openPickDistrict());
     document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
+    document.getElementById("btnOptCatRivers").addEventListener("click", () => openOptionsRivers());
 
     // GAME UI
     const btnExit = document.getElementById("btnExit");
@@ -1367,6 +1421,87 @@
     btnOptBackRA.addEventListener("click", () => closeRAToOptionsMenu());
     btnOptBackTopRA.addEventListener("click", () => closeRAToOptionsMenu());
 
+    // =========================
+    // RIOS SCREEN (Opções) — 4 packs (Rios 1..4) com níveis 1..4
+    // =========================
+    const optRiversBlocks = document.getElementById("optRiversBlocks");
+    const optSelectedCountRivers = document.getElementById("optSelectedCountRivers");
+    const btnOptBackRivers = document.getElementById("btnOptBackRivers");
+    const btnOptBackTopRivers = document.getElementById("btnOptBackTopRivers");
+
+    function renderRiversOptions() {
+      optRiversBlocks.innerHTML = "";
+
+      const packs = getAllPacks().filter(p => p.region === "rv");
+
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+        const cur = Number(cfg.identify || 0);
+
+        const packDiv = document.createElement("div");
+        packDiv.className = "optPack";
+
+        packDiv.innerHTML = `
+          <div class="optPackHead">
+            <div>${p.label}<div class="sub">${(cur >= 1 && cur <= 4) ? ("Ativo (Nível " + cur + ")") : "Inativo"}</div></div>
+          </div>
+
+          <div class="optCatHead">
+            <div class="c">Pack</div>
+            <div class="c">1</div>
+            <div class="c">2</div>
+            <div class="c">3</div>
+            <div class="c">4</div>
+          </div>
+
+          <div class="optCatRow">
+            <div class="c">Identificar rio</div>
+            <div class="c dotCell"><span class="dot ${cur === 1 ? "on" : ""}" data-pack="${p.id}" data-lvl="1"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 2 ? "on" : ""}" data-pack="${p.id}" data-lvl="2"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 3 ? "on" : ""}" data-pack="${p.id}" data-lvl="3"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 4 ? "on" : ""}" data-pack="${p.id}" data-lvl="4"></span></div>
+          </div>
+        `;
+
+        optRiversBlocks.appendChild(packDiv);
+      }
+
+      let sel = 0;
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+        const L = Number(cfg.identify || 0);
+        if (L >= 1 && L <= 4) sel++;
+      }
+      optSelectedCountRivers.textContent = `Selecionados: ${sel}`;
+
+      optRiversBlocks.querySelectorAll(".dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          const packId = dot.dataset.pack;
+          const lvl = Number(dot.dataset.lvl);
+
+          const cfg = ensurePackCfg(optionsDraft, packId);
+          const cur = Number(cfg.identify || 0);
+
+          cfg.identify = (cur === lvl) ? 0 : lvl; // clicar no mesmo desliga
+          renderRiversOptions();
+        });
+      });
+    }
+
+    function openOptionsRivers() {
+      optionsDraft = loadOptions();
+      renderRiversOptions();
+      showScreen(screenOptionsRivers);
+    }
+
+    function closeRiversToOptionsMenu() {
+      saveOptions(optionsDraft);
+      showScreen(screenOptionsMenu);
+    }
+
+    btnOptBackRivers.addEventListener("click", () => closeRiversToOptionsMenu());
+    btnOptBackTopRivers.addEventListener("click", () => closeRiversToOptionsMenu());
+
     /* =========================
        DEMOGRAFIA
        ========================= */
@@ -1450,6 +1585,15 @@
     let insetMap = null;
     let insetLayer = null;
     let insetRect = null;
+
+    // RIOS layers
+    let basePortugalLayer = null;
+    let riverHaloLayer = null;
+    let riverTargetLayer = null;
+    let riverParentLayer = null;
+
+    // índice global para encontrar rio-mãe por nome (canon)
+    let riversIndexByCanon = null;
 
     let lastCleanedGeoJSON = null;
     let insetPrimed = false;
@@ -1583,6 +1727,16 @@
       keyToIsland.clear();
       islandToBounds.clear();
       keyToBounds.clear();
+
+      // limpar rios
+      try { if (riverHaloLayer) riverHaloLayer.remove(); } catch {}
+      try { if (riverTargetLayer) riverTargetLayer.remove(); } catch {}
+      try { if (riverParentLayer) riverParentLayer.remove(); } catch {}
+      try { if (basePortugalLayer) basePortugalLayer.remove(); } catch {}
+      riverHaloLayer = null;
+      riverTargetLayer = null;
+      riverParentLayer = null;
+      basePortugalLayer = null;
     }
 
     /* =========================
@@ -1732,6 +1886,110 @@
       const check = assertGeoJSONLooksLikeLonLat(fc);
       if (!check.ok) throw new Error(`GeoJSON inválido: ${check.reason} (${url})`);
       return fc;
+    }
+
+    // =========================
+    // RIOS: base + índice global + desenho
+    // =========================
+    async function ensurePortugalBaseLoaded() {
+      if (basePortugalLayer) return;
+      const fc = await loadJSON(FILES.portugal);
+
+      basePortugalLayer = L.geoJSON(fc, {
+        style: () => ({
+          color: "#000",
+          weight: 1.0,
+          fillColor: "#fff",
+          fillOpacity: 1
+        })
+      }).addTo(map);
+
+      try {
+        const b = basePortugalLayer.getBounds();
+        if (b && b.isValid && b.isValid()) {
+          map.fitBounds(b, { padding: [8, 8], animate: false });
+        }
+      } catch {}
+    }
+
+    async function ensureRiversIndexLoaded() {
+      if (riversIndexByCanon) return riversIndexByCanon;
+
+      const idx = new Map();
+
+      async function addPack(n) {
+        const fc = await loadJSON(FILES.rios(n));
+        for (const f of (fc.features || [])) {
+          const nm = displayRiverName(f.properties || {});
+          const canon = canonicalRiverName(nm);
+          if (!canon) continue;
+          if (!idx.has(canon)) idx.set(canon, { name: nm, feature: f });
+        }
+      }
+
+      await addPack(1);
+      await addPack(2);
+      await addPack(3);
+      await addPack(4);
+
+      riversIndexByCanon = idx;
+      return idx;
+    }
+
+    function removeRiverLayers() {
+      try { if (riverHaloLayer) riverHaloLayer.remove(); } catch {}
+      try { if (riverTargetLayer) riverTargetLayer.remove(); } catch {}
+      try { if (riverParentLayer) riverParentLayer.remove(); } catch {}
+      riverHaloLayer = null;
+      riverTargetLayer = null;
+      riverParentLayer = null;
+    }
+
+    function drawRiverTarget(feature) {
+      removeRiverLayers();
+
+      riverHaloLayer = L.geoJSON(feature, {
+        style: () => ({ color: "#9ad7ff", weight: 10, opacity: 1 })
+      }).addTo(map);
+
+      riverTargetLayer = L.geoJSON(feature, {
+        style: () => ({ color: "#0c79d6", weight: 5, opacity: 1 })
+      }).addTo(map);
+    }
+
+    function featureBounds(feature) {
+      try {
+        const tmp = L.geoJSON(feature);
+        const b = tmp.getBounds();
+        tmp.remove();
+        return b;
+      } catch {
+        return null;
+      }
+    }
+
+    function boundsLooksTiny(b) {
+      if (!b || !b.isValid || !b.isValid()) return false;
+      const sw = b.getSouthWest(), ne = b.getNorthEast();
+      const dLat = Math.abs(ne.lat - sw.lat);
+      const dLng = Math.abs(ne.lng - sw.lng);
+      return (dLat < 0.04 && dLng < 0.04);
+    }
+
+    function drawRiverParentIfAny(targetFeature) {
+      const dest = (destinationName(targetFeature?.properties || {}) || "").trim();
+      const destCanon = canonicalRiverName(dest.replace(/^Rio\s+/i, ""));
+      if (!destCanon) return;
+
+      const parent = riversIndexByCanon?.get(destCanon);
+      if (!parent?.feature) return;
+
+      riverParentLayer = L.geoJSON(parent.feature, {
+        style: () => ({ color: "#6c8aa3", weight: 3, opacity: 0.65 })
+      }).addTo(map);
+
+      try { riverParentLayer.bringToBack(); } catch {}
+      try { riverHaloLayer?.bringToFront(); riverTargetLayer?.bringToFront(); } catch {}
     }
 
     function startTimer() {
@@ -2030,7 +2288,8 @@ function renderChoicesFromItems() {
     }
 
     function getLevel4Suggestions() {
-      const pref = normalize(lvl4Typed);
+      let pref = normalize(lvl4Typed);
+      pref = pref.replace(/^rio\s+/, "").trim();
       if (!pref) return [];
       const out = [];
       for (const e of playPoolEntries) {
@@ -2245,6 +2504,51 @@ function renderChoicesFromItems() {
       currentPack = pack;
 
       setLoading(`A preparar: ${pack.label}`, 65);
+
+      // ===== MODO RIOS =====
+      if (pack.region === "rv") {
+        ensureMapReady();
+        clearLayer();
+
+        await ensurePortugalBaseLoaded();
+        await ensureRiversIndexLoaded();
+
+        const fc = await loadJSON(FILES.rios(pack.slug));
+
+        // pool por nome canónico (não repetir nomes)
+        const byCanon = new Map(); // canon -> { label, feats[] }
+        for (const f of (fc.features || [])) {
+          const nm = displayRiverName(f.properties || {});
+          const canon = canonicalRiverName(nm);
+          if (!canon) continue;
+          if (!byCanon.has(canon)) byCanon.set(canon, { label: nm, feats: [] });
+          byCanon.get(canon).feats.push(f);
+        }
+
+        byKey.clear();
+        keyToOfficial.clear();
+
+        playPoolKeys = Array.from(byCanon.keys()); // keys = nomes canónicos
+        playRemainingKeys = shuffle(playPoolKeys);
+
+        for (const canon of playPoolKeys) {
+          byKey.set(canon, true);
+          keyToOfficial.set(canon, byCanon.get(canon).label || canon);
+        }
+
+        // nível 4 (sugestões)
+        playPoolEntries = playPoolKeys
+          .map(canon => ({ key: canon, name: keyToOfficial.get(canon) || canon, norm: canon }))
+          .sort((a,b) => (a.name||"").localeCompare((b.name||""), "pt", { sensitivity:"base" }));
+
+        // lookup canon -> features
+        ensurePackLoaded._riverFeaturesByCanon = byCanon;
+
+        transitioning = false;
+        return;
+      }
+
+      // ===== MODO CONCELHOS (original) =====
       const fc = await loadConcelhosFCForPack(pack);
 
       setLoading("A desenhar…", 85);
@@ -2344,6 +2648,62 @@ function renderChoicesFromItems() {
 
       // reset lvl4 typed
       lvl4Typed = "";
+
+      // ===== RONDA: RIOS =====
+      if (currentPack && currentPack.region === "rv") {
+        setStageMode("map");
+        insetWrap.classList.remove("show");
+
+        const byCanon = ensurePackLoaded._riverFeaturesByCanon;
+        const rec = byCanon?.get(currentTargetKey);
+        const feats = rec?.feats || [];
+        const chosenFeature = feats.length ? feats[Math.floor(Math.random() * feats.length)] : null;
+
+        if (chosenFeature) {
+          const b = featureBounds(chosenFeature);
+          if (b && b.isValid && b.isValid()) {
+            safeZoomToBounds(map, b, { padding: [18, 18], animate: false, maxZoom: 13 }, 0.20);
+          }
+          drawRiverTarget(chosenFeature);
+
+          // para rios pequenos, desenhar também rio-mãe (discreto)
+          if (b && boundsLooksTiny(b)) {
+            drawRiverParentIfAny(chosenFeature);
+          }
+        }
+
+        // construir respostas (4/6/8 ou escrever)
+        if (playLevel === 4) {
+          correctChoiceId = currentTargetKey; // canon
+          setLevel4UI(true);
+          setKeyboardMode("text");
+          lvl4Keyboard.classList.remove("disabled");
+          lvl4Typed = "";
+          setLevel4TypedText(lvl4Typed);
+          renderLevel4Suggestions();
+        } else {
+          setLevel4UI(false);
+
+          const n = PLAY.optionsByLevel(playLevel);
+          const forbid = new Set([currentTargetKey]);
+          const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+          const canonKeys = shuffle([currentTargetKey, ...wrong]);
+
+          currentChoiceItems = canonKeys.map(canon => ({
+            id: canon,
+            label: keyToOfficial.get(canon) || canon
+          }));
+          correctChoiceId = currentTargetKey;
+
+          renderChoicesFromItems();
+          lockChoices(false);
+        }
+
+        timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+        startTimer();
+        renderHUD();
+        return; // IMPORTANTÍSSIMO
+      }
 
       if (currentCategory === "identify") {
         currentDemoRealValue = null;
