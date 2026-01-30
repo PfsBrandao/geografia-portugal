@@ -325,6 +325,20 @@
     .overlayCard .s { font-size: 13px; color: #333; margin-top: 10px; opacity: .85; }
 
     /* =========================
+       LOCATOR (mapa principal -> inset)
+       ========================= */
+    .pulseDot {
+      border-radius: 999px;
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      animation: pulseDot 1.25s infinite;
+    }
+    @keyframes pulseDot {
+      0%   { box-shadow: 0 0 0 0 rgba(0,0,0,0.35); }
+      70%  { box-shadow: 0 0 0 12px rgba(0,0,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+    }
+
+    /* =========================
        NÍVEL 4: BARRA + TECLADO (ROBUST)
        ========================= */
     .lvl4Bar{
@@ -1194,6 +1208,44 @@
       return b;
     }
 
+    // =========================
+    // LOCATOR: desenhar no mapa principal a zona do inset
+    // =========================
+    function clearLocator() {
+      try { locatorRect?.remove?.(); } catch {}
+      try { locatorDot?.remove?.(); } catch {}
+      locatorRect = null;
+      locatorDot = null;
+    }
+
+    function setLocatorFromBounds(bounds, color = "#111") {
+      if (!map || !bounds || !bounds.isValid || !bounds.isValid()) return;
+
+      clearLocator();
+
+      // retângulo no mapa principal
+      locatorRect = L.rectangle(bounds, {
+        color,
+        weight: 2,
+        opacity: 0.95,
+        fillOpacity: 0
+      }).addTo(map);
+
+      // ponto central (com pulse)
+      const c = bounds.getCenter();
+      locatorDot = L.circleMarker(c, {
+        radius: 6,
+        color,
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 1,
+        className: "pulseDot"
+      }).addTo(map);
+
+      // garantir que fica por cima do mapa base e por baixo do alvo (se quiseres)
+      try { locatorRect.bringToFront(); locatorDot.bringToFront(); } catch {}
+    }
+
     function toNum(x) {
       if (typeof x === "number") return x;
       if (typeof x !== "string") return Number(x);
@@ -1856,6 +1908,10 @@
     let insetLayer = null;
     let insetRect = null;
 
+    // ✅ LOCATOR (retângulo + ponto) no mapa principal para indicar onde está o inset
+    let locatorRect = null;
+    let locatorDot = null;
+
     // RIOS layers (mapa principal)
     let basePortugalLayer = null;
     let riverHaloLayer = null;
@@ -2002,6 +2058,11 @@
 
       if (insetRect) insetRect.remove();
       insetRect = null;
+      // ✅ limpar locator (rivers/pa)
+      try { if (locatorRect) locatorRect.remove(); } catch {}
+      try { if (locatorDot) locatorDot.remove(); } catch {}
+      locatorRect = null;
+      locatorDot = null;
 
       lastCleanedGeoJSON = null;
 
@@ -3186,6 +3247,9 @@ function renderChoicesFromItems() {
                 0.20
               );
 
+              // ✅ indicar no mapa principal onde está o zoom (locator box + dot)
+              setLocatorFromBounds(bExpanded, "#0c79d6");
+
               // tiny: desenhar também rio-mãe (discreto) NO INSET
               if (boundsLooksTiny(b)) {
                 drawRiverParentIfAnyInset(chosenFeature);
@@ -3199,8 +3263,8 @@ function renderChoicesFromItems() {
 
           } else {
             insetWrap.classList.remove("show");
+            clearLocator();
           }
-        }
 
         // construir respostas (4/6/8 ou escrever)
         if (playLevel === 4) {
@@ -3301,6 +3365,8 @@ function renderChoicesFromItems() {
                 { padding: [12, 12], animate: false, maxZoom: 10 },
                 0.25
               );
+              // ✅ indicar no mapa principal onde está o zoom (locator box + dot)
+              setLocatorFromBounds(bExpanded, "#0b5");
             }
 
             invalidateInsetSizeHard();
@@ -3381,8 +3447,12 @@ function renderChoicesFromItems() {
       if (currentCategory !== "identify") updateStageTextForDemografia();
 
       refreshStyles();
-      if (currentCategory === "identify") updateAzoresInsetForCurrentTarget();
-      else insetWrap.classList.remove("show");
+      if (currentCategory === "identify") {
+        updateAzoresInsetForCurrentTarget();
+      } else {
+        insetWrap.classList.remove("show");
+        clearLocator(); // ✅ não deixar locator “perdido” noutros modos
+      }
 
       timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
       startTimer();
