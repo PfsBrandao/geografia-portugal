@@ -2312,11 +2312,15 @@
       paTargetLayer = L.geoJSON(feature, {
         style: () => ({
           color: "#0b5",
-          weight: 2,
+          weight: 3,
           fillColor: "#2ee66a",
           fillOpacity: 0.65
         })
       }).addTo(map);
+
+      // ✅ garantir ordem: Portugal base atrás, alvo à frente
+      try { basePortugalLayer?.bringToBack?.(); } catch {}
+      try { paTargetLayer?.bringToFront?.(); } catch {}
     }
 
     function drawPATargetInset(feature) {
@@ -2325,11 +2329,15 @@
       paInsetTargetLayer = L.geoJSON(feature, {
         style: () => ({
           color: "#0b5",
-          weight: 2,
+          weight: 3,
           fillColor: "#2ee66a",
           fillOpacity: 0.65
         })
       }).addTo(insetMap);
+
+      // ✅ base Portugal atrás, área por cima
+      try { basePortugalInsetLayer?.bringToBack?.(); } catch {}
+      try { paInsetTargetLayer?.bringToFront?.(); } catch {}
     }
 
     function startTimer() {
@@ -3205,21 +3213,30 @@ function renderChoicesFromItems() {
             invalidateInsetSizeHard();
             await new Promise(r => requestAnimationFrame(r));
 
-            // zoom com margem para contexto
+            // zoom com margem para contexto (mostrar Portugal à volta)
             if (b && b.isValid && b.isValid()) {
               const sw = b.getSouthWest();
               const ne = b.getNorthEast();
+
               const spanLat = Math.abs(ne.lat - sw.lat);
               const spanLng = Math.abs(ne.lng - sw.lng);
-              const padLat = Math.max(spanLat * 0.9, 0.10);
-              const padLng = Math.max(spanLng * 0.9, 0.10);
+
+              // ✅ mais margem: proporcional + mínimo maior
+              const padLat = Math.max(spanLat * 2.2, 0.22);
+              const padLng = Math.max(spanLng * 2.2, 0.22);
 
               const bExpanded = L.latLngBounds(
                 [sw.lat - padLat, sw.lng - padLng],
                 [ne.lat + padLat, ne.lng + padLng]
               );
 
-              safeZoomToBounds(insetMap, bExpanded, { padding: [10, 10], animate: false, maxZoom: 11 }, 0.20);
+              // ✅ limitar zoom máximo para nunca “encostar” demasiado
+              safeZoomToBounds(
+                insetMap,
+                bExpanded,
+                { padding: [12, 12], animate: false, maxZoom: 10 },
+                0.25
+              );
             }
 
             invalidateInsetSizeHard();
