@@ -1198,6 +1198,7 @@
     const screenOptionsDistricts = document.getElementById("screenOptionsDistricts");
     const screenOptionsRA = document.getElementById("screenOptionsRA");
     const screenOptionsRivers = document.getElementById("screenOptionsRivers");
+    const screenOptionsPA = document.getElementById("screenOptionsPA");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -1206,7 +1207,18 @@
     const loadingPct = document.getElementById("loadingPct");
 
     function showScreen(el) {
-      const all = [screenMenu, screenSessionLen, screenOptionsMenu, screenPickDistrict, screenOptionsDistricts, screenOptionsRA, screenOptionsRivers, screenLoading, screenGame];
+      const all = [
+        screenMenu,
+        screenSessionLen,
+        screenOptionsMenu,
+        screenPickDistrict,
+        screenOptionsDistricts,
+        screenOptionsRA,
+        screenOptionsRivers,
+        screenOptionsPA,
+        screenLoading,
+        screenGame
+      ];
       for (const s of all) s.classList.remove("active");
       el.classList.add("active");
     }
