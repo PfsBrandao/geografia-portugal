@@ -920,11 +920,22 @@
       return n.replace(/^rio\s+/, "").trim();
     }
     function displayRiverName(props) {
-      const raw = pickProp(props, ["name", "NAME", "Name"]);
+      // ✅ Para RIOS: preferir SEMPRE PT quando existe
+      const raw = pickProp(props, [
+        "name:pt", "name:pt-PT", "name_pt",
+        "name", "NAME", "Name"
+      ]);
+
+      // mantém o teu comportamento: remover prefixo "Rio " para display limpo
       return (raw || "").trim().replace(/^Rio\s+/i, "").trim();
     }
+
     function destinationName(props) {
-      return pickProp(props, ["destination", "DESTINATION"]);
+      // ✅ Para “rio-mãe”/destination: preferir PT para bater certo com os nomes canónicos
+      return pickProp(props, [
+        "destination:pt", "destination:pt-PT", "destination_pt",
+        "destination", "DESTINATION"
+      ]);
     }
 
     function pickProp(props, keys) {
