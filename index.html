@@ -1106,6 +1106,67 @@
       };
     }
 
+    /* ✅ NOVO: CRS misto — reprojeção por feature */
+    function featureNeedsReproject(f) {
+      const g = f?.geometry;
+      if (!g) return false;
+
+      const grabOne = (geom) => {
+        const t = geom.type, c = geom.coordinates;
+        if (!t || !c) return null;
+        if (t === "Point") return c;
+        if (t === "MultiPoint" || t === "LineString") return c?.[0] || null;
+        if (t === "MultiLineString" || t === "Polygon") return c?.[0]?.[0] || null;
+        if (t === "MultiPolygon") return c?.[0]?.[0]?.[0] || null;
+        return null;
+      };
+
+      const p = grabOne(g);
+      if (!p || p.length < 2) return false;
+
+      const x = Number(p[0]), y = Number(p[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+
+      const looksLonLat = (Math.abs(x) <= 180 && Math.abs(y) <= 90);
+      return !looksLonLat;
+    }
+
+    function reprojectFeature_PT3763_to_WGS84(f) {
+      defineProjPT3763();
+
+      const tx = (coord) => {
+        const x = Number(coord[0]), y = Number(coord[1]);
+        const out = proj4("EPSG:3763", "WGS84", [x, y]); // [lon, lat]
+        return [out[0], out[1]];
+      };
+
+      const walk = (geom) => {
+        if (!geom) return geom;
+        const t = geom.type;
+        const c = geom.coordinates;
+
+        if (t === "Point") return { ...geom, coordinates: tx(c) };
+        if (t === "MultiPoint" || t === "LineString") return { ...geom, coordinates: c.map(tx) };
+        if (t === "MultiLineString" || t === "Polygon") return { ...geom, coordinates: c.map(line => line.map(tx)) };
+        if (t === "MultiPolygon") return { ...geom, coordinates: c.map(poly => poly.map(ring => ring.map(tx))) };
+
+        if (t === "GeometryCollection") {
+          return { ...geom, geometries: (geom.geometries || []).map(walk) };
+        }
+        return geom;
+      };
+
+      return { ...f, geometry: walk(f.geometry) };
+    }
+
+    function reprojectFC_Mixed_PT3763_to_WGS84(fc) {
+      const feats = (fc?.features || []).map(f => {
+        if (featureNeedsReproject(f)) return reprojectFeature_PT3763_to_WGS84(f);
+        return f;
+      });
+      return { ...fc, features: feats };
+    }
+
     function getProtectedAreaName(props) {
       return pickProp(props, ["nome_ap", "NOME_AP", "nome", "NAME"]);
     }
