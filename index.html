@@ -1048,8 +1048,8 @@
     function defineProjPT3763() {
       if (!window.proj4) throw new Error("proj4 não carregou (script no <head> em falta)");
       proj4.defs("EPSG:3763",
-        "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333333 " +
-        "+k=1 +x_0=200000 +y_0=300000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+        "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 " +
+        "+k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
       );
     }
 
@@ -2971,7 +2971,10 @@ function renderChoicesFromItems() {
 
         if (!protectedAreasByCanon) {
           const raw = await loadJSON(FILES.areasProtegidas);
-          const fcWgs = isProbablyProjectedFC(raw) ? reprojectFC_PT3763_to_WGS84(raw) : raw;
+
+          // ✅ reprojeta só as features que precisarem (CRS misto)
+          const needsAny = (raw?.features || []).some(featureNeedsReproject);
+          const fcWgs = needsAny ? reprojectFC_Mixed_PT3763_to_WGS84(raw) : raw;
 
           const byCanon = new Map(); // canon -> { label, feats[] }
           for (const f of (fcWgs.features || [])) {
