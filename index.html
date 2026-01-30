@@ -3265,6 +3265,7 @@ function renderChoicesFromItems() {
             insetWrap.classList.remove("show");
             clearLocator();
           }
+        }
 
         // construir respostas (4/6/8 ou escrever)
         if (playLevel === 4) {
@@ -3305,6 +3306,7 @@ function renderChoicesFromItems() {
 
         // mapa principal: Portugal inteiro (overview)
         insetWrap.classList.remove("show");
+        clearLocator();
         removePAInsetLayers();
 
         try {
@@ -3735,6 +3737,7 @@ function renderChoicesFromItems() {
       setLevel4TypedText(lvl4Typed);
 
       insetWrap.classList.remove("show");
+      clearLocator();
       if (insetRect) { insetRect.remove(); insetRect = null; }
       insetPrimed = false;
     }
