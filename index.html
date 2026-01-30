@@ -18,7 +18,7 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+  <script src="https://unpkg.com/proj4@2.9.0/dist/proj4.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background:#fff; }
     .screen { display: none; height: 100vh; }
@@ -662,6 +662,7 @@
           <button id="btnOptCatDistricts" class="menuBtn">Distritos</button>
           <button id="btnOptCatRivers" class="menuBtn">Rios</button>
           <button id="btnOptCatRA" class="menuBtn">Regiões Autónomas</button>
+          <button id="btnOptCatPA" class="menuBtn">Áreas Protegidas</button>
           <button id="btnOptCatMountains" class="menuBtn disabled" disabled>Serras</button>
           <button id="btnOptCatFlags" class="menuBtn disabled" disabled>Bandeiras</button>
           <button id="btnOptMenuBack" class="menuBtn small">Voltar</button>
@@ -772,6 +773,33 @@
     </div>
   </div>
 
+  <!-- OPTIONS: ÁREAS PROTEGIDAS -->
+  <div id="screenOptionsPA" class="screen">
+    <div class="optWrap">
+      <div class="optPhone">
+        <div class="optHeader">
+          <div>
+            <div class="optTitle">Áreas Protegidas</div>
+            <div class="optMeta" id="optSelectedCountPA">Selecionados: 0</div>
+          </div>
+          <button id="btnOptBackTopPA" class="exitBtn" type="button" style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+        </div>
+
+        <div class="optHint">
+          Escolhe o nível (1–4) para Áreas Protegidas.
+          Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
+          Nível 4 = escrever o nome da área protegida.
+        </div>
+
+        <div id="optPABlocks"></div>
+
+        <div class="optFooter">
+          <button id="btnOptBackPA" class="optBtn primary" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- LOADING -->
   <div id="screenLoading" class="screen">
     <div class="menuWrap">
@@ -868,6 +896,9 @@
       // modo rios
       portugal: `${BASE}data/Portugal.json`,
       rios: (n) => `${BASE}data/rios_${n}.json`,
+
+      // modo áreas protegidas
+      areasProtegidas: `${BASE}data/rnap.json`,
     };
 
     const DISTRICTS_PT = [
@@ -889,6 +920,9 @@
       arr.push({ id:"rv:2", label:"Rios 2", region:"rv", slug:"2", short:"Rios 2" });
       arr.push({ id:"rv:3", label:"Rios 3", region:"rv", slug:"3", short:"Rios 3" });
       arr.push({ id:"rv:4", label:"Rios 4", region:"rv", slug:"4", short:"Rios 4" });
+
+      // ÁREAS PROTEGIDAS (1 pack)
+      arr.push({ id:"pa", label:"Áreas Protegidas", region:"pa", slug:"1", short:"Áreas Prot." });
 
       return arr;
     }
@@ -1005,6 +1039,78 @@
       const inLonLatRange = (Math.abs(lon) <= 180 && Math.abs(lat) <= 90);
       if (!inLonLatRange) return { ok: false, reason: `CRS errado? Ex: [${lon}, ${lat}]` };
       return { ok: true, reason: "ok" };
+    }
+
+
+    // =========================
+    // ÁREAS PROTEGIDAS: reprojeção (EPSG:3763 -> WGS84)
+    // =========================
+    function defineProjPT3763() {
+      if (!window.proj4) throw new Error("proj4 não carregou (script no <head> em falta)");
+      proj4.defs("EPSG:3763",
+        "+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333333 " +
+        "+k=1 +x_0=200000 +y_0=300000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+      );
+    }
+
+    function isProbablyProjectedFC(fc) {
+      const f = (fc?.features || [])[0];
+      const g = f?.geometry;
+      if (!g) return false;
+
+      const grab = (geom) => {
+        const t = geom.type, c = geom.coordinates;
+        if (t === "Point") return c;
+        if (t === "MultiPoint" || t === "LineString") return c?.[0];
+        if (t === "MultiLineString" || t === "Polygon") return c?.[0]?.[0];
+        if (t === "MultiPolygon") return c?.[0]?.[0]?.[0];
+        return null;
+      };
+
+      const p = grab(g);
+      if (!p || p.length < 2) return false;
+      const x = Number(p[0]), y = Number(p[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+      const looksLonLat = (Math.abs(x) <= 180 && Math.abs(y) <= 90);
+      return !looksLonLat;
+    }
+
+    function reprojectFC_PT3763_to_WGS84(fc) {
+      defineProjPT3763();
+
+      const tx = (coord) => {
+        const x = Number(coord[0]), y = Number(coord[1]);
+        const out = proj4("EPSG:3763", "WGS84", [x, y]); // [lon, lat]
+        return [out[0], out[1]];
+      };
+
+      const walk = (geom) => {
+        if (!geom) return geom;
+        const t = geom.type;
+        const c = geom.coordinates;
+
+        if (t === "Point") return { ...geom, coordinates: tx(c) };
+        if (t === "MultiPoint" || t === "LineString") return { ...geom, coordinates: c.map(tx) };
+        if (t === "MultiLineString" || t === "Polygon") return { ...geom, coordinates: c.map(line => line.map(tx)) };
+        if (t === "MultiPolygon") return { ...geom, coordinates: c.map(poly => poly.map(ring => ring.map(tx))) };
+
+        if (t === "GeometryCollection") {
+          return { ...geom, geometries: (geom.geometries || []).map(walk) };
+        }
+        return geom;
+      };
+
+      return {
+        ...fc,
+        features: (fc.features || []).map(f => ({ ...f, geometry: walk(f.geometry) }))
+      };
+    }
+
+    function getProtectedAreaName(props) {
+      return pickProp(props, ["nome_ap", "NOME_AP", "nome", "NAME"]);
+    }
+    function canonicalPAName(name) {
+      return normalize(name);
     }
 
     function safeZoomToBounds(m, b, fitOpts = {}, padDeg = 0.25) {
@@ -1139,6 +1245,7 @@
     document.getElementById("btnOptCatDistricts").addEventListener("click", () => openPickDistrict());
     document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
     document.getElementById("btnOptCatRivers").addEventListener("click", () => openOptionsRivers());
+    document.getElementById("btnOptCatPA").addEventListener("click", () => openOptionsPA());
 
     // GAME UI
     const btnExit = document.getElementById("btnExit");
@@ -1515,6 +1622,83 @@
     btnOptBackRivers.addEventListener("click", () => closeRiversToOptionsMenu());
     btnOptBackTopRivers.addEventListener("click", () => closeRiversToOptionsMenu());
 
+    // =========================
+    // ÁREAS PROTEGIDAS SCREEN (Opções) — 1 pack (pa) com níveis 1..4
+    // =========================
+    const optPABlocks = document.getElementById("optPABlocks");
+    const optSelectedCountPA = document.getElementById("optSelectedCountPA");
+    const btnOptBackPA = document.getElementById("btnOptBackPA");
+    const btnOptBackTopPA = document.getElementById("btnOptBackTopPA");
+
+    function renderPAOptions() {
+      optPABlocks.innerHTML = "";
+
+      const p = getAllPacks().find(x => x.region === "pa");
+      if (!p) {
+        optSelectedCountPA.textContent = "Selecionados: 0";
+        return;
+      }
+
+      const cfg = ensurePackCfg(optionsDraft, p.id);
+      const cur = Number(cfg.identify || 0);
+
+      const packDiv = document.createElement("div");
+      packDiv.className = "optPack";
+
+      packDiv.innerHTML = `
+        <div class="optPackHead">
+          <div>${p.label}<div class="sub">${(cur >= 1 && cur <= 4) ? ("Ativo (Nível " + cur + ")") : "Inativo"}</div></div>
+        </div>
+
+        <div class="optCatHead">
+          <div class="c">Pack</div>
+          <div class="c">1</div>
+          <div class="c">2</div>
+          <div class="c">3</div>
+          <div class="c">4</div>
+        </div>
+
+        <div class="optCatRow">
+          <div class="c">Identificar área</div>
+          <div class="c dotCell"><span class="dot ${cur === 1 ? "on" : ""}" data-pack="${p.id}" data-lvl="1"></span></div>
+          <div class="c dotCell"><span class="dot ${cur === 2 ? "on" : ""}" data-pack="${p.id}" data-lvl="2"></span></div>
+          <div class="c dotCell"><span class="dot ${cur === 3 ? "on" : ""}" data-pack="${p.id}" data-lvl="3"></span></div>
+          <div class="c dotCell"><span class="dot ${cur === 4 ? "on" : ""}" data-pack="${p.id}" data-lvl="4"></span></div>
+    </div>
+      `;
+
+      optPABlocks.appendChild(packDiv);
+
+      optSelectedCountPA.textContent = `Selecionados: ${((cur >= 1 && cur <= 4) ? 1 : 0)}`;
+
+      optPABlocks.querySelectorAll(".dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          const packId = dot.dataset.pack;
+          const lvl = Number(dot.dataset.lvl);
+
+          const cfg = ensurePackCfg(optionsDraft, packId);
+          const cur = Number(cfg.identify || 0);
+          cfg.identify = (cur === lvl) ? 0 : lvl;
+
+          renderPAOptions();
+        });
+      });
+    }
+
+    function openOptionsPA() {
+      optionsDraft = loadOptions();
+      renderPAOptions();
+      showScreen(screenOptionsPA);
+    }
+
+    function closePAToOptionsMenu() {
+      saveOptions(optionsDraft);
+      showScreen(screenOptionsMenu);
+    }
+
+    btnOptBackPA.addEventListener("click", () => closePAToOptionsMenu());
+    btnOptBackTopPA.addEventListener("click", () => closePAToOptionsMenu());
+
     /* =========================
        DEMOGRAFIA
        ========================= */
@@ -1624,6 +1808,14 @@
     let islandToBounds = new Map();
 
     let keyToBounds = new Map();
+
+    // ÁREAS PROTEGIDAS layers
+    let paTargetLayer = null;
+    let paInsetTargetLayer = null;
+
+    // cache RNAP
+    let protectedAreasFC_WGS84 = null;
+    let protectedAreasByCanon = null;
 
     function resetLeafletContainer(containerId) {
       const el = document.getElementById(containerId);
@@ -1766,6 +1958,12 @@
       riverInsetTargetLayer = null;
       riverInsetParentLayer = null;
       basePortugalInsetLayer = null;
+
+      // limpar áreas protegidas
+      try { if (paTargetLayer) paTargetLayer.remove(); } catch {}
+      try { if (paInsetTargetLayer) paInsetTargetLayer.remove(); } catch {}
+      paTargetLayer = null;
+      paInsetTargetLayer = null;
     }
 
     /* =========================
@@ -2086,6 +2284,40 @@
 
       try { riverInsetParentLayer.bringToBack(); } catch {}
       try { riverInsetHaloLayer?.bringToFront(); riverInsetTargetLayer?.bringToFront(); } catch {}
+    }
+
+    function removePALayers() {
+      try { if (paTargetLayer) paTargetLayer.remove(); } catch {}
+      paTargetLayer = null;
+    }
+    function removePAInsetLayers() {
+      try { if (paInsetTargetLayer) paInsetTargetLayer.remove(); } catch {}
+      paInsetTargetLayer = null;
+    }
+
+    function drawPATarget(feature) {
+      removePALayers();
+      paTargetLayer = L.geoJSON(feature, {
+        style: () => ({
+          color: "#0b5",
+          weight: 2,
+          fillColor: "#2ee66a",
+          fillOpacity: 0.65
+        })
+      }).addTo(map);
+    }
+
+    function drawPATargetInset(feature) {
+      ensureInsetReady();
+      removePAInsetLayers();
+      paInsetTargetLayer = L.geoJSON(feature, {
+        style: () => ({
+          color: "#0b5",
+          weight: 2,
+          fillColor: "#2ee66a",
+          fillOpacity: 0.65
+        })
+      }).addTo(insetMap);
     }
 
     function startTimer() {
@@ -2647,6 +2879,54 @@ function renderChoicesFromItems() {
         return;
       }
 
+      // ===== MODO ÁREAS PROTEGIDAS =====
+      if (pack.region === "pa") {
+        ensureMapReady();
+        clearLayer();
+
+        await ensurePortugalBaseLoaded();
+        ensureInsetReady();
+        await ensurePortugalInsetBaseLoaded();
+
+        if (!protectedAreasByCanon) {
+          const raw = await loadJSON(FILES.areasProtegidas);
+          const fcWgs = isProbablyProjectedFC(raw) ? reprojectFC_PT3763_to_WGS84(raw) : raw;
+
+          const byCanon = new Map(); // canon -> { label, feats[] }
+          for (const f of (fcWgs.features || [])) {
+            const nm = getProtectedAreaName(f.properties || {});
+            const canon = canonicalPAName(nm);
+            if (!canon) continue;
+            if (!byCanon.has(canon)) byCanon.set(canon, { label: nm, feats: [] });
+            byCanon.get(canon).feats.push(f);
+          }
+
+          protectedAreasFC_WGS84 = fcWgs;
+          protectedAreasByCanon = byCanon;
+        }
+
+        byKey.clear();
+        keyToOfficial.clear();
+
+        playPoolKeys = Array.from(protectedAreasByCanon.keys());
+        playRemainingKeys = shuffle(playPoolKeys);
+
+        for (const canon of playPoolKeys) {
+          byKey.set(canon, true);
+          keyToOfficial.set(canon, protectedAreasByCanon.get(canon).label || canon);
+        }
+
+        // sugestões nível 4
+        playPoolEntries = playPoolKeys
+          .map(canon => ({ key: canon, name: keyToOfficial.get(canon) || canon, norm: canon }))
+          .sort((a,b) => (a.name||"").localeCompare((b.name||""), "pt", { sensitivity:"base" }));
+
+        ensurePackLoaded._paFeaturesByCanon = protectedAreasByCanon;
+
+        transitioning = false;
+        return;
+      }
+
       // ===== MODO CONCELHOS (original) =====
       const fc = await loadConcelhosFCForPack(pack);
 
@@ -2869,6 +3149,104 @@ function renderChoicesFromItems() {
         startTimer();
         renderHUD();
         return; // IMPORTANTÍSSIMO
+      }
+
+      // ===== RONDA: ÁREAS PROTEGIDAS =====
+      if (currentPack && currentPack.region === "pa") {
+        setStageMode("map");
+
+        // mapa principal: Portugal inteiro (overview)
+        insetWrap.classList.remove("show");
+        removePAInsetLayers();
+
+        try {
+          const bPT = basePortugalLayer?.getBounds?.();
+          if (bPT && bPT.isValid && bPT.isValid()) {
+            map.fitBounds(bPT, {
+              paddingTopLeft: [8, 8],
+              paddingBottomRight: [170, 14],
+              animate: false
+            });
+          }
+        } catch {}
+
+        const byCanon = ensurePackLoaded._paFeaturesByCanon;
+        const rec = byCanon?.get(currentTargetKey);
+        const feats = rec?.feats || [];
+        const chosenFeature = feats.length ? feats[Math.floor(Math.random() * feats.length)] : null;
+
+        if (chosenFeature) {
+          const b = featureBounds(chosenFeature);
+
+          // desenhar alvo verde no mapa principal
+          drawPATarget(chosenFeature);
+
+          // inset: mostrar sempre para “se perceber bem”
+          insetWrap.classList.add("show");
+
+          afterNextPaint(async () => {
+            ensureInsetReady();
+            await ensurePortugalInsetBaseLoaded();
+
+            drawPATargetInset(chosenFeature);
+
+            invalidateInsetSizeHard();
+            await new Promise(r => requestAnimationFrame(r));
+
+            // zoom com margem para contexto
+            if (b && b.isValid && b.isValid()) {
+              const sw = b.getSouthWest();
+              const ne = b.getNorthEast();
+              const spanLat = Math.abs(ne.lat - sw.lat);
+              const spanLng = Math.abs(ne.lng - sw.lng);
+              const padLat = Math.max(spanLat * 0.9, 0.10);
+              const padLng = Math.max(spanLng * 0.9, 0.10);
+
+              const bExpanded = L.latLngBounds(
+                [sw.lat - padLat, sw.lng - padLng],
+                [ne.lat + padLat, ne.lng + padLng]
+              );
+
+              safeZoomToBounds(insetMap, bExpanded, { padding: [10, 10], animate: false, maxZoom: 11 }, 0.20);
+            }
+
+            invalidateInsetSizeHard();
+            setTimeout(invalidateInsetSizeHard, 80);
+            setTimeout(invalidateInsetSizeHard, 200);
+          });
+        }
+
+        // respostas (nível 1–3) ou escrever (nível 4)
+        if (playLevel === 4) {
+          correctChoiceId = currentTargetKey;
+          setLevel4UI(true);
+          setKeyboardMode("text");
+          lvl4Keyboard.classList.remove("disabled");
+          lvl4Typed = "";
+          setLevel4TypedText(lvl4Typed);
+          renderLevel4Suggestions();
+        } else {
+          setLevel4UI(false);
+
+          const n = PLAY.optionsByLevel(playLevel);
+          const forbid = new Set([currentTargetKey]);
+          const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+          const keys = shuffle([currentTargetKey, ...wrong]);
+
+          currentChoiceItems = keys.map(canon => ({
+            id: canon,
+            label: keyToOfficial.get(canon) || canon
+          }));
+          correctChoiceId = currentTargetKey;
+
+          renderChoicesFromItems();
+          lockChoices(false);
+        }
+
+        timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+        startTimer();
+        renderHUD();
+        return;
       }
 
       if (currentCategory === "identify") {
