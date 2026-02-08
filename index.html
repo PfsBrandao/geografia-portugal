@@ -835,6 +835,33 @@
     </div>
   </div>
 
+  <!-- OPTIONS: BANDEIRAS -->
+  <div id="screenOptionsFlags" class="screen">
+    <div class="optWrap">
+      <div class="optPhone">
+        <div class="optHeader">
+          <div>
+            <div class="optTitle">Bandeiras</div>
+            <div class="optMeta" id="optSelectedCountFlags">Selecionados: 0</div>
+          </div>
+          <button id="btnOptBackTopFlags" class="exitBtn" type="button"
+            style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
+        </div>
+
+        <div class="optHint">
+          Packs de 22 municípios ordenados por população (Bandeiras 1 = 22 mais populosos, etc).
+          Escolhe o nível (1–4) por pack.
+        </div>
+
+        <div id="optFlagsBlocks"></div>
+
+        <div class="optFooter">
+          <button id="btnOptBackFlags" class="optBtn primary" type="button">Voltar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- LOADING -->
   <div id="screenLoading" class="screen">
     <div class="menuWrap">
@@ -962,10 +989,18 @@
       arr.push({ id:"rv:4", label:"Rios 4", region:"rv", slug:"4", short:"Rios 4" });
 
       // ÁREAS PROTEGIDAS (1 pack)
-      arr.push({ id:"pa", label:"Áreas Protegidas", region:"pa", slug:"1", short:"Áreas Prot." });
+        arr.push({ id:"pa", label:"Áreas Protegidas", region:"pa", slug:"1", short:"Áreas Prot." });
 
-      return arr;
-    }
+        // BANDEIRAS (packs de 22) — Portugal inteiro, ordenado por população
+        const FLAGS_PACK_SIZE = 22;
+        const FLAGS_PACKS_COUNT = 14; // 308/22 ≈ 14
+        for (let i = 1; i <= FLAGS_PACKS_COUNT; i++) {
+          arr.push({ id:`fl:${i}`, label:`Bandeiras ${i}`, region:"fl", slug:String(i), short:`Bandeiras ${i}` });
+        }
+
+        return arr;
+      }
+
 
     const CATEGORIES = [
       { id:"identify", label:"Concelhos no mapa", kind:"name" },
@@ -1327,6 +1362,7 @@
     const screenOptionsRA = document.getElementById("screenOptionsRA");
     const screenOptionsRivers = document.getElementById("screenOptionsRivers");
     const screenOptionsPA = document.getElementById("screenOptionsPA");
+    const screenOptionsFlags = document.getElementById("screenOptionsFlags");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -1344,9 +1380,11 @@
         screenOptionsRA,
         screenOptionsRivers,
         screenOptionsPA,
+        screenOptionsFlags,
         screenLoading,
         screenGame
       ];
+
       for (const s of all) s.classList.remove("active");
       el.classList.add("active");
     }
@@ -1386,6 +1424,8 @@
     document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
     document.getElementById("btnOptCatRivers").addEventListener("click", () => openOptionsRivers());
     document.getElementById("btnOptCatPA").addEventListener("click", () => openOptionsPA());
+    document.getElementById("btnOptCatFlags").addEventListener("click", () => openOptionsFlags());
+
 
     // GAME UI
     const btnExit = document.getElementById("btnExit");
@@ -1838,6 +1878,88 @@
     btnOptBackPA.addEventListener("click", () => closePAToOptionsMenu());
     btnOptBackTopPA.addEventListener("click", () => closePAToOptionsMenu());
 
+
+    // =========================
+    // BANDEIRAS SCREEN (Opções) — packs fl:1..fl:14 com níveis 1..4 (usa cfg.flags)
+    // =========================
+    const optFlagsBlocks = document.getElementById("optFlagsBlocks");
+    const optSelectedCountFlags = document.getElementById("optSelectedCountFlags");
+    const btnOptBackFlags = document.getElementById("btnOptBackFlags");
+    const btnOptBackTopFlags = document.getElementById("btnOptBackTopFlags");
+
+    function renderFlagsOptions() {
+      optFlagsBlocks.innerHTML = "";
+
+      const packs = getAllPacks().filter(p => p.region === "fl");
+
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+        const cur = Number(cfg.flags || 0);
+
+        const packDiv = document.createElement("div");
+        packDiv.className = "optPack";
+
+        packDiv.innerHTML = `
+          <div class="optPackHead">
+            <div>${p.label}<div class="sub">${(cur >= 1 && cur <= 4) ? ("Ativo (Nível " + cur + ")") : "Inativo"}</div></div>
+          </div>
+
+          <div class="optCatHead">
+            <div class="c">Pack</div>
+            <div class="c">1</div>
+            <div class="c">2</div>
+            <div class="c">3</div>
+            <div class="c">4</div>
+          </div>
+
+          <div class="optCatRow">
+            <div class="c">Identificar bandeira</div>
+            <div class="c dotCell"><span class="dot ${cur === 1 ? "on" : ""}" data-pack="${p.id}" data-lvl="1"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 2 ? "on" : ""}" data-pack="${p.id}" data-lvl="2"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 3 ? "on" : ""}" data-pack="${p.id}" data-lvl="3"></span></div>
+            <div class="c dotCell"><span class="dot ${cur === 4 ? "on" : ""}" data-pack="${p.id}" data-lvl="4"></span></div>
+          </div>
+        `;
+
+        optFlagsBlocks.appendChild(packDiv);
+      }
+
+      let sel = 0;
+      for (const p of packs) {
+        const cfg = ensurePackCfg(optionsDraft, p.id);
+        const L = Number(cfg.flags || 0);
+        if (L >= 1 && L <= 4) sel++;
+      }
+      optSelectedCountFlags.textContent = `Selecionados: ${sel}`;
+
+      optFlagsBlocks.querySelectorAll(".dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          const packId = dot.dataset.pack;
+          const lvl = Number(dot.dataset.lvl);
+
+          const cfg = ensurePackCfg(optionsDraft, packId);
+          const cur = Number(cfg.flags || 0);
+
+          cfg.flags = (cur === lvl) ? 0 : lvl;
+          renderFlagsOptions();
+        });
+      });
+    }
+
+    function openOptionsFlags() {
+      optionsDraft = loadOptions();
+      renderFlagsOptions();
+      showScreen(screenOptionsFlags);
+    }
+
+    function closeFlagsToOptionsMenu() {
+      saveOptions(optionsDraft);
+      showScreen(screenOptionsMenu);
+    }
+
+    btnOptBackFlags.addEventListener("click", () => closeFlagsToOptionsMenu());
+    btnOptBackTopFlags.addEventListener("click", () => closeFlagsToOptionsMenu());
+
     /* =========================
        DEMOGRAFIA
        ========================= */
@@ -1854,18 +1976,24 @@
       return flagsByNmKey;
     }
 
-    function getFlagCodeForMunicipioName(municipioName, pack) {
-      // municipioName vem do keyToOfficial -> ex: "Porto"
-      const nmKey = `nm:${normalize(municipioName)}`;
-      const code = flagsByNmKey?.[nmKey];
+    function getFlagCodeForMunicipioName(input, pack) {
+      // input pode ser:
+      // - nome oficial (ex: "Porto") -> packs normais
+      // - nmKey (ex: "nm:porto") -> packs fl
+
+      const s = String(input || "").trim();
+      if (!s) return null;
+
+      const isNmKey = s.startsWith("nm:");
+      const nmKey = isNmKey ? s : `nm:${normalize(s)}`;
 
       // EXCEÇÃO: Lagoa (Algarve vs Açores)
       // - se for distrito Faro (pt:faro) → Lagoa = 806
-      if (normalize(municipioName) === "lagoa" && pack?.region === "pt" && pack?.slug === "faro") {
+      if (!isNmKey && normalize(s) === "lagoa" && pack?.region === "pt" && pack?.slug === "faro") {
         return "806";
       }
 
-      return code || null;
+      return flagsByNmKey?.[nmKey] || null;
     }
 
     function getFlagUrlByCode(code) {
@@ -3124,6 +3252,58 @@ function renderChoicesFromItems() {
         return;
       }
 
+
+      // ===== MODO BANDEIRAS (packs por população) =====
+      if (pack.region === "fl") {
+        transitioning = true;
+        lockChoices(true);
+        stopTimer();
+
+        currentPack = pack;
+
+        setLoading(`A preparar: ${pack.label}`, 65);
+
+        await ensureDemografiaLoaded();
+        await ensureFlagsLoaded();
+
+        const rows = [];
+        for (const [nmKey, rec] of Object.entries(demografiaByNmKey || {})) {
+          const pop = Number(rec?.pop);
+          const name = String(rec?.municipio || "").trim();
+          if (!name || !Number.isFinite(pop)) continue;
+
+          const code = flagsByNmKey?.[nmKey];
+          if (!code) continue;
+
+          rows.push({ nmKey, name, pop });
+        }
+
+        rows.sort((a,b) => (b.pop - a.pop));
+
+        const FLAGS_PACK_SIZE = 22;
+        const idx = Math.max(1, Number(pack.slug || 1));
+        const start = (idx - 1) * FLAGS_PACK_SIZE;
+        const slice = rows.slice(start, start + FLAGS_PACK_SIZE);
+
+        byKey.clear();
+        keyToOfficial.clear();
+
+        playPoolKeys = slice.map(x => x.nmKey);
+        playRemainingKeys = shuffle(playPoolKeys);
+
+        for (const r of slice) {
+          byKey.set(r.nmKey, true);
+          keyToOfficial.set(r.nmKey, r.name);
+        }
+
+        playPoolEntries = playPoolKeys
+          .map(k => ({ key: k, name: keyToOfficial.get(k) || k, norm: normalize(keyToOfficial.get(k) || k) }))
+          .sort((a,b) => (a.name||"").localeCompare((b.name||""), "pt", { sensitivity:"base" }));
+
+        transitioning = false;
+        return;
+      }
+
       // ===== MODO CONCELHOS (original) =====
       const fc = await loadConcelhosFCForPack(pack);
 
@@ -3478,7 +3658,10 @@ function renderChoicesFromItems() {
         // escolher alvo (um município no pack atual)
         // (já tens currentTargetKey escolhido acima)
         const munName = keyToOfficial.get(currentTargetKey) || "";
-        const code = getFlagCodeForMunicipioName(munName, currentPack);
+        const code = getFlagCodeForMunicipioName(
+          (currentPack?.region === "fl") ? currentTargetKey : munName,
+          currentPack
+        );
 
         // fallback se não houver bandeira: volta a identify (não crasha)
         if (!code) {
@@ -3534,7 +3717,11 @@ function renderChoicesFromItems() {
         await buildChoiceItemsForDemografia(currentCategory, playLevel);
 
         // ✅ se houve fallback para identify dentro de buildChoiceItemsForDemografia, sincronizar stage
-        setStageMode(currentCategory === "identify" ? "map" : "text");
+        setStageMode(
+          currentCategory === "identify" ? "map" :
+          currentCategory === "flags" ? "flag" :
+          "text"
+        );
 
         if (playLevel === 4 && !level4HintChoiceMode && currentCategory !== "identify") {
           setLevel4UI(true);
