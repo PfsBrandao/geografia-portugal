@@ -623,6 +623,27 @@
       min-width: 34px;
     }
 
+    /* =========================
+       FLAG STAGE (BANDEIRAS)
+       ========================= */
+    .flagStage{
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px;
+      box-sizing:border-box;
+      z-index: 35; /* acima do mapa */
+      background: #fff;
+    }
+    .flagStage img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display:block;
+    }
+
   </style>
 </head>
 
@@ -837,7 +858,10 @@
 
       <div class="gameStage">
         <div id="map"></div>
-
+        <!-- FLAG STAGE (Bandeiras) -->
+        <div id="flagStage" class="flagStage" style="display:none;">
+          <img id="flagImg" alt="Bandeira do município" />
+        </div>
         <div id="stageText" class="stageText" aria-live="polite" style="display:none;">
           <div id="stageMunicipio" class="stageMunicipio">—</div>
           <div id="stageTipo" class="stageTipo">—</div>
@@ -906,6 +930,8 @@
       concelhosAZ: `${BASE}data/concelhos_acores.geojson`,
       concelhosMD: `${BASE}data/concelhos_madeira.geojson`,
       demografia: `${BASE}data/municipios_demografia.json`,
+      flagsMap: `${BASE}data/municipios_flags.json`,
+      flagsDir: `${BASE}flags/`,
 
       // modo rios
       portugal: `${BASE}data/Portugal.json`,
@@ -946,7 +972,7 @@
       { id:"pop", label:"População (habitantes)", kind:"num", unit:"habitantes" },
       { id:"area", label:"Área (km²)", kind:"num", unit:"km²" },
       { id:"dens", label:"Densidade (hab/km²)", kind:"num", unit:"hab/km²" },
-      { id:"flags", label:"(Futuro) Bandeiras", kind:"future" }
+      { id:"flags", label:"Bandeiras", kind:"flags" }
     ];
 
     const PLAY = {
@@ -1374,6 +1400,8 @@
 
     const gameStageEl = document.querySelector(".gameStage");
     const stageText = document.getElementById("stageText");
+    const flagStage = document.getElementById("flagStage");
+    const flagImg = document.getElementById("flagImg");
     const stageMunicipio = document.getElementById("stageMunicipio");
     const stageTipo = document.getElementById("stageTipo");
 
@@ -1390,7 +1418,6 @@
     function makeEmptyCfg() {
       const obj = {};
       for (const c of CATEGORIES) {
-        if (c.id === "flags") continue; // previsto, mas não joga
         obj[c.id] = 0;
       }
       return obj;
@@ -1432,7 +1459,6 @@
       if (!o.cfg) o.cfg = {};
       if (!o.cfg[packId] || typeof o.cfg[packId] !== "object") o.cfg[packId] = makeEmptyCfg();
       for (const c of CATEGORIES) {
-        if (c.id === "flags") continue;
         if (o.cfg[packId][c.id] == null) o.cfg[packId][c.id] = 0;
       }
       return o.cfg[packId];
@@ -1440,7 +1466,7 @@
 
     function packIsPlayable(cfg) {
       if (!cfg) return false;
-      return ["identify","pop","area","dens"].some(k => Number(cfg[k] || 0) >= 1 && Number(cfg[k] || 0) <= 4);
+      return ["identify","pop","area","dens","flags"].some(k => Number(cfg[k] || 0) >= 1 && Number(cfg[k] || 0) <= 4);
     }
 
     function getSelectedPacksFromOptions(o) {
@@ -1557,7 +1583,6 @@
         packDiv.appendChild(catHead);
 
         for (const cat of CATEGORIES) {
-          if (cat.id === "flags") continue; // apenas previsto
 
           const row = document.createElement("div");
           row.className = "optCatRow";
@@ -1778,7 +1803,7 @@
           <div class="c dotCell"><span class="dot ${cur === 2 ? "on" : ""}" data-pack="${p.id}" data-lvl="2"></span></div>
           <div class="c dotCell"><span class="dot ${cur === 3 ? "on" : ""}" data-pack="${p.id}" data-lvl="3"></span></div>
           <div class="c dotCell"><span class="dot ${cur === 4 ? "on" : ""}" data-pack="${p.id}" data-lvl="4"></span></div>
-    </div>
+        </div>
       `;
 
       optPABlocks.appendChild(packDiv);
@@ -1817,6 +1842,35 @@
        DEMOGRAFIA
        ========================= */
     let demografiaByNmKey = null; // { "nm:porto": { municipio, pop, area_km2, dens_pop_km2 }, ... }
+
+    // =========================
+    // BANDEIRAS
+    // =========================
+    let flagsByNmKey = null; // { "nm:porto": "1312", ... }
+
+    async function ensureFlagsLoaded() {
+      if (flagsByNmKey) return flagsByNmKey;
+      flagsByNmKey = await loadJSON(FILES.flagsMap);
+      return flagsByNmKey;
+    }
+
+    function getFlagCodeForMunicipioName(municipioName, pack) {
+      // municipioName vem do keyToOfficial -> ex: "Porto"
+      const nmKey = `nm:${normalize(municipioName)}`;
+      const code = flagsByNmKey?.[nmKey];
+
+      // EXCEÇÃO: Lagoa (Algarve vs Açores)
+      // - se for distrito Faro (pt:faro) → Lagoa = 806
+      if (normalize(municipioName) === "lagoa" && pack?.region === "pt" && pack?.slug === "faro") {
+        return "806";
+      }
+
+      return code || null;
+    }
+
+    function getFlagUrlByCode(code) {
+      return `${FILES.flagsDir}${code}.webp`;
+    }
 
     async function ensureDemografiaLoaded() {
       if (demografiaByNmKey) return demografiaByNmKey;
@@ -2487,7 +2541,7 @@
     function pickPackAndCategoryForRound() {
       const pack = selectedPacks[Math.floor(Math.random() * selectedPacks.length)];
       const enabled = [];
-      for (const cat of ["identify","pop","area","dens"]) {
+      for (const cat of ["identify","pop","area","dens","flags"]) {
         const L = Number(pack.cfg?.[cat] || 0);
         if (L >= 1 && L <= 4) enabled.push(cat);
       }
@@ -2501,17 +2555,22 @@
     }
 
     function setStageMode(mode) {
-      // mode: "map" | "text"
+      // mode: "map" | "text" | "flag"
       if (!gameStageEl) return;
+
       const isText = (mode === "text");
+      const isFlag = (mode === "flag");
+
       gameStageEl.classList.toggle("textMode", isText);
+
       if (stageText) stageText.style.display = isText ? "flex" : "none";
-      if (!isText) {
+      if (flagStage) flagStage.style.display = isFlag ? "flex" : "none";
+
+      if (mode === "map") {
         setTimeout(invalidateMapSizeHard, 0);
         setTimeout(invalidateMapSizeHard, 120);
       }
     }
-
     function updateStageTextForDemografia() {
       const mun = keyToOfficial.get(currentTargetKey) || "—";
       if (stageMunicipio) stageMunicipio.textContent = mun;
@@ -2715,7 +2774,11 @@ function renderChoicesFromItems() {
         b.type = "button";
         b.className = "choiceBtn";
         b.dataset.id = it.id;
-        b.textContent = it.label;
+        if (it.img) {
+          b.innerHTML = `<img src="${it.img}" alt="${it.label || ""}">`;
+        } else {
+          b.textContent = it.label;
+        }
 
         b.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -3389,6 +3452,56 @@ function renderChoicesFromItems() {
           }));
           correctChoiceId = currentTargetKey;
 
+          renderChoicesFromItems();
+          lockChoices(false);
+        }
+
+        timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+        startTimer();
+        renderHUD();
+        return;
+      }
+
+
+      // ===== RONDA: BANDEIRAS (imagem no palco, opções = municípios) =====
+      if (currentCategory === "flags") {
+        await ensureFlagsLoaded();
+
+        // palco = bandeira
+        setStageMode("flag");
+        if (flagImg) flagImg.removeAttribute("src");
+
+        // não usar inset/locator aqui
+        insetWrap.classList.remove("show");
+        clearLocator();
+
+        // escolher alvo (um município no pack atual)
+        // (já tens currentTargetKey escolhido acima)
+        const munName = keyToOfficial.get(currentTargetKey) || "";
+        const code = getFlagCodeForMunicipioName(munName, currentPack);
+
+        // fallback se não houver bandeira: volta a identify (não crasha)
+        if (!code) {
+          currentCategory = "identify";
+          setStageMode("map");
+          refreshStyles();
+          updateAzoresInsetForCurrentTarget();
+        } else {
+          if (flagImg) flagImg.src = getFlagUrlByCode(code);
+        }
+
+        // opções: nomes de municípios
+        if (playLevel === 4) {
+          // nível 4: escrever o município
+          correctChoiceId = currentTargetKey;
+          setLevel4UI(true);
+          setKeyboardMode("text");
+          lvl4Keyboard.classList.remove("disabled");
+          setLevel4TypedText(lvl4Typed);
+          renderLevel4Suggestions();
+        } else {
+          setLevel4UI(false);
+          buildChoiceItemsForIdentify(playLevel); // <- isto gera opções de municípios (texto)
           renderChoicesFromItems();
           lockChoices(false);
         }
