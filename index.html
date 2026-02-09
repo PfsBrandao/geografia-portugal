@@ -1996,8 +1996,33 @@
       return flagsByNmKey?.[nmKey] || null;
     }
 
-    function getFlagUrlByCode(code) {
-      return `${FILES.flagsDir}${code}.webp`;
+    function flagUrlByCode(code, ext) {
+      const c = String(code ?? "").trim();
+      return `${FILES.flagsDir}${c}.${ext}`;
+    }
+
+    function setFlagImageByCode(code) {
+      const c = String(code ?? "").trim();
+      if (!flagImg || !c) { flagImg?.removeAttribute("src"); return; }
+
+      const tries = ["webp", "png", "jpg"].map(ext => flagUrlByCode(c, ext));
+      let i = 0;
+
+      const tryNext = () => {
+        if (i >= tries.length) {
+          console.error("[FLAGS] Falhou tudo para code:", c, tries);
+          flagImg.removeAttribute("src");
+          return;
+        }
+        const url = tries[i++];
+        console.log("[FLAGS] a tentar:", url);
+
+        flagImg.onload = () => { flagImg.onerror = null; }; // ✅
+        flagImg.onerror = tryNext;
+        flagImg.src = url;
+      };
+
+      tryNext();
     }
 
     async function ensureDemografiaLoaded() {
@@ -2705,11 +2730,11 @@
       if (stageTipo) stageTipo.textContent = currentDemoLabel || "—";
     }
 
-    function buildChoiceItemsForIdentify(level) {
+    function buildChoiceItemsForIdentify(level, poolKeys = playPoolKeys) {
       const effectiveLevel = (level === 4) ? 3 : level;
       const n = PLAY.optionsByLevel(effectiveLevel);
       const forbid = new Set([currentTargetKey]);
-      const wrong = sampleDistinct(playPoolKeys, n - 1, forbid);
+      const wrong = sampleDistinct(poolKeys, n - 1, forbid);
       const keys = shuffle([currentTargetKey, ...wrong]);
       currentChoiceItems = keys.map(k => ({ id: k, label: keyToOfficial.get(k) || k }));
       correctChoiceId = currentTargetKey;
@@ -3647,53 +3672,55 @@ function renderChoicesFromItems() {
       if (currentCategory === "flags") {
         await ensureFlagsLoaded();
 
-        // palco = bandeira
-        setStageMode("flag");
-        if (flagImg) flagImg.removeAttribute("src");
+        // ✅ Lista só com municípios do pack atual (distrito) que têm bandeira
+        const flagsPool = playPoolKeys.filter(k => {
+          const munName = keyToOfficial.get(k) || "";
+          return !!getFlagCodeForMunicipioName(munName, currentPack);
+        });
 
-        // não usar inset/locator aqui
-        insetWrap.classList.remove("show");
-        clearLocator();
-
-        // escolher alvo (um município no pack atual)
-        // (já tens currentTargetKey escolhido acima)
-        const munName = keyToOfficial.get(currentTargetKey) || "";
-        const code = getFlagCodeForMunicipioName(
-          (currentPack?.region === "fl") ? currentTargetKey : munName,
-          currentPack
-        );
-
-        // fallback se não houver bandeira: volta a identify (não crasha)
-        if (!code) {
+        // Se não houver bandeiras suficientes, volta a "identify"
+        if (flagsPool.length < 2) {
           currentCategory = "identify";
           setStageMode("map");
           refreshStyles();
           updateAzoresInsetForCurrentTarget();
+          // NÃO return aqui: deixa seguir para a lógica normal de identify
         } else {
-          if (flagImg) flagImg.src = getFlagUrlByCode(code);
-        }
+          // Escolhe um alvo apenas dentro das que têm bandeira
+          currentTargetKey = flagsPool[Math.floor(Math.random() * flagsPool.length)];
 
-        // opções: nomes de municípios
-        if (playLevel === 4) {
-          // nível 4: escrever o município
-          correctChoiceId = currentTargetKey;
-          setLevel4UI(true);
-          setKeyboardMode("text");
-          lvl4Keyboard.classList.remove("disabled");
-          setLevel4TypedText(lvl4Typed);
-          renderLevel4Suggestions();
-        } else {
-          setLevel4UI(false);
-          buildChoiceItemsForIdentify(playLevel); // <- isto gera opções de municípios (texto)
-          renderChoicesFromItems();
-          lockChoices(false);
-        }
+          setStageMode("flag");
+          if (flagImg) flagImg.removeAttribute("src");
 
-        timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
-        startTimer();
-        renderHUD();
-        return;
+          insetWrap.classList.remove("show");
+          clearLocator();
+
+          const munName = keyToOfficial.get(currentTargetKey) || "";
+          const code = getFlagCodeForMunicipioName(munName, currentPack);
+
+          if (code) setFlagImageByCode(code);
+
+          if (playLevel === 4) {
+            correctChoiceId = currentTargetKey;
+            setLevel4UI(true);
+            setKeyboardMode("text");
+            lvl4Keyboard.classList.remove("disabled");
+            setLevel4TypedText(lvl4Typed);
+            renderLevel4Suggestions();
+          } else {
+            setLevel4UI(false);
+            buildChoiceItemsForIdentify(playLevel, flagsPool); // ✅ opções só do distrito e só com bandeira
+            renderChoicesFromItems();
+            lockChoices(false);
+          }
+
+          timeLine.textContent = String(PLAY.TIME_LIMIT_SEC);
+          startTimer();
+          renderHUD();
+          return;
+        }
       }
+
 
       if (currentCategory === "identify") {
         currentDemoRealValue = null;
