@@ -624,6 +624,16 @@
     }
 
     /* =========================
+       STAGE FLAG MODE (BANDEIRAS) — esconder mapa
+       ========================= */
+    .gameStage.flagMode #map{
+      opacity: 0;
+      pointer-events: none;
+      user-select: none;
+    }
+    .gameStage.flagMode .insetWrap{ display:none !important; }
+
+    /* =========================
        FLAG STAGE (BANDEIRAS)
        ========================= */
     .flagStage{
@@ -699,7 +709,6 @@
           <button id="btnOptCatRA" class="menuBtn">Regiões Autónomas</button>
           <button id="btnOptCatPA" class="menuBtn">Áreas Protegidas</button>
           <button id="btnOptCatMountains" class="menuBtn disabled" disabled>Serras</button>
-          <button id="btnOptCatFlags" class="menuBtn">Bandeiras</button>
           <button id="btnOptMenuBack" class="menuBtn small">Voltar</button>
         </div>
       </div>
@@ -742,7 +751,6 @@
           Define o que é perguntado em cada distrito (categorias independentes).
           Nível 1 = 4 opções, Nível 2 = 6 opções, Nível 3 = 8 opções.
           Nível 4 = escrever no teclado do jogo (nomes) ou valor numérico (±10%).
-          (Bandeiras está previsto mas ainda não implementado.)
         </div>
 
         <div id="optDistrictsBlocks"></div>
@@ -830,33 +838,6 @@
 
         <div class="optFooter">
           <button id="btnOptBackPA" class="optBtn primary" type="button">Voltar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- OPTIONS: BANDEIRAS -->
-  <div id="screenOptionsFlags" class="screen">
-    <div class="optWrap">
-      <div class="optPhone">
-        <div class="optHeader">
-          <div>
-            <div class="optTitle">Bandeiras</div>
-            <div class="optMeta" id="optSelectedCountFlags">Selecionados: 0</div>
-          </div>
-          <button id="btnOptBackTopFlags" class="exitBtn" type="button"
-            style="color:#111; border-color:#ddd; background:#f3f3f3;">⟵</button>
-        </div>
-
-        <div class="optHint">
-          Packs de 22 municípios ordenados por população (Bandeiras 1 = 22 mais populosos, etc).
-          Escolhe o nível (1–4) por pack.
-        </div>
-
-        <div id="optFlagsBlocks"></div>
-
-        <div class="optFooter">
-          <button id="btnOptBackFlags" class="optBtn primary" type="button">Voltar</button>
         </div>
       </div>
     </div>
@@ -990,14 +971,6 @@
 
       // ÁREAS PROTEGIDAS (1 pack)
         arr.push({ id:"pa", label:"Áreas Protegidas", region:"pa", slug:"1", short:"Áreas Prot." });
-
-        // BANDEIRAS (packs de 22) — Portugal inteiro, ordenado por população
-        const FLAGS_PACK_SIZE = 22;
-        const FLAGS_PACKS_COUNT = 14; // 308/22 ≈ 14
-        for (let i = 1; i <= FLAGS_PACKS_COUNT; i++) {
-          arr.push({ id:`fl:${i}`, label:`Bandeiras ${i}`, region:"fl", slug:String(i), short:`Bandeiras ${i}` });
-        }
-
         return arr;
       }
 
@@ -1362,7 +1335,6 @@
     const screenOptionsRA = document.getElementById("screenOptionsRA");
     const screenOptionsRivers = document.getElementById("screenOptionsRivers");
     const screenOptionsPA = document.getElementById("screenOptionsPA");
-    const screenOptionsFlags = document.getElementById("screenOptionsFlags");
     const screenLoading = document.getElementById("screenLoading");
     const screenGame = document.getElementById("screenGame");
 
@@ -1380,7 +1352,6 @@
         screenOptionsRA,
         screenOptionsRivers,
         screenOptionsPA,
-        screenOptionsFlags,
         screenLoading,
         screenGame
       ];
@@ -1424,8 +1395,6 @@
     document.getElementById("btnOptCatRA").addEventListener("click", () => openOptionsRA());
     document.getElementById("btnOptCatRivers").addEventListener("click", () => openOptionsRivers());
     document.getElementById("btnOptCatPA").addEventListener("click", () => openOptionsPA());
-    document.getElementById("btnOptCatFlags").addEventListener("click", () => openOptionsFlags());
-
 
     // GAME UI
     const btnExit = document.getElementById("btnExit");
@@ -1877,88 +1846,6 @@
 
     btnOptBackPA.addEventListener("click", () => closePAToOptionsMenu());
     btnOptBackTopPA.addEventListener("click", () => closePAToOptionsMenu());
-
-
-    // =========================
-    // BANDEIRAS SCREEN (Opções) — packs fl:1..fl:14 com níveis 1..4 (usa cfg.flags)
-    // =========================
-    const optFlagsBlocks = document.getElementById("optFlagsBlocks");
-    const optSelectedCountFlags = document.getElementById("optSelectedCountFlags");
-    const btnOptBackFlags = document.getElementById("btnOptBackFlags");
-    const btnOptBackTopFlags = document.getElementById("btnOptBackTopFlags");
-
-    function renderFlagsOptions() {
-      optFlagsBlocks.innerHTML = "";
-
-      const packs = getAllPacks().filter(p => p.region === "fl");
-
-      for (const p of packs) {
-        const cfg = ensurePackCfg(optionsDraft, p.id);
-        const cur = Number(cfg.flags || 0);
-
-        const packDiv = document.createElement("div");
-        packDiv.className = "optPack";
-
-        packDiv.innerHTML = `
-          <div class="optPackHead">
-            <div>${p.label}<div class="sub">${(cur >= 1 && cur <= 4) ? ("Ativo (Nível " + cur + ")") : "Inativo"}</div></div>
-          </div>
-
-          <div class="optCatHead">
-            <div class="c">Pack</div>
-            <div class="c">1</div>
-            <div class="c">2</div>
-            <div class="c">3</div>
-            <div class="c">4</div>
-          </div>
-
-          <div class="optCatRow">
-            <div class="c">Identificar bandeira</div>
-            <div class="c dotCell"><span class="dot ${cur === 1 ? "on" : ""}" data-pack="${p.id}" data-lvl="1"></span></div>
-            <div class="c dotCell"><span class="dot ${cur === 2 ? "on" : ""}" data-pack="${p.id}" data-lvl="2"></span></div>
-            <div class="c dotCell"><span class="dot ${cur === 3 ? "on" : ""}" data-pack="${p.id}" data-lvl="3"></span></div>
-            <div class="c dotCell"><span class="dot ${cur === 4 ? "on" : ""}" data-pack="${p.id}" data-lvl="4"></span></div>
-          </div>
-        `;
-
-        optFlagsBlocks.appendChild(packDiv);
-      }
-
-      let sel = 0;
-      for (const p of packs) {
-        const cfg = ensurePackCfg(optionsDraft, p.id);
-        const L = Number(cfg.flags || 0);
-        if (L >= 1 && L <= 4) sel++;
-      }
-      optSelectedCountFlags.textContent = `Selecionados: ${sel}`;
-
-      optFlagsBlocks.querySelectorAll(".dot").forEach(dot => {
-        dot.addEventListener("click", () => {
-          const packId = dot.dataset.pack;
-          const lvl = Number(dot.dataset.lvl);
-
-          const cfg = ensurePackCfg(optionsDraft, packId);
-          const cur = Number(cfg.flags || 0);
-
-          cfg.flags = (cur === lvl) ? 0 : lvl;
-          renderFlagsOptions();
-        });
-      });
-    }
-
-    function openOptionsFlags() {
-      optionsDraft = loadOptions();
-      renderFlagsOptions();
-      showScreen(screenOptionsFlags);
-    }
-
-    function closeFlagsToOptionsMenu() {
-      saveOptions(optionsDraft);
-      showScreen(screenOptionsMenu);
-    }
-
-    btnOptBackFlags.addEventListener("click", () => closeFlagsToOptionsMenu());
-    btnOptBackTopFlags.addEventListener("click", () => closeFlagsToOptionsMenu());
 
     /* =========================
        DEMOGRAFIA
@@ -2715,6 +2602,7 @@
       const isFlag = (mode === "flag");
 
       gameStageEl.classList.toggle("textMode", isText);
+      gameStageEl.classList.toggle("flagMode", isFlag);
 
       if (stageText) stageText.style.display = isText ? "flex" : "none";
       if (flagStage) flagStage.style.display = isFlag ? "flex" : "none";
@@ -3272,58 +3160,6 @@ function renderChoicesFromItems() {
           .sort((a,b) => (a.name||"").localeCompare((b.name||""), "pt", { sensitivity:"base" }));
 
         ensurePackLoaded._paFeaturesByCanon = protectedAreasByCanon;
-
-        transitioning = false;
-        return;
-      }
-
-
-      // ===== MODO BANDEIRAS (packs por população) =====
-      if (pack.region === "fl") {
-        transitioning = true;
-        lockChoices(true);
-        stopTimer();
-
-        currentPack = pack;
-
-        setLoading(`A preparar: ${pack.label}`, 65);
-
-        await ensureDemografiaLoaded();
-        await ensureFlagsLoaded();
-
-        const rows = [];
-        for (const [nmKey, rec] of Object.entries(demografiaByNmKey || {})) {
-          const pop = Number(rec?.pop);
-          const name = String(rec?.municipio || "").trim();
-          if (!name || !Number.isFinite(pop)) continue;
-
-          const code = flagsByNmKey?.[nmKey];
-          if (!code) continue;
-
-          rows.push({ nmKey, name, pop });
-        }
-
-        rows.sort((a,b) => (b.pop - a.pop));
-
-        const FLAGS_PACK_SIZE = 22;
-        const idx = Math.max(1, Number(pack.slug || 1));
-        const start = (idx - 1) * FLAGS_PACK_SIZE;
-        const slice = rows.slice(start, start + FLAGS_PACK_SIZE);
-
-        byKey.clear();
-        keyToOfficial.clear();
-
-        playPoolKeys = slice.map(x => x.nmKey);
-        playRemainingKeys = shuffle(playPoolKeys);
-
-        for (const r of slice) {
-          byKey.set(r.nmKey, true);
-          keyToOfficial.set(r.nmKey, r.name);
-        }
-
-        playPoolEntries = playPoolKeys
-          .map(k => ({ key: k, name: keyToOfficial.get(k) || k, norm: normalize(keyToOfficial.get(k) || k) }))
-          .sort((a,b) => (a.name||"").localeCompare((b.name||""), "pt", { sensitivity:"base" }));
 
         transitioning = false;
         return;
